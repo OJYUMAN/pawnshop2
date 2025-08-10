@@ -26,79 +26,176 @@ class PawnShopUI(QMainWindow):
         self.current_product = None
         self.current_contract = None
         
-        self.setWindowTitle("โปรแกรมรับจำนำ")
+        self.setWindowTitle("Pownshop")
         self.setGeometry(100, 100, 1600, 900)
 
-        # Apply styles to mimic the original UI
+        # Apply modern styles for better UI appearance
         self.setStyleSheet("""
             QWidget {
-                font-family: Tahoma;
+                font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
                 font-size: 11px;
             }
             QMainWindow {
-                background-color: #F0F0F0;
+                background-color: #F8F9FA;
             }
             QGroupBox {
                 margin-top: 15px;
+                border: 2px solid #E9ECEF;
+                border-radius: 8px;
+                font-weight: bold;
+                color: #495057;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                padding: 0 5px;
-                margin-left: 10px;
+                padding: 0 8px;
+                margin-left: 15px;
+                background-color: #F8F9FA;
+                color: #495057;
             }
             #TopLeftGroup {
-                background-color: #E6EFDE;
+                background-color: #E8F5E8;
+                border-color: #28A745;
             }
             #TopMiddleGroup {
-                background-color: #FEFDE4;
+                background-color: #FFF3CD;
+                border-color: #FFC107;
             }
             #SearchGroup {
-                background-color: #DCEAF6;
+                background-color: #D1ECF1;
+                border-color: #17A2B8;
             }
             #TabWidget, #TabWidget > QWidget > QWidget{
-                background-color: #FDECEC;
+                background-color: #F8F9FA;
             }
             QTabBar::tab {
-                background: #F0F0F0;
-                padding: 5px 10px;
-                border: 1px solid #B0B0B0;
+                background: #E9ECEF;
+                padding: 8px 16px;
+                border: 1px solid #DEE2E6;
                 border-bottom: none;
                 margin-right: 2px;
+                border-radius: 4px 4px 0 0;
+                color: #495057;
             }
             QTabBar::tab:selected {
-                background: #FDECEC;
-                border: 1px solid #888;
-                border-bottom: 1px solid #FDECEC;
+                background: #007BFF;
+                color: white;
+                border-color: #007BFF;
+            }
+            QTabBar::tab:hover {
+                background: #6C757D;
+                color: white;
             }
             QTableWidget {
                 background-color: white;
-                gridline-color: #D0D0D0;
+                gridline-color: #DEE2E6;
+                border: 1px solid #DEE2E6;
+                border-radius: 4px;
+                alternate-background-color: #F8F9FA;
             }
             QHeaderView::section {
-                background-color: #E0E0E0;
-                padding: 4px;
-                border: 1px solid #C0C0C0;
+                background-color: #F8F9FA;
+                padding: 8px;
+                border: 1px solid #DEE2E6;
+                font-weight: bold;
+                color: #495057;
             }
             QPushButton {
-                background-color: #F0F0F0;
-                min-height: 23px;
-                border: 1px solid #888;
+                background-color: #007BFF;
+                color: white;
+                min-height: 32px;
+                border: none;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0056B3;
+            }
+            QPushButton:pressed {
+                background-color: #004085;
             }
             QToolButton {
-                 background-color: #F0F0F0;
+                background-color: #FFFFFF;
+                color: #424242;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
+                margin: 2px;
+                padding: 6px;
+                font-weight: 500;
+                min-width: 60px;
+                min-height: 40px;
+            }
+            QToolButton:hover {
+                background-color: #F5F5F5;
+                border-color: #BDBDBD;
+            }
+            QToolButton:pressed {
+                background-color: #E3F2FD;
+                border-color: #2196F3;
+            }
+            QToolButton:checked {
+                background-color: #E8F5E8;
+                border-color: #4CAF50;
             }
             QLineEdit {
-                padding: 2px;
-                border: 1px solid #888;
+                padding: 8px;
+                border: 2px solid #DEE2E6;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QLineEdit:focus {
+                border-color: #007BFF;
             }
             QDateEdit {
-                padding: 2px;
-                border: 1px solid #888;
+                padding: 8px;
+                border: 2px solid #DEE2E6;
+                border-radius: 4px;
+                background-color: white;
+                background: white;
+            }
+            QDateEdit:focus {
+                border-color: #007BFF;
             }
             QSpinBox, QDoubleSpinBox {
-                padding: 2px;
-                border: 1px solid #888;
+                padding: 8px;
+                border: 2px solid #DEE2E6;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QSpinBox:focus, QDoubleSpinBox:focus {
+                border-color: #007BFF;
+            }
+            QComboBox {
+                padding: 8px;
+                border: 2px solid #DEE2E6;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QComboBox:focus {
+                border-color: #007BFF;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #495057;
+                margin-right: 5px;
+            }
+            QToolBar {
+                background-color: #FAFAFA;
+                border-top: 1px solid #E0E0E0;
+                spacing: 8px;
+                padding: 8px;
+            }
+            QToolBar::separator {
+                background-color: #E0E0E0;
+                width: 1px;
+                margin: 4px;
             }
         """)
 
@@ -109,19 +206,22 @@ class PawnShopUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-
-        # --- Top Section ---
-        main_layout.addWidget(self.create_top_section())
+        main_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
+        main_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
 
         # --- Main Content Area ---
         content_widget = QWidget()
         content_layout = QHBoxLayout(content_widget)
+        content_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนซ้ายและขวา
+        content_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
-        # Left side - Contract form
-        content_layout.addWidget(self.create_contract_form(), 2)
+        # Left side - Customer and Product info (50% of screen)
+        left_panel = self.create_left_panel()
+        content_layout.addWidget(left_panel, 1)
         
-        # Right side - Search and data
-        content_layout.addWidget(self.create_right_panel(), 1)
+        # Right side - Contract info, Results, Search (50% of screen)
+        right_panel = self.create_right_panel()
+        content_layout.addWidget(right_panel, 1)
         
         main_layout.addWidget(content_widget)
 
@@ -158,183 +258,20 @@ class PawnShopUI(QMainWindow):
             self.days_spin.setValue(30)
             self.withholding_tax_rate_spin.setValue(3.0)
 
-    def create_top_section(self):
-        """สร้างส่วนบนของ UI"""
-        top_widget = QWidget()
-        top_layout = QHBoxLayout(top_widget)
-        
-        # Left group - Contract info
-        left_group = self.create_top_left_group()
-        top_layout.addWidget(left_group)
-        
-        # Middle group - Financial calculations
-        middle_group = self.create_top_middle_group()
-        top_layout.addWidget(middle_group)
-        
-        # Right group - Action buttons
-        right_group = self.create_top_right_group()
-        top_layout.addWidget(right_group)
-        
-        return top_widget
 
-    def create_top_left_group(self):
-        group_box = QGroupBox("ข้อมูลสัญญา")
-        group_box.setObjectName("TopLeftGroup")
-        layout = QGridLayout(group_box)
-        
-        # เลขที่สัญญา
-        layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
-        self.contract_number_edit = QLineEdit()
-        self.contract_number_edit.setReadOnly(True)
-        layout.addWidget(self.contract_number_edit, 0, 1)
-        
-        # วันที่เริ่มต้น
-        layout.addWidget(QLabel("วันที่เริ่มต้น:"), 1, 0)
-        self.start_date_edit = QDateEdit()
-        self.start_date_edit.setDate(QDate.currentDate())
-        layout.addWidget(self.start_date_edit, 1, 1)
-        
-        # จำนวนวัน
-        layout.addWidget(QLabel("จำนวนวัน:"), 2, 0)
-        self.days_spin = QSpinBox()
-        self.days_spin.setRange(1, 365)
-        self.days_spin.setValue(30)
-        layout.addWidget(self.days_spin, 2, 1)
-        
-        # วันที่สิ้นสุด
-        layout.addWidget(QLabel("วันที่สิ้นสุด:"), 3, 0)
-        self.end_date_edit = QLineEdit()
-        self.end_date_edit.setReadOnly(True)
-        layout.addWidget(self.end_date_edit, 3, 1)
-        
-        # เชื่อมต่อสัญญาณ
-        self.start_date_edit.dateChanged.connect(self.calculate_end_date)
-        self.days_spin.valueChanged.connect(self.calculate_end_date)
-        
-        return group_box
-
-    def create_top_middle_group(self):
-        group_box = QGroupBox("ผลจัดทำ")
-        group_box.setObjectName("TopMiddleGroup")
-        layout = QGridLayout(group_box)
-
-        # ยอดฝาก
-        layout.addWidget(QLabel("ยอดฝาก"), 0, 0)
-        self.pawn_amount_spin = QDoubleSpinBox()
-        self.pawn_amount_spin.setRange(0, 999999)
-        self.pawn_amount_spin.setSuffix(" บาท")
-        layout.addWidget(self.pawn_amount_spin, 0, 1)
-
-        # อัตราดอกเบี้ย
-        layout.addWidget(QLabel("อัตราดอกเบี้ย"), 1, 0)
-        self.interest_rate_spin = QDoubleSpinBox()
-        self.interest_rate_spin.setRange(0, 100)
-        self.interest_rate_spin.setSuffix(" %")
-        layout.addWidget(self.interest_rate_spin, 1, 1)
-
-        # ค่าธรรมเนียม
-        layout.addWidget(QLabel("ค่าธรรมเนียม"), 2, 0)
-        self.fee_amount_label = QLabel("0.00 บาท")
-        layout.addWidget(self.fee_amount_label, 2, 1)
-        
-        # อัตราหัก ณ ที่จ่าย
-        layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย"), 3, 0)
-        self.withholding_tax_rate_spin = QDoubleSpinBox()
-        self.withholding_tax_rate_spin.setRange(0, 100)
-        self.withholding_tax_rate_spin.setSuffix(" %")
-        self.withholding_tax_rate_spin.setValue(3.0)
-        layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
-        
-        # ปุ่มอัปเดตอัตราหัก ณ ที่จ่าย
-        self.update_tax_rate_btn = QPushButton("อัปเดต")
-        self.update_tax_rate_btn.clicked.connect(self.update_withholding_tax_rate)
-        self.update_tax_rate_btn.setMaximumWidth(80)
-        layout.addWidget(self.update_tax_rate_btn, 3, 2)
-        
-        # ยอดหัก ณ ที่จ่าย
-        layout.addWidget(QLabel("ยอดหัก ณ ที่จ่าย"), 4, 0)
-        self.withholding_tax_amount_label = QLabel("0.00 บาท")
-        layout.addWidget(self.withholding_tax_amount_label, 4, 1)
-        
-        # ยอดจ่าย
-        layout.addWidget(QLabel("ยอดจ่าย"), 5, 0)
-        self.total_paid_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_paid_label, 5, 1)
-
-        # ยอดไถ่ถอน
-        layout.addWidget(QLabel("ยอดไถ่ถอน"), 6, 0)
-        self.total_redemption_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_redemption_label, 6, 1)
-
-        # เชื่อมต่อสัญญาณ
-        self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
-        self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
-        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
-
-        group_box.setFixedWidth(350)
-        return group_box
-
-    def create_top_right_group(self):
-        group_box = QGroupBox("การดำเนินการ")
-        layout = QVBoxLayout(group_box)
-        
-        # ปุ่มสร้างสัญญาใหม่
-        self.new_contract_btn = QPushButton("สร้างสัญญาใหม่")
-        self.new_contract_btn.clicked.connect(self.generate_new_contract)
-        self.new_contract_btn.setMinimumHeight(40)
-        layout.addWidget(self.new_contract_btn)
-        
-        # ปุ่มล้างฟอร์ม
-        clear_btn = QPushButton("ล้างฟอร์ม")
-        clear_btn.clicked.connect(self.clear_form)
-        clear_btn.setMinimumHeight(30)
-        layout.addWidget(clear_btn)
-        
-        # ปุ่มบันทึกสัญญา
-        save_btn = QPushButton("บันทึกสัญญา")
-        save_btn.clicked.connect(self.save_contract)
-        save_btn.setMinimumHeight(30)
-        layout.addWidget(save_btn)
-        
-        group_box.setFixedWidth(200)
-        return group_box
-
-    def create_contract_form(self):
-        """สร้างฟอร์มสัญญา"""
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.NoFrame)
-        
-        form_widget = QWidget()
-        form_layout = QVBoxLayout(form_widget)
-        
-        # Tab widget for contract form
-        tab_widget = QTabWidget()
-        tab_widget.setObjectName("TabWidget")
-        
-        # Tab 1: Customer Info
-        customer_tab = self.create_customer_tab()
-        tab_widget.addTab(customer_tab, "ข้อมูลผู้ขายฝาก (F2)")
-        
-        # Tab 2: Product Info
-        product_tab = self.create_product_tab()
-        tab_widget.addTab(product_tab, "ข้อมูลสินค้าขายฝาก (F3)")
-        
-
-        
-        form_layout.addWidget(tab_widget)
-        scroll_area.setWidget(form_widget)
-        
-        return scroll_area
 
     def create_customer_tab(self):
         """สร้างแท็บข้อมูลลูกค้า"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
+        layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
+        layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
         # Customer search section
         search_group = QGroupBox("ค้นหาลูกค้า")
         search_layout = QGridLayout(search_group)
+        search_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        search_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         search_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
         self.customer_code_edit = QLineEdit()
@@ -342,10 +279,14 @@ class PawnShopUI(QMainWindow):
         
         self.customer_search_btn = QPushButton("ค้นหา")
         self.customer_search_btn.clicked.connect(self.search_customer)
+        self.customer_search_btn.setIcon(QIcon.fromTheme("system-search"))
+        self.customer_search_btn.setMinimumHeight(32)
         search_layout.addWidget(self.customer_search_btn, 0, 2)
         
         self.add_customer_btn = QPushButton("เพิ่มลูกค้าใหม่")
         self.add_customer_btn.clicked.connect(self.add_customer)
+        self.add_customer_btn.setIcon(QIcon.fromTheme("list-add"))
+        self.add_customer_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_customer_btn, 0, 3)
         
         layout.addWidget(search_group)
@@ -353,6 +294,8 @@ class PawnShopUI(QMainWindow):
         # Customer info section
         info_group = QGroupBox("ข้อมูลลูกค้า")
         info_layout = QGridLayout(info_group)
+        info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # ชื่อลูกค้า
         info_layout.addWidget(QLabel("ชื่อผู้กู้:"), 0, 0)
@@ -425,10 +368,14 @@ class PawnShopUI(QMainWindow):
         """สร้างแท็บข้อมูลสินค้า"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
+        layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
+        layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
         # Product search section
         search_group = QGroupBox("ค้นหาสินค้า")
         search_layout = QGridLayout(search_group)
+        search_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        search_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         search_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
         self.product_name_edit = QLineEdit()
@@ -436,10 +383,14 @@ class PawnShopUI(QMainWindow):
         
         self.product_search_btn = QPushButton("ค้นหา")
         self.product_search_btn.clicked.connect(self.search_product)
+        self.product_search_btn.setIcon(QIcon.fromTheme("system-search"))
+        self.product_search_btn.setMinimumHeight(32)
         search_layout.addWidget(self.product_search_btn, 0, 2)
         
         self.add_product_btn = QPushButton("เพิ่มสินค้าใหม่")
         self.add_product_btn.clicked.connect(self.add_product)
+        self.add_product_btn.setIcon(QIcon.fromTheme("list-add"))
+        self.add_product_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_product_btn, 0, 3)
         
         layout.addWidget(search_group)
@@ -447,6 +398,8 @@ class PawnShopUI(QMainWindow):
         # Product info section
         info_group = QGroupBox("ข้อมูลสินค้า")
         info_layout = QGridLayout(info_group)
+        info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # สินค้าฝากขาย
         info_layout.addWidget(QLabel("สินค้าฝากขาย:"), 0, 0)
@@ -491,10 +444,56 @@ class PawnShopUI(QMainWindow):
 
 
 
+    def create_left_panel(self):
+        """สร้างแผงด้านซ้าย - ข้อมูลผู้ขายและสินค้าฝากขาย"""
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
+        left_layout.setContentsMargins(0, 0, 0, 0)  # ไม่มี margin ด้านซ้าย
+        
+        # Customer and Product info tabs
+        info_tabs = self.create_info_tabs()
+        left_layout.addWidget(info_tabs)
+        
+        return left_widget
+
+    def create_info_tabs(self):
+        """สร้างแท็บข้อมูลผู้ขายและสินค้า"""
+        tab_widget = QTabWidget()
+        tab_widget.setObjectName("TabWidget")
+        
+        # Tab 1: Customer Info
+        customer_tab = self.create_customer_tab()
+        tab_widget.addTab(customer_tab, "ข้อมูลผู้ขายฝาก")
+        
+        # Tab 2: Product Info
+        product_tab = self.create_product_tab()
+        tab_widget.addTab(product_tab, "ข้อมูลสินค้าขายฝาก")
+        
+        return tab_widget
+
     def create_right_panel(self):
-        """สร้างแผงด้านขวา"""
+        """สร้างแผงด้านขวา - ข้อมูลสัญญา ผลจัดทำ ค้นหา"""
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
+        right_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
+        right_layout.setContentsMargins(0, 0, 0, 0)  # ไม่มี margin ด้านขวา
+        
+        # Top row - Contract info and Results in same row
+        top_row = QWidget()
+        top_row_layout = QHBoxLayout(top_row)
+        top_row_layout.setSpacing(20)
+        top_row_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Contract info section
+        contract_info = self.create_contract_info_section()
+        top_row_layout.addWidget(contract_info)
+        
+        # Results section
+        results_section = self.create_results_section()
+        top_row_layout.addWidget(results_section)
+        
+        right_layout.addWidget(top_row)
         
         # Search group
         search_group = self.create_search_group()
@@ -506,12 +505,118 @@ class PawnShopUI(QMainWindow):
         
         return right_widget
 
+    def create_contract_info_section(self):
+        """สร้างส่วนข้อมูลสัญญา"""
+        group_box = QGroupBox("ข้อมูลสัญญา")
+        group_box.setObjectName("TopLeftGroup")
+        layout = QGridLayout(group_box)
+        layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        
+        # เลขที่สัญญา
+        layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
+        self.contract_number_edit = QLineEdit()
+        self.contract_number_edit.setReadOnly(True)
+        layout.addWidget(self.contract_number_edit, 0, 1)
+        
+        # วันที่เริ่มต้น
+        layout.addWidget(QLabel("วันที่เริ่มต้น:"), 1, 0)
+        self.start_date_edit = QDateEdit()
+        self.start_date_edit.setDate(QDate.currentDate())
+        layout.addWidget(self.start_date_edit, 1, 1)
+        
+        # จำนวนวัน
+        layout.addWidget(QLabel("จำนวนวัน:"), 2, 0)
+        self.days_spin = QSpinBox()
+        self.days_spin.setRange(1, 365)
+        self.days_spin.setValue(30)
+        layout.addWidget(self.days_spin, 2, 1)
+        
+        # วันที่สิ้นสุด
+        layout.addWidget(QLabel("วันที่สิ้นสุด:"), 3, 0)
+        self.end_date_edit = QLineEdit()
+        self.end_date_edit.setReadOnly(True)
+        layout.addWidget(self.end_date_edit, 3, 1)
+        
+        # เชื่อมต่อสัญญาณ
+        self.start_date_edit.dateChanged.connect(self.calculate_end_date)
+        self.days_spin.valueChanged.connect(self.calculate_end_date)
+        
+        return group_box
+
+    def create_results_section(self):
+        """สร้างส่วนผลจัดทำ"""
+        group_box = QGroupBox("ผลจัดทำ")
+        group_box.setObjectName("TopMiddleGroup")
+        layout = QGridLayout(group_box)
+        layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+
+        # ยอดฝาก
+        layout.addWidget(QLabel("ยอดฝาก"), 0, 0)
+        self.pawn_amount_spin = QDoubleSpinBox()
+        self.pawn_amount_spin.setRange(0, 999999)
+        self.pawn_amount_spin.setSuffix(" บาท")
+        layout.addWidget(self.pawn_amount_spin, 0, 1)
+
+        # อัตราดอกเบี้ย
+        layout.addWidget(QLabel("อัตราดอกเบี้ย"), 1, 0)
+        self.interest_rate_spin = QDoubleSpinBox()
+        self.interest_rate_spin.setRange(0, 100)
+        self.interest_rate_spin.setSuffix(" %")
+        layout.addWidget(self.interest_rate_spin, 1, 1)
+
+        # ค่าธรรมเนียม
+        layout.addWidget(QLabel("ค่าธรรมเนียม"), 2, 0)
+        self.fee_amount_label = QLabel("0.00 บาท")
+        layout.addWidget(self.fee_amount_label, 2, 1)
+        
+        # อัตราหัก ณ ที่จ่าย
+        layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย"), 3, 0)
+        self.withholding_tax_rate_spin = QDoubleSpinBox()
+        self.withholding_tax_rate_spin.setRange(0, 100)
+        self.withholding_tax_rate_spin.setSuffix(" %")
+        self.withholding_tax_rate_spin.setValue(3.0)
+        layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
+        
+        # ปุ่มอัปเดตอัตราหัก ณ ที่จ่าย
+        self.update_tax_rate_btn = QPushButton("อัปเดต")
+        self.update_tax_rate_btn.clicked.connect(self.update_withholding_tax_rate)
+        self.update_tax_rate_btn.setMaximumWidth(80)
+        self.update_tax_rate_btn.setIcon(QIcon.fromTheme("view-refresh"))
+        layout.addWidget(self.update_tax_rate_btn, 3, 2)
+        
+        # ยอดหัก ณ ที่จ่าย
+        layout.addWidget(QLabel("ยอดหัก ณ ที่จ่าย"), 4, 0)
+        self.withholding_tax_amount_label = QLabel("0.00 บาท")
+        layout.addWidget(self.withholding_tax_amount_label, 4, 1)
+        
+        # ยอดจ่าย
+        layout.addWidget(QLabel("ยอดจ่าย"), 5, 0)
+        self.total_paid_label = QLabel("0.00 บาท")
+        layout.addWidget(self.total_paid_label, 5, 1)
+
+        # ยอดไถ่ถอน
+        layout.addWidget(QLabel("ยอดไถ่ถอน"), 6, 0)
+        self.total_redemption_label = QLabel("0.00 บาท")
+        layout.addWidget(self.total_redemption_label, 6, 1)
+
+        # เชื่อมต่อสัญญาณ
+        self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
+        self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
+        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
+
+        return group_box
+
     def create_search_group(self):
         group_box = QGroupBox("ค้นหา")
         group_box.setObjectName("SearchGroup")
         layout = QVBoxLayout(group_box)
+        layout.setSpacing(15)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
+        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         form_layout = QGridLayout()
+        form_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างคอลัมน์
         form_layout.addWidget(QLabel("เลขที่สัญญา"), 0, 0)
         self.search_contract_combo = QComboBox()
         self.search_contract_combo.addItems(["=", ">", "<", ">=", "<="])
@@ -522,15 +627,19 @@ class PawnShopUI(QMainWindow):
         layout.addLayout(form_layout)
         
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างปุ่ม
         self.search_next_btn = QPushButton("ถัดไป")
         self.search_next_btn.clicked.connect(self.search_next)
+        self.search_next_btn.setIcon(QIcon.fromTheme("go-next"))
         button_layout.addWidget(self.search_next_btn)
         self.search_name_btn = QPushButton("หาชื่อนอกรีต")
         self.search_name_btn.clicked.connect(self.search_by_name)
+        self.search_name_btn.setIcon(QIcon.fromTheme("system-search"))
         button_layout.addWidget(self.search_name_btn)
         layout.addLayout(button_layout)
 
         radio_layout = QHBoxLayout()
+        radio_layout.setSpacing(15)  # เพิ่มระยะห่างระหว่าง radio button
         radio_layout.addWidget(QLabel("(F5)"))
         self.active_radio = QRadioButton("สัญญาเปิด")
         self.closed_radio = QRadioButton("สัญญาปิด")
@@ -561,6 +670,11 @@ class PawnShopUI(QMainWindow):
         header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # รวม
         header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # วันที่กำหนดส่ง
         header.setSectionResizeMode(7, QHeaderView.ResizeToContents)  # ครบกำหนด
+        
+        # ตั้งค่าการแสดงผลตาราง
+        self.contract_table.setAlternatingRowColors(True)  # สลับสีแถว
+        self.contract_table.setSelectionBehavior(QTableWidget.SelectRows)  # เลือกทั้งแถว
+        self.contract_table.setEditTriggers(QTableWidget.NoEditTriggers)  # ไม่ให้แก้ไขได้
         
         return self.contract_table
 
@@ -601,12 +715,69 @@ class PawnShopUI(QMainWindow):
 
     def create_bottom_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(32, 32))
+        toolbar.setIconSize(QSize(20, 20))  # ลดขนาด icon ให้เล็กลง
         toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        toolbar.setFixedHeight(75)  # ลดความสูงให้ minimal
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)  # ไม่ให้ลอยได้
+        toolbar.setAllowedAreas(Qt.BottomToolBarArea)  # จำกัดพื้นที่ให้อยู่ด้านล่างเท่านั้น
+        
+        # ใช้สี minimal และ modern
+        toolbar.setStyleSheet("""
+            QToolBar {
+                background-color: #FAFAFA;
+                border-top: 1px solid #E0E0E0;
+                spacing: 6px;
+                padding: 6px;
+            }
+            QToolButton {
+                background-color: #FFFFFF;
+                border: 1px solid #E0E0E0;
+                border-radius: 8px;
+                padding: 4px;
+                margin: 1px;
+                min-width: 80px;
+                min-height: 60px;
+                max-width: 80px;
+                max-height: 60px;
+                color: #424242;
+                font-size: 9px;
+                font-weight: 500;
+                text-align: center;
+                qproperty-iconSize: 20px;
+            }
+            QToolButton:hover {
+                background-color: #F8F9FA;
+                border-color: #BDBDBD;
+            }
+            QToolButton:pressed {
+                background-color: #E3F2FD;
+                border-color: #2196F3;
+            }
+            QToolButton:disabled {
+                background-color: #F5F5F5;
+                color: #BDBDBD;
+                border-color: #E0E0E0;
+            }
+            QToolButton:checked {
+                background-color: #E8F5E8;
+                border-color: #4CAF50;
+            }
+            QToolBar::separator {
+                background-color: #E0E0E0;
+                width: 2px;
+                margin: 4px 8px;
+                border-radius: 1px;
+            }
+        """)
+        
         self.addToolBar(Qt.BottomToolBarArea, toolbar)
 
-        # Using standard icons as placeholders
+        # ปรับปรุง icon names ให้เหมาะสมและมี icon ทุกปุ่ม
         actions = [
+            ("สร้างสัญญาใหม่", "document-new", self.generate_new_contract),
+            ("ล้างฟอร์ม", "edit-clear", self.clear_form),
+            ("บันทึกสัญญา", "document-save", self.save_contract),
             ("ต่อดอก", "view-refresh", self.extend_interest),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
             ("หลุดจำนำ", "edit-delete", self.lost_contract),
@@ -620,11 +791,78 @@ class PawnShopUI(QMainWindow):
             ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management)
         ]
 
-        for text, icon_name, slot in actions:
-            icon = QIcon.fromTheme(icon_name) 
+        for i, (text, icon_name, slot) in enumerate(actions):
+            # สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม
+            icon = self.create_icon_for_action(icon_name, text)
             action = QAction(icon, text, self)
             action.triggered.connect(slot)
+            
+            # เพิ่ม tooltip เพื่อความชัดเจน
+            action.setToolTip(text)
+            
+            # เพิ่ม status tip สำหรับ status bar
+            action.setStatusTip(f"คลิกเพื่อ {text}")
+            
             toolbar.addAction(action)
+            
+            # เพิ่ม separator หลังปุ่มที่ 3 และ 6 เพื่อแบ่งกลุ่ม
+            if i == 2 or i == 5:
+                toolbar.addSeparator()
+
+    def create_icon_for_action(self, icon_name, text):
+        """สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม"""
+        # ลองใช้ system theme icons ก่อน
+        icon = QIcon.fromTheme(icon_name)
+        
+        # ถ้าไม่มี icon ใน system theme ให้ใช้ fallback icons
+        if icon.isNull():
+            # ใช้ fallback icons ตามประเภทของปุ่ม
+            if "สร้าง" in text or "ใหม่" in text:
+                icon = QIcon.fromTheme("document-new", QIcon.fromTheme("plus", QIcon.fromTheme("add")))
+            elif "ล้าง" in text or "clear" in text:
+                icon = QIcon.fromTheme("edit-clear", QIcon.fromTheme("edit-delete", QIcon.fromTheme("trash")))
+            elif "บันทึก" in text or "save" in text:
+                icon = QIcon.fromTheme("document-save", QIcon.fromTheme("save", QIcon.fromTheme("floppy")))
+            elif "ต่อดอก" in text or "ดอก" in text:
+                icon = QIcon.fromTheme("view-refresh", QIcon.fromTheme("reload", QIcon.fromTheme("refresh")))
+            elif "ไถ่ถอน" in text:
+                icon = QIcon.fromTheme("go-previous", QIcon.fromTheme("arrow-left", QIcon.fromTheme("back")))
+            elif "หลุดจำนำ" in text:
+                icon = QIcon.fromTheme("edit-delete", QIcon.fromTheme("delete", QIcon.fromTheme("remove")))
+            elif "ในขายฝาก" in text:
+                icon = QIcon.fromTheme("folder-open", QIcon.fromTheme("folder", QIcon.fromTheme("directory")))
+            elif "สรุป" in text:
+                icon = QIcon.fromTheme("document-properties", QIcon.fromTheme("document", QIcon.fromTheme("file")))
+            elif "รับ" in text:
+                icon = QIcon.fromTheme("arrow-down", QIcon.fromTheme("download", QIcon.fromTheme("get")))
+            elif "หัก ณ ที่จ่าย" in text:
+                icon = QIcon.fromTheme("document-edit", QIcon.fromTheme("edit", QIcon.fromTheme("modify")))
+            elif "รายงาน" in text:
+                icon = QIcon.fromTheme("document-properties", QIcon.fromTheme("report", QIcon.fromTheme("chart")))
+            elif "บัญชีรายวัน" in text:
+                icon = QIcon.fromTheme("x-office-calendar", QIcon.fromTheme("calendar", QIcon.fromTheme("date")))
+            elif "ตารางดอก" in text:
+                icon = QIcon.fromTheme("insert-object", QIcon.fromTheme("table", QIcon.fromTheme("grid")))
+            elif "ค่าธรรมเนียม" in text:
+                icon = QIcon.fromTheme("preferences-system", QIcon.fromTheme("settings", QIcon.fromTheme("configure")))
+            else:
+                # fallback ไปใช้ icon ทั่วไป
+                icon = QIcon.fromTheme("applications-other", QIcon.fromTheme("help", QIcon.fromTheme("info")))
+        
+        # ถ้ายังไม่มี icon ให้สร้าง icon ง่ายๆ จาก text
+        if icon.isNull():
+            icon = self.create_text_icon(text)
+        
+        return icon
+    
+    def create_text_icon(self, text):
+        """สร้าง icon ง่ายๆ จาก text เมื่อไม่มี system icon"""
+        # ใช้ตัวอักษรแรกของ text เป็น icon
+        if text:
+            first_char = text[0]
+            # สร้าง QIcon จาก text (fallback สำหรับกรณีที่ไม่มี icon)
+            return QIcon.fromTheme("applications-other", QIcon.fromTheme("help"))
+        return QIcon()
 
     def generate_new_contract(self):
         """สร้างสัญญาใหม่ - สร้างเลขที่สัญญาและแสดงบน UI"""
