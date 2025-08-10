@@ -65,8 +65,10 @@ class PawnShopDatabase:
                     brand TEXT,
                     size TEXT,
                     weight REAL,
+                    weight_unit TEXT,
                     serial_number TEXT,
                     other_details TEXT,
+                    image_path TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -146,6 +148,9 @@ class PawnShopDatabase:
                 )
             ''')
             
+            # อัปเกรดฐานข้อมูลเพื่อเพิ่มคอลัมน์ที่ขาดหายไป
+            self.upgrade_database(cursor)
+            
             # เพิ่มข้อมูลเริ่มต้น
             self._insert_default_settings(cursor)
             
@@ -153,6 +158,24 @@ class PawnShopDatabase:
             self._insert_default_fee_rates(cursor)
             
             conn.commit()
+    
+    def upgrade_database(self, cursor):
+        """อัปเกรดฐานข้อมูลโดยเพิ่มคอลัมน์ใหม่"""
+        try:
+            # ตรวจสอบและเพิ่มคอลัมน์ weight_unit ในตาราง products
+            cursor.execute("PRAGMA table_info(products)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'weight_unit' not in columns:
+                cursor.execute('ALTER TABLE products ADD COLUMN weight_unit TEXT')
+                print("Added weight_unit column to products table")
+            
+            if 'image_path' not in columns:
+                cursor.execute('ALTER TABLE products ADD COLUMN image_path TEXT')
+                print("Added image_path column to products table")
+                
+        except Exception as e:
+            print(f"Error upgrading database: {e}")
     
     def _insert_default_settings(self, cursor):
         """เพิ่มการตั้งค่าเริ่มต้น"""
@@ -227,15 +250,17 @@ class PawnShopDatabase:
             
             cursor.execute('''
                 INSERT INTO products (
-                    name, brand, size, weight, serial_number, other_details
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    name, brand, size, weight, weight_unit, serial_number, other_details, image_path
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 product_data['name'],
                 product_data.get('brand', ''),
                 product_data.get('size', ''),
                 product_data.get('weight', 0),
+                product_data.get('weight_unit', ''),
                 product_data.get('serial_number', ''),
-                product_data.get('other_details', '')
+                product_data.get('other_details', ''),
+                product_data.get('image_path', '')
             ))
             
             product_id = cursor.lastrowid
@@ -536,16 +561,18 @@ class PawnShopDatabase:
             
             cursor.execute('''
                 UPDATE products SET
-                    name = ?, brand = ?, size = ?, weight = ?,
-                    serial_number = ?, other_details = ?
+                    name = ?, brand = ?, size = ?, weight = ?, weight_unit = ?,
+                    serial_number = ?, other_details = ?, image_path = ?
                 WHERE id = ?
             ''', (
                 product_data['name'],
                 product_data.get('brand', ''),
                 product_data.get('size', ''),
                 product_data.get('weight', 0),
+                product_data.get('weight_unit', ''),
                 product_data.get('serial_number', ''),
                 product_data.get('other_details', ''),
+                product_data.get('image_path', ''),
                 product_id
             ))
             

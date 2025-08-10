@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
-    QScrollArea, QFrame
+    QScrollArea, QFrame, QFileDialog
 )
-from PySide6.QtGui import QIcon, QAction
+from PySide6.QtGui import QIcon, QAction, QPixmap
 from PySide6.QtCore import Qt, QSize, QDate
 from datetime import datetime, timedelta
 from database import PawnShopDatabase
@@ -515,6 +516,16 @@ class PawnShopUI(QMainWindow):
         self.product_details_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_details_edit, 5, 1)
         
+        # รูปภาพสินค้า
+        self.product_info_layout.addWidget(QLabel("รูปภาพสินค้า:"), 6, 0)
+        self.product_image_display = QLabel()
+        self.product_image_display.setMinimumSize(200, 150)
+        self.product_image_display.setMaximumSize(300, 200)
+        self.product_image_display.setStyleSheet("border: 2px solid #ccc; background-color: #f9f9f9;")
+        self.product_image_display.setAlignment(Qt.AlignCenter)
+        self.product_image_display.setText("ไม่มีรูปภาพ")
+        self.product_info_layout.addWidget(self.product_image_display, 6, 1)
+        
         layout.addWidget(self.product_info_group)
         
         # Product add form section (initially hidden)
@@ -554,6 +565,31 @@ class PawnShopUI(QMainWindow):
         self.product_add_details_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_details_edit, 5, 1, 1, 3)
         
+        # รูปภาพสินค้า
+        self.product_add_layout.addWidget(QLabel("รูปภาพสินค้า:"), 6, 0)
+        self.product_add_image_path_edit = QLineEdit()
+        self.product_add_image_path_edit.setPlaceholderText("เลือกไฟล์รูปภาพ...")
+        self.product_add_image_path_edit.setReadOnly(True)
+        image_layout = QHBoxLayout()
+        image_layout.addWidget(self.product_add_image_path_edit)
+        
+        self.product_add_image_browse_btn = QPushButton("เลือกไฟล์")
+        self.product_add_image_browse_btn.clicked.connect(self.browse_product_image)
+        self.product_add_image_browse_btn.setIcon(QIcon.fromTheme("document-open"))
+        image_layout.addWidget(self.product_add_image_browse_btn)
+        
+        self.product_add_layout.addLayout(image_layout, 6, 1, 1, 3)
+        
+        # แสดงรูปภาพตัวอย่าง
+        self.product_add_layout.addWidget(QLabel("ตัวอย่างรูปภาพ:"), 7, 0)
+        self.product_image_preview = QLabel()
+        self.product_image_preview.setMinimumSize(200, 150)
+        self.product_image_preview.setMaximumSize(300, 200)
+        self.product_image_preview.setStyleSheet("border: 2px dashed #ccc; background-color: #f9f9f9;")
+        self.product_image_preview.setAlignment(Qt.AlignCenter)
+        self.product_image_preview.setText("ไม่มีรูปภาพ")
+        self.product_add_layout.addWidget(self.product_image_preview, 7, 1, 1, 3)
+        
         # ปุ่มบันทึกและยกเลิก
         button_layout = QHBoxLayout()
         self.product_save_btn = QPushButton("บันทึก")
@@ -566,7 +602,7 @@ class PawnShopUI(QMainWindow):
         self.product_cancel_btn.setIcon(QIcon.fromTheme("edit-clear"))
         button_layout.addWidget(self.product_cancel_btn)
         
-        self.product_add_layout.addLayout(button_layout, 6, 0, 1, 4)
+        self.product_add_layout.addLayout(button_layout, 8, 0, 1, 4)
         
         # ซ่อนฟอร์มเพิ่มสินค้าไว้ก่อน
         self.product_add_group.hide()
@@ -1126,6 +1162,23 @@ class PawnShopUI(QMainWindow):
             self.product_size_edit.setText(self.current_product.get('size', ''))
             self.serial_number_edit.setText(self.current_product.get('serial_number', ''))
             self.product_details_edit.setText(self.current_product.get('other_details', ''))
+            
+            # แสดงรูปภาพสินค้า
+            image_path = self.current_product.get('image_path', '')
+            if image_path and os.path.exists(image_path):
+                pixmap = QPixmap(image_path)
+                if not pixmap.isNull():
+                    # ปรับขนาดรูปภาพให้พอดีกับ display
+                    scaled_pixmap = pixmap.scaled(
+                        self.product_image_display.size(), 
+                        Qt.KeepAspectRatio, 
+                        Qt.SmoothTransformation
+                    )
+                    self.product_image_display.setPixmap(scaled_pixmap)
+                else:
+                    self.product_image_display.setText("ไม่สามารถโหลดรูปภาพได้")
+            else:
+                self.product_image_display.setText("ไม่มีรูปภาพ")
 
     def extend_interest(self):
         """ต่อดอกเบี้ย"""
@@ -1346,8 +1399,15 @@ class PawnShopUI(QMainWindow):
         self.product_add_serial_edit.clear()
         self.product_add_details_edit.clear()
         self.product_add_weight_combo.setCurrentIndex(0)
+        self.product_add_image_path_edit.clear()
+        self.product_image_preview.clear()
+        self.product_image_preview.setText("ไม่มีรูปภาพ")
         
-        # รีเซ็ตยอด
+        # ล้างรูปภาพสินค้าในส่วนแสดงข้อมูล
+        self.product_image_display.clear()
+        self.product_image_display.setText("ไม่มีรูปภาพ")
+        
+        # ล้างยอด
         self.pawn_amount_spin.setValue(0)
         self.withholding_tax_rate_spin.setValue(3.0)
         self.calculate_amounts()
@@ -1532,10 +1592,16 @@ class PawnShopUI(QMainWindow):
     def toggle_product_mode(self):
         """สลับโหมดการเพิ่มสินค้า"""
         if self.product_info_group.isVisible():
+            # สลับไปโหมดเพิ่มสินค้าใหม่
             self.product_info_group.hide()
             self.product_add_group.show()
+            # ล้างข้อมูลรูปภาพ
+            self.product_add_image_path_edit.clear()
+            self.product_image_preview.clear()
+            self.product_image_preview.setText("ไม่มีรูปภาพ")
             self.product_add_group.setFocus()
         else:
+            # สลับกลับไปโหมดแสดงข้อมูล
             self.product_add_group.hide()
             self.product_info_group.show()
             self.product_info_group.setFocus()
@@ -1548,19 +1614,25 @@ class PawnShopUI(QMainWindow):
         weight_unit = self.product_add_weight_combo.currentText()
         serial_number = self.product_add_serial_edit.text().strip()
         other_details = self.product_add_details_edit.text().strip()
+        image_path = self.product_add_image_path_edit.text().strip()
 
         if not name:
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
             return
 
         try:
+            # คัดลอกรูปภาพไปยังโฟลเดอร์ของโปรแกรม
+            if image_path:
+                image_path = self.copy_product_image(image_path)
+            
             product_data = {
                 'name': name,
                 'brand': brand,
                 'size': size,
                 'weight_unit': weight_unit,
                 'serial_number': serial_number,
-                'other_details': other_details
+                'other_details': other_details,
+                'image_path': image_path
             }
             new_product_id = self.db.add_product(product_data)
             self.current_product = self.db.get_product_by_id(new_product_id)
@@ -1577,6 +1649,55 @@ class PawnShopUI(QMainWindow):
         sequence = self.db.get_next_customer_sequence(prefix)
         customer_code = PawnShopUtils.generate_customer_code(prefix, sequence)
         self.customer_code_display_edit.setText(customer_code)
+
+    def browse_product_image(self):
+        """เลือกไฟล์รูปภาพสินค้า"""
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, 
+            "เลือกไฟล์รูปภาพสินค้า", 
+            "", 
+            "Images (*.png *.xpm *.jpg *.jpeg *.bmp *.gif);;All Files (*)", 
+            options=options
+        )
+        if file_name:
+            self.product_add_image_path_edit.setText(file_name)
+            # แสดงรูปภาพตัวอย่าง
+            pixmap = QPixmap(file_name)
+            if not pixmap.isNull():
+                # ปรับขนาดรูปภาพให้พอดีกับ preview
+                scaled_pixmap = pixmap.scaled(
+                    self.product_image_preview.size(), 
+                    Qt.KeepAspectRatio, 
+                    Qt.SmoothTransformation
+                )
+                self.product_image_preview.setPixmap(scaled_pixmap)
+            else:
+                self.product_image_preview.setText("ไม่สามารถโหลดรูปภาพได้")
+
+    def copy_product_image(self, source_path: str) -> str:
+        """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม"""
+        if not source_path or not os.path.exists(source_path):
+            return ""
+        
+        try:
+            # สร้างโฟลเดอร์สำหรับรูปภาพสินค้า
+            images_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "product_images")
+            os.makedirs(images_dir, exist_ok=True)
+            
+            # สร้างชื่อไฟล์ใหม่
+            file_ext = os.path.splitext(source_path)[1]
+            new_filename = f"product_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
+            new_path = os.path.join(images_dir, new_filename)
+            
+            # คัดลอกไฟล์
+            import shutil
+            shutil.copy2(source_path, new_path)
+            
+            return new_path
+        except Exception as e:
+            print(f"Error copying image: {e}")
+            return source_path  # คืนค่า path เดิมถ้าเกิดข้อผิดพลาด
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
