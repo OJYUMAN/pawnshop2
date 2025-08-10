@@ -284,7 +284,7 @@ class PawnShopUI(QMainWindow):
         search_layout.addWidget(self.customer_search_btn, 0, 2)
         
         self.add_customer_btn = QPushButton("เพิ่มลูกค้าใหม่")
-        self.add_customer_btn.clicked.connect(self.add_customer)
+        self.add_customer_btn.clicked.connect(self.toggle_customer_mode)
         self.add_customer_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_customer_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_customer_btn, 0, 3)
@@ -292,75 +292,152 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(search_group)
         
         # Customer info section
-        info_group = QGroupBox("ข้อมูลลูกค้า")
-        info_layout = QGridLayout(info_group)
-        info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
-        info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        self.customer_info_group = QGroupBox("ข้อมูลลูกค้า")
+        self.customer_info_layout = QGridLayout(self.customer_info_group)
+        self.customer_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        self.customer_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # ชื่อลูกค้า
-        info_layout.addWidget(QLabel("ชื่อผู้กู้:"), 0, 0)
+        self.customer_info_layout.addWidget(QLabel("ชื่อผู้กู้:"), 0, 0)
         self.customer_name_edit = QLineEdit()
         self.customer_name_edit.setReadOnly(True)
-        info_layout.addWidget(self.customer_name_edit, 0, 1)
+        self.customer_info_layout.addWidget(self.customer_name_edit, 0, 1)
         
         # ที่อยู่
-        info_layout.addWidget(QLabel("ที่อยู่:"), 1, 0)
+        self.customer_info_layout.addWidget(QLabel("ที่อยู่:"), 1, 0)
         self.customer_address_edit = QLineEdit()
         self.customer_address_edit.setReadOnly(True)
-        info_layout.addWidget(self.customer_address_edit, 1, 1)
+        self.customer_info_layout.addWidget(self.customer_address_edit, 1, 1)
         
         # เลขบัตรประชาชน
-        info_layout.addWidget(QLabel("บัตร:"), 2, 0)
+        self.customer_info_layout.addWidget(QLabel("บัตร:"), 2, 0)
         self.id_card_type_combo = QComboBox()
         self.id_card_type_combo.addItems(["บัตรประชาชน", "ใบขับขี่", "พาสปอร์ต"])
-        info_layout.addWidget(self.id_card_type_combo, 2, 1)
+        self.id_card_type_combo.setEnabled(False)
+        self.customer_info_layout.addWidget(self.id_card_type_combo, 2, 1)
         self.id_card_edit = QLineEdit()
         self.id_card_edit.setReadOnly(True)
-        info_layout.addWidget(self.id_card_edit, 2, 2)
+        self.customer_info_layout.addWidget(self.id_card_edit, 2, 2)
         
         # ที่อยู่บ้าน
-        info_layout.addWidget(QLabel("ที่อยู่บ้านเลขที่:"), 3, 0)
+        self.customer_info_layout.addWidget(QLabel("ที่อยู่บ้านเลขที่:"), 3, 0)
         self.house_number_edit = QLineEdit()
         self.house_number_edit.setReadOnly(True)
-        info_layout.addWidget(self.house_number_edit, 3, 1)
+        self.customer_info_layout.addWidget(self.house_number_edit, 3, 1)
         
         # ซอย/ถนน
-        info_layout.addWidget(QLabel("ซอย/ถนน:"), 4, 0)
+        self.customer_info_layout.addWidget(QLabel("ซอย/ถนน:"), 4, 0)
         self.street_edit = QLineEdit()
         self.street_edit.setReadOnly(True)
-        info_layout.addWidget(self.street_edit, 4, 1)
+        self.customer_info_layout.addWidget(self.street_edit, 4, 1)
         
         # ตำบล
-        info_layout.addWidget(QLabel("ตำบล:"), 5, 0)
+        self.customer_info_layout.addWidget(QLabel("ตำบล:"), 5, 0)
         self.subdistrict_edit = QLineEdit()
         self.subdistrict_edit.setReadOnly(True)
-        info_layout.addWidget(self.subdistrict_edit, 5, 1)
+        self.customer_info_layout.addWidget(self.subdistrict_edit, 5, 1)
         
         # อำเภอ
-        info_layout.addWidget(QLabel("อำเภอ:"), 6, 0)
+        self.customer_info_layout.addWidget(QLabel("อำเภอ:"), 6, 0)
         self.district_edit = QLineEdit()
         self.district_edit.setReadOnly(True)
-        info_layout.addWidget(self.district_edit, 6, 1)
+        self.customer_info_layout.addWidget(self.district_edit, 6, 1)
         
         # จังหวัด
-        info_layout.addWidget(QLabel("จังหวัด:"), 7, 0)
+        self.customer_info_layout.addWidget(QLabel("จังหวัด:"), 7, 0)
         self.province_edit = QLineEdit()
         self.province_edit.setReadOnly(True)
-        info_layout.addWidget(self.province_edit, 7, 1)
+        self.customer_info_layout.addWidget(self.province_edit, 7, 1)
         
         # โทรศัพท์
-        info_layout.addWidget(QLabel("โทรศัพท์:"), 8, 0)
+        self.customer_info_layout.addWidget(QLabel("โทรศัพท์:"), 8, 0)
         self.phone_edit = QLineEdit()
         self.phone_edit.setReadOnly(True)
-        info_layout.addWidget(self.phone_edit, 8, 1)
+        self.customer_info_layout.addWidget(self.phone_edit, 8, 1)
         
         # รายละเอียดอื่นๆ
-        info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 9, 0)
+        self.customer_info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 9, 0)
         self.other_details_edit = QLineEdit()
         self.other_details_edit.setReadOnly(True)
-        info_layout.addWidget(self.other_details_edit, 9, 1)
+        self.customer_info_layout.addWidget(self.other_details_edit, 9, 1)
         
-        layout.addWidget(info_group)
+        layout.addWidget(self.customer_info_group)
+        
+        # Customer add form section (initially hidden)
+        self.customer_add_group = QGroupBox("เพิ่มลูกค้าใหม่")
+        self.customer_add_layout = QGridLayout(self.customer_add_group)
+        self.customer_add_layout.setSpacing(10)
+        self.customer_add_layout.setContentsMargins(15, 20, 15, 15)
+        
+        # รหัสลูกค้า (สร้างอัตโนมัติ)
+        self.customer_add_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
+        self.customer_code_display_edit = QLineEdit()
+        self.customer_code_display_edit.setReadOnly(True)
+        self.customer_code_display_edit.setStyleSheet("background-color: #F0F0F0; color: #666;")
+        self.customer_add_layout.addWidget(self.customer_code_display_edit, 0, 1, 1, 3)
+        
+        # ชื่อ-นามสกุล
+        self.customer_add_layout.addWidget(QLabel("ชื่อ:"), 1, 0)
+        self.customer_first_name_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_first_name_edit, 1, 1)
+        
+        self.customer_add_layout.addWidget(QLabel("นามสกุล:"), 1, 2)
+        self.customer_last_name_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_last_name_edit, 1, 3)
+        
+        # เลขบัตรประชาชน
+        self.customer_add_layout.addWidget(QLabel("เลขบัตรประชาชน:"), 2, 0)
+        self.customer_id_card_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_id_card_edit, 2, 1, 1, 3)
+        
+        # ที่อยู่
+        self.customer_add_layout.addWidget(QLabel("บ้านเลขที่:"), 3, 0)
+        self.customer_house_number_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_house_number_edit, 3, 1)
+        
+        self.customer_add_layout.addWidget(QLabel("ซอย/ถนน:"), 3, 2)
+        self.customer_street_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_street_edit, 3, 3)
+        
+        self.customer_add_layout.addWidget(QLabel("ตำบล:"), 4, 0)
+        self.customer_subdistrict_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_subdistrict_edit, 4, 1)
+        
+        self.customer_add_layout.addWidget(QLabel("อำเภอ:"), 4, 2)
+        self.customer_district_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_district_edit, 4, 3)
+        
+        self.customer_add_layout.addWidget(QLabel("จังหวัด:"), 5, 0)
+        self.customer_province_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_province_edit, 5, 1, 1, 3)
+        
+        # โทรศัพท์
+        self.customer_add_layout.addWidget(QLabel("โทรศัพท์:"), 6, 0)
+        self.customer_phone_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_phone_edit, 6, 1, 1, 3)
+        
+        # รายละเอียดอื่นๆ
+        self.customer_add_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 7, 0)
+        self.customer_other_details_edit = QLineEdit()
+        self.customer_add_layout.addWidget(self.customer_other_details_edit, 7, 1, 1, 3)
+        
+        # ปุ่มบันทึกและยกเลิก
+        button_layout = QHBoxLayout()
+        self.customer_save_btn = QPushButton("บันทึก")
+        self.customer_save_btn.clicked.connect(self.save_new_customer)
+        self.customer_save_btn.setIcon(QIcon.fromTheme("document-save"))
+        button_layout.addWidget(self.customer_save_btn)
+        
+        self.customer_cancel_btn = QPushButton("ยกเลิก")
+        self.customer_cancel_btn.clicked.connect(self.toggle_customer_mode)
+        self.customer_cancel_btn.setIcon(QIcon.fromTheme("edit-clear"))
+        button_layout.addWidget(self.customer_cancel_btn)
+        
+        self.customer_add_layout.addLayout(button_layout, 8, 0, 1, 4)
+        
+        # ซ่อนฟอร์มเพิ่มลูกค้าไว้ก่อน
+        self.customer_add_group.hide()
+        layout.addWidget(self.customer_add_group)
         
         return tab
 
@@ -388,7 +465,7 @@ class PawnShopUI(QMainWindow):
         search_layout.addWidget(self.product_search_btn, 0, 2)
         
         self.add_product_btn = QPushButton("เพิ่มสินค้าใหม่")
-        self.add_product_btn.clicked.connect(self.add_product)
+        self.add_product_btn.clicked.connect(self.toggle_product_mode)
         self.add_product_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_product_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_product_btn, 0, 3)
@@ -396,49 +473,104 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(search_group)
         
         # Product info section
-        info_group = QGroupBox("ข้อมูลสินค้า")
-        info_layout = QGridLayout(info_group)
-        info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
-        info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        self.product_info_group = QGroupBox("ข้อมูลสินค้า")
+        self.product_info_layout = QGridLayout(self.product_info_group)
+        self.product_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
+        self.product_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # สินค้าฝากขาย
-        info_layout.addWidget(QLabel("สินค้าฝากขาย:"), 0, 0)
+        self.product_info_layout.addWidget(QLabel("สินค้าฝากขาย:"), 0, 0)
         self.product_name_display_edit = QLineEdit()
         self.product_name_display_edit.setReadOnly(True)
-        info_layout.addWidget(self.product_name_display_edit, 0, 1)
+        self.product_info_layout.addWidget(self.product_name_display_edit, 0, 1)
         
         # ยี่ห้อ/รุ่น
-        info_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
+        self.product_info_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
         self.product_brand_edit = QLineEdit()
         self.product_brand_edit.setReadOnly(True)
-        info_layout.addWidget(self.product_brand_edit, 1, 1)
+        self.product_info_layout.addWidget(self.product_brand_edit, 1, 1)
         
         # ขนาด
-        info_layout.addWidget(QLabel("ขนาด:"), 2, 0)
+        self.product_info_layout.addWidget(QLabel("ขนาด:"), 2, 0)
         self.product_size_edit = QLineEdit()
         self.product_size_edit.setReadOnly(True)
-        info_layout.addWidget(self.product_size_edit, 2, 1)
+        self.product_info_layout.addWidget(self.product_size_edit, 2, 1)
         
         # น้ำหนัก
-        info_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
+        self.product_info_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
         self.product_weight_combo = QComboBox()
         self.product_weight_combo.addItems(["กรัม", "กิโลกรัม", "บาท"])
         self.product_weight_combo.setEnabled(False)
-        info_layout.addWidget(self.product_weight_combo, 3, 1)
+        self.product_info_layout.addWidget(self.product_weight_combo, 3, 1)
         
         # หมายเลขซีเรียล
-        info_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
+        self.product_info_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
         self.serial_number_edit = QLineEdit()
         self.serial_number_edit.setReadOnly(True)
-        info_layout.addWidget(self.serial_number_edit, 4, 1)
+        self.product_info_layout.addWidget(self.serial_number_edit, 4, 1)
         
         # รายละเอียดอื่นๆ
-        info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
+        self.product_info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
         self.product_details_edit = QLineEdit()
         self.product_details_edit.setReadOnly(True)
-        info_layout.addWidget(self.product_details_edit, 5, 1)
+        self.product_info_layout.addWidget(self.product_details_edit, 5, 1)
         
-        layout.addWidget(info_group)
+        layout.addWidget(self.product_info_group)
+        
+        # Product add form section (initially hidden)
+        self.product_add_group = QGroupBox("เพิ่มสินค้าใหม่")
+        self.product_add_layout = QGridLayout(self.product_add_group)
+        self.product_add_layout.setSpacing(10)
+        self.product_add_layout.setContentsMargins(15, 20, 15, 15)
+        
+        # ชื่อสินค้า
+        self.product_add_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
+        self.product_add_name_edit = QLineEdit()
+        self.product_add_layout.addWidget(self.product_add_name_edit, 0, 1, 1, 3)
+        
+        # ยี่ห้อ/รุ่น
+        self.product_add_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
+        self.product_add_brand_edit = QLineEdit()
+        self.product_add_layout.addWidget(self.product_add_brand_edit, 1, 1, 1, 3)
+        
+        # ขนาด
+        self.product_add_layout.addWidget(QLabel("ขนาด:"), 2, 0)
+        self.product_add_size_edit = QLineEdit()
+        self.product_add_layout.addWidget(self.product_add_size_edit, 2, 1, 1, 3)
+        
+        # น้ำหนัก
+        self.product_add_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
+        self.product_add_weight_combo = QComboBox()
+        self.product_add_weight_combo.addItems(["กรัม", "กิโลกรัม", "บาท"])
+        self.product_add_layout.addWidget(self.product_add_weight_combo, 3, 1, 1, 3)
+        
+        # หมายเลขซีเรียล
+        self.product_add_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
+        self.product_add_serial_edit = QLineEdit()
+        self.product_add_layout.addWidget(self.product_add_serial_edit, 4, 1, 1, 3)
+        
+        # รายละเอียดอื่นๆ
+        self.product_add_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
+        self.product_add_details_edit = QLineEdit()
+        self.product_add_layout.addWidget(self.product_add_details_edit, 5, 1, 1, 3)
+        
+        # ปุ่มบันทึกและยกเลิก
+        button_layout = QHBoxLayout()
+        self.product_save_btn = QPushButton("บันทึก")
+        self.product_save_btn.clicked.connect(self.save_new_product)
+        self.product_save_btn.setIcon(QIcon.fromTheme("document-save"))
+        button_layout.addWidget(self.product_save_btn)
+        
+        self.product_cancel_btn = QPushButton("ยกเลิก")
+        self.product_cancel_btn.clicked.connect(self.toggle_product_mode)
+        self.product_cancel_btn.setIcon(QIcon.fromTheme("edit-clear"))
+        button_layout.addWidget(self.product_cancel_btn)
+        
+        self.product_add_layout.addLayout(button_layout, 6, 0, 1, 4)
+        
+        # ซ่อนฟอร์มเพิ่มสินค้าไว้ก่อน
+        self.product_add_group.hide()
+        layout.addWidget(self.product_add_group)
         
         return tab
 
@@ -464,7 +596,7 @@ class PawnShopUI(QMainWindow):
         
         # Tab 1: Customer Info
         customer_tab = self.create_customer_tab()
-        tab_widget.addTab(customer_tab, "ข้อมูลผู้ขายฝาก")
+        tab_widget.addTab(customer_tab, "ข้อมูลลูกค้า")
         
         # Tab 2: Product Info
         product_tab = self.create_product_tab()
@@ -690,7 +822,7 @@ class PawnShopUI(QMainWindow):
         # เมนูลูกค้า
         customer_menu = menu_bar.addMenu("ลูกค้า")
         add_customer_action = QAction("เพิ่มลูกค้า", self)
-        add_customer_action.triggered.connect(self.add_customer)
+        add_customer_action.triggered.connect(self.toggle_customer_mode)
         customer_menu.addAction(add_customer_action)
         
         # เมนูรายงาน
@@ -922,11 +1054,8 @@ class PawnShopUI(QMainWindow):
         self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
 
     def add_customer(self):
-        """เพิ่มลูกค้า"""
-        dialog = CustomerDialog(self)
-        if dialog.exec():
-            self.current_customer = dialog.customer_data
-            self.load_customer_data()
+        """เพิ่มลูกค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
+        self.toggle_customer_mode()
 
     def search_customer(self):
         """ค้นหาลูกค้า"""
@@ -971,11 +1100,8 @@ class PawnShopUI(QMainWindow):
             self.other_details_edit.setText(self.current_customer.get('other_details', ''))
 
     def add_product(self):
-        """เพิ่มสินค้า"""
-        dialog = ProductDialog(self)
-        if dialog.exec():
-            self.current_product = dialog.product_data
-            self.load_product_data()
+        """เพิ่มสินค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
+        self.toggle_product_mode()
 
     def search_product(self):
         """ค้นหาสินค้า"""
@@ -1200,10 +1326,39 @@ class PawnShopUI(QMainWindow):
         self.serial_number_edit.clear()
         self.product_details_edit.clear()
         
+        # ล้างข้อมูลฟอร์มเพิ่มลูกค้าใหม่
+        self.customer_code_display_edit.clear()
+        self.customer_first_name_edit.clear()
+        self.customer_last_name_edit.clear()
+        self.customer_id_card_edit.clear()
+        self.customer_house_number_edit.clear()
+        self.customer_street_edit.clear()
+        self.customer_subdistrict_edit.clear()
+        self.customer_district_edit.clear()
+        self.customer_province_edit.clear()
+        self.customer_phone_edit.clear()
+        self.customer_other_details_edit.clear()
+        
+        # ล้างข้อมูลฟอร์มเพิ่มสินค้าใหม่
+        self.product_add_name_edit.clear()
+        self.product_add_brand_edit.clear()
+        self.product_add_size_edit.clear()
+        self.product_add_serial_edit.clear()
+        self.product_add_details_edit.clear()
+        self.product_add_weight_combo.setCurrentIndex(0)
+        
         # รีเซ็ตยอด
         self.pawn_amount_spin.setValue(0)
         self.withholding_tax_rate_spin.setValue(3.0)
         self.calculate_amounts()
+        
+        # กลับไปแสดงฟอร์มข้อมูลปกติ
+        if hasattr(self, 'customer_add_group'):
+            self.customer_add_group.hide()
+            self.customer_info_group.show()
+        if hasattr(self, 'product_add_group'):
+            self.product_add_group.hide()
+            self.product_info_group.show()
 
     def generate_new_contract_number(self):
         """สร้างเลขที่สัญญาใหม่"""
@@ -1318,6 +1473,110 @@ class PawnShopUI(QMainWindow):
         """เมื่อมีการอัปเดตข้อมูลค่าธรรมเนียม"""
         # รีเฟรชการคำนวณค่าธรรมเนียมในฟอร์ม
         self.calculate_amounts()
+
+    def toggle_customer_mode(self):
+        """สลับโหมดการเพิ่มลูกค้า"""
+        if self.customer_info_group.isVisible():
+            # สลับไปโหมดเพิ่มลูกค้าใหม่
+            self.customer_info_group.hide()
+            self.customer_add_group.show()
+            # สร้างรหัสลูกค้าใหม่
+            self.generate_new_customer_code()
+            self.customer_add_group.setFocus()
+        else:
+            # สลับกลับไปโหมดแสดงข้อมูล
+            self.customer_add_group.hide()
+            self.customer_info_group.show()
+            self.customer_info_group.setFocus()
+
+    def save_new_customer(self):
+        """บันทึกข้อมูลลูกค้าใหม่"""
+        customer_code = self.customer_code_display_edit.text().strip()
+        first_name = self.customer_first_name_edit.text().strip()
+        last_name = self.customer_last_name_edit.text().strip()
+        id_card = self.customer_id_card_edit.text().strip()
+        house_number = self.customer_house_number_edit.text().strip()
+        street = self.customer_street_edit.text().strip()
+        subdistrict = self.customer_subdistrict_edit.text().strip()
+        district = self.customer_district_edit.text().strip()
+        province = self.customer_province_edit.text().strip()
+        phone = self.customer_phone_edit.text().strip()
+        other_details = self.customer_other_details_edit.text().strip()
+
+        if not first_name or not last_name or not id_card:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกข้อมูลชื่อ, นามสกุล, และเลขบัตรประชาชน")
+            return
+
+        try:
+            customer_data = {
+                'customer_code': customer_code,
+                'first_name': first_name,
+                'last_name': last_name,
+                'id_card': id_card,
+                'house_number': house_number,
+                'street': street,
+                'subdistrict': subdistrict,
+                'district': district,
+                'province': province,
+                'phone': phone,
+                'other_details': other_details
+            }
+            new_customer_id = self.db.add_customer(customer_data)
+            self.current_customer = self.db.get_customer_by_id(new_customer_id)
+            self.load_customer_data()
+            self.toggle_customer_mode()
+            QMessageBox.information(self, "สำเร็จ", f"เพิ่มลูกค้าเรียบร้อย\nรหัสลูกค้า: {customer_code}")
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการเพิ่มลูกค้า: {str(e)}")
+
+    def toggle_product_mode(self):
+        """สลับโหมดการเพิ่มสินค้า"""
+        if self.product_info_group.isVisible():
+            self.product_info_group.hide()
+            self.product_add_group.show()
+            self.product_add_group.setFocus()
+        else:
+            self.product_add_group.hide()
+            self.product_info_group.show()
+            self.product_info_group.setFocus()
+
+    def save_new_product(self):
+        """บันทึกข้อมูลสินค้าใหม่"""
+        name = self.product_add_name_edit.text().strip()
+        brand = self.product_add_brand_edit.text().strip()
+        size = self.product_add_size_edit.text().strip()
+        weight_unit = self.product_add_weight_combo.currentText()
+        serial_number = self.product_add_serial_edit.text().strip()
+        other_details = self.product_add_details_edit.text().strip()
+
+        if not name:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
+            return
+
+        try:
+            product_data = {
+                'name': name,
+                'brand': brand,
+                'size': size,
+                'weight_unit': weight_unit,
+                'serial_number': serial_number,
+                'other_details': other_details
+            }
+            new_product_id = self.db.add_product(product_data)
+            self.current_product = self.db.get_product_by_id(new_product_id)
+            self.load_product_data()
+            self.toggle_product_mode()
+            QMessageBox.information(self, "สำเร็จ", "เพิ่มสินค้าเรียบร้อย")
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการเพิ่มสินค้า: {str(e)}")
+
+    def generate_new_customer_code(self):
+        """สร้างรหัสลูกค้าใหม่"""
+        prefix = self.db.get_setting('customer_prefix') if hasattr(self.db, 'get_setting') else "C"
+        # คำนวณลำดับถัดไปจากฐานข้อมูล
+        sequence = self.db.get_next_customer_sequence(prefix)
+        customer_code = PawnShopUtils.generate_customer_code(prefix, sequence)
+        self.customer_code_display_edit.setText(customer_code)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
