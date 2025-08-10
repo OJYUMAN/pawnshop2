@@ -8,6 +8,13 @@ from PySide6.QtWidgets import (
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
     QScrollArea, QFrame, QFileDialog
 )
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from PySide6.QtGui import QIcon, QAction, QPixmap
 from PySide6.QtCore import Qt, QSize, QDate
 from datetime import datetime, timedelta
@@ -946,6 +953,7 @@ class PawnShopUI(QMainWindow):
             ("สร้างสัญญาใหม่", "document-new", self.generate_new_contract),
             ("ล้างฟอร์ม", "edit-clear", self.clear_form),
             ("บันทึกสัญญา", "document-save", self.save_contract),
+            ("สร้างใบขายฝาก", "document-export", self.generate_pawn_contract_pdf),
             ("ต่อดอก", "view-refresh", self.extend_interest),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
             ("หลุดจำนำ", "edit-delete", self.lost_contract),
@@ -973,8 +981,8 @@ class PawnShopUI(QMainWindow):
             
             toolbar.addAction(action)
             
-            # เพิ่ม separator หลังปุ่มที่ 3 และ 6 เพื่อแบ่งกลุ่ม
-            if i == 2 or i == 5:
+            # เพิ่ม separator หลังปุ่มที่ 3 และ 7 เพื่อแบ่งกลุ่ม
+            if i == 3 or i == 7:
                 toolbar.addSeparator()
 
     def create_icon_for_action(self, icon_name, text):
@@ -1231,6 +1239,23 @@ class PawnShopUI(QMainWindow):
         
         try:
             contract_id = self.db.create_contract(contract_data)
+            
+            # เก็บข้อมูลสัญญาไว้ใน current_contract เพื่อใช้สร้าง PDF
+            self.current_contract = {
+                'id': contract_id,
+                'contract_number': contract_data['contract_number'],
+                'start_date': contract_data['start_date'],
+                'end_date': contract_data['end_date'],
+                'days': contract_data['days_count'],
+                'pawn_amount': contract_data['pawn_amount'],
+                'interest_rate': contract_data['interest_rate'],
+                'fee_amount': contract_data['fee_amount'],
+                'withholding_tax_rate': contract_data['withholding_tax_rate'],
+                'withholding_tax_amount': contract_data['withholding_tax_amount'],
+                'total_paid': contract_data['total_paid'],
+                'total_redemption': contract_data['total_redemption']
+            }
+            
             QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
             self.generate_new_contract_number()
         except Exception as e:
@@ -1698,6 +1723,219 @@ class PawnShopUI(QMainWindow):
         except Exception as e:
             print(f"Error copying image: {e}")
             return source_path  # คืนค่า path เดิมถ้าเกิดข้อผิดพลาด
+
+    def generate_pawn_contract_pdf(self):
+        """สร้างใบขายฝากเป็น PDF"""
+        # ตรวจสอบว่ามีข้อมูลครบหรือไม่
+        missing_data = []
+        if not self.current_customer:
+            missing_data.append("ลูกค้า")
+        if not self.current_product:
+            missing_data.append("สินค้า")
+        
+        if missing_data:
+            QMessageBox.warning(self, "แจ้งเตือน", f"กรุณาเลือก{', '.join(missing_data)}ก่อนสร้างใบขายฝาก")
+            return
+        
+        # ตรวจสอบว่ามีข้อมูลสัญญาพื้นฐานหรือไม่
+        if not self.contract_number_edit.text().strip():
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขที่สัญญาก่อนสร้างใบขายฝาก")
+            return
+        
+        try:
+            # เลือกตำแหน่งที่จะบันทึกไฟล์ PDF
+            options = QFileDialog.Options()
+            contract_number = self.contract_number_edit.text() or "ใหม่"
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "บันทึกใบขายฝาก",
+                f"ใบขายฝาก_{contract_number}.pdf",
+                "PDF Files (*.pdf)",
+                options=options
+            )
+            
+            if not file_name:
+                return
+            
+            # สร้าง PDF
+            self._create_pawn_contract_pdf(file_name)
+            
+            QMessageBox.information(self, "สำเร็จ", f"สร้างใบขายฝากเรียบร้อยแล้ว\nบันทึกที่: {file_name}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+
+    def _create_pawn_contract_pdf(self, file_path):
+        """สร้างไฟล์ PDF ใบขายฝาก"""
+        doc = SimpleDocTemplate(file_path, pagesize=A4)
+        story = []
+        
+        # สร้าง styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=20,
+            alignment=1,  # center
+            textColor=colors.darkblue
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=10,
+            textColor=colors.darkblue
+        )
+        
+        normal_style = styles['Normal']
+        
+        # หัวเอกสาร
+        story.append(Paragraph("ใบขายฝาก", title_style))
+        story.append(Spacer(1, 20))
+        
+        # ข้อมูลสัญญา
+        story.append(Paragraph("ข้อมูลสัญญา", heading_style))
+        contract_data = [
+            ["เลขที่สัญญา:", self.contract_number_edit.text()],
+            ["วันที่เริ่มต้น:", self.start_date_edit.date().toString("yyyy-MM-dd")],
+            ["วันที่สิ้นสุด:", self.end_date_edit.text()],
+            ["จำนวนวัน:", f"{self.days_spin.value()} วัน"]
+        ]
+        
+        contract_table = Table(contract_data, colWidths=[4*cm, 8*cm])
+        contract_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(contract_table)
+        story.append(Spacer(1, 15))
+        
+        # ข้อมูลลูกค้า
+        story.append(Paragraph("ข้อมูลลูกค้า", heading_style))
+        
+        # สร้างที่อยู่จากส่วนประกอบต่างๆ
+        address_parts = [
+            self.current_customer.get('house_number', ''),
+            self.current_customer.get('street', ''),
+            self.current_customer.get('subdistrict', ''),
+            self.current_customer.get('district', ''),
+            self.current_customer.get('province', '')
+        ]
+        address = ' '.join(filter(None, address_parts))
+        
+        customer_data = [
+            ["รหัสลูกค้า:", self.current_customer.get('customer_code', '')],
+            ["ชื่อ-นามสกุล:", f"{self.current_customer.get('first_name', '')} {self.current_customer.get('last_name', '')}"],
+            ["เลขบัตรประชาชน:", self.current_customer.get('id_card', '')],
+            ["ที่อยู่:", address],
+            ["เบอร์โทรศัพท์:", self.current_customer.get('phone', '')]
+        ]
+        
+        customer_table = Table(customer_data, colWidths=[4*cm, 8*cm])
+        customer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(customer_table)
+        story.append(Spacer(1, 15))
+        
+        # ข้อมูลสินค้า
+        story.append(Paragraph("ข้อมูลสินค้า", heading_style))
+        product_data = [
+            ["ชื่อสินค้า:", self.current_product['name']],
+            ["ยี่ห้อ:", self.current_product['brand']],
+            ["ขนาด:", self.current_product['size']],
+            ["น้ำหนัก:", f"{self.current_product['weight']} {self.current_product['weight_unit']}"],
+            ["เลขประจำเครื่อง:", self.current_product['serial_number']],
+            ["รายละเอียดอื่นๆ:", self.current_product['other_details']]
+        ]
+        
+        product_table = Table(product_data, colWidths=[4*cm, 8*cm])
+        product_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(product_table)
+        story.append(Spacer(1, 15))
+        
+        # ข้อมูลการเงิน
+        story.append(Paragraph("ข้อมูลการเงิน", heading_style))
+        financial_data = [
+            ["ยอดฝาก:", f"{self.pawn_amount_spin.value():,.2f} บาท"],
+            ["อัตราดอกเบี้ย:", f"{self.interest_rate_spin.value()}%"],
+            ["ค่าธรรมเนียม:", self.fee_amount_label.text()],
+            ["อัตราหัก ณ ที่จ่าย:", f"{self.withholding_tax_rate_spin.value()}%"],
+            ["ยอดหัก ณ ที่จ่าย:", self.withholding_tax_amount_label.text()],
+            ["ยอดจ่าย:", self.total_paid_label.text()],
+            ["ยอดไถ่ถอน:", self.total_redemption_label.text()]
+        ]
+        
+        financial_table = Table(financial_data, colWidths=[4*cm, 8*cm])
+        financial_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(financial_table)
+        story.append(Spacer(1, 20))
+        
+        # เงื่อนไขและข้อตกลง
+        story.append(Paragraph("เงื่อนไขและข้อตกลง", heading_style))
+        terms = [
+            "1. ลูกค้าต้องชำระดอกเบี้ยและค่าธรรมเนียมตามกำหนดเวลา",
+            "2. หากไม่ชำระภายในกำหนด สินค้าจะตกเป็นของร้าน",
+            "3. ลูกค้าสามารถไถ่ถอนสินค้าได้ตลอดเวลาก่อนครบกำหนด",
+            "4. ร้านจะเก็บรักษาสินค้าให้อย่างดีและปลอดภัย",
+            "5. หากสินค้าเสียหายจากเหตุสุดวิสัย ร้านไม่รับผิดชอบ"
+        ]
+        
+        for term in terms:
+            story.append(Paragraph(term, normal_style))
+            story.append(Spacer(1, 5))
+        
+        story.append(Spacer(1, 20))
+        
+        # ลายเซ็น
+        signature_data = [
+            ["", ""],
+            ["ลายเซ็นลูกค้า", "ลายเซ็นผู้รับฝาก"],
+            ["", ""],
+            ["วันที่:", "วันที่:"]
+        ]
+        
+        signature_table = Table(signature_data, colWidths=[6*cm, 6*cm])
+        signature_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(signature_table)
+        
+        # สร้าง PDF
+        doc.build(story)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
