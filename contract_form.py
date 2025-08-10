@@ -127,15 +127,29 @@ class NewContractDialog(QDialog):
         self.fee_amount_label = QLabel("0.00 บาท")
         finance_layout.addWidget(self.fee_amount_label, 2, 1)
         
+        # อัตราหัก ณ ที่จ่าย
+        finance_layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย:"), 3, 0)
+        self.withholding_tax_rate_spin = QDoubleSpinBox()
+        self.withholding_tax_rate_spin.setRange(0, 100)
+        self.withholding_tax_rate_spin.setValue(3.0)
+        self.withholding_tax_rate_spin.setSuffix(" %")
+        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
+        finance_layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
+        
+        # จำนวนหัก ณ ที่จ่าย
+        finance_layout.addWidget(QLabel("หัก ณ ที่จ่าย:"), 4, 0)
+        self.withholding_tax_amount_label = QLabel("0.00 บาท")
+        finance_layout.addWidget(self.withholding_tax_amount_label, 4, 1)
+        
         # ยอดจ่าย
-        finance_layout.addWidget(QLabel("ยอดจ่าย:"), 3, 0)
+        finance_layout.addWidget(QLabel("ยอดจ่าย:"), 5, 0)
         self.total_paid_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.total_paid_label, 3, 1)
+        finance_layout.addWidget(self.total_paid_label, 5, 1)
         
         # ยอดไถ่ถอน
-        finance_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 4, 0)
+        finance_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.total_redemption_label, 4, 1)
+        finance_layout.addWidget(self.total_redemption_label, 6, 1)
         
         layout.addWidget(finance_group)
         
@@ -262,9 +276,11 @@ class NewContractDialog(QDialog):
         """โหลดการตั้งค่า"""
         default_interest_rate = float(self.db.get_setting('default_interest_rate'))
         default_days = int(self.db.get_setting('default_contract_days'))
+        default_withholding_tax_rate = float(self.db.get_setting('default_withholding_tax_rate'))
         
         self.interest_rate_spin.setValue(default_interest_rate)
         self.days_spin.setValue(default_days)
+        self.withholding_tax_rate_spin.setValue(default_withholding_tax_rate)
         
         # สร้างเลขที่สัญญาใหม่
         self.generate_new_contract_number()
@@ -289,21 +305,26 @@ class NewContractDialog(QDialog):
         pawn_amount = self.pawn_amount_spin.value()
         interest_rate = self.interest_rate_spin.value()
         days = self.days_spin.value()
+        withholding_tax_rate = self.withholding_tax_rate_spin.value()
         
         # คำนวณดอกเบี้ย
         interest_amount = PawnShopUtils.calculate_interest(pawn_amount, interest_rate, days)
         
-        # ค่าธรรมเนียม (ตัวอย่าง)
-        fee_amount = interest_amount
+        # ค่าธรรมเนียมจากฐานข้อมูล
+        fee_amount = self.db.calculate_fee_amount(pawn_amount, days)
+        
+        # คำนวณหัก ณ ที่จ่าย (จากดอกเบี้ย)
+        withholding_tax_amount = interest_amount * (withholding_tax_rate / 100)
         
         # ยอดจ่าย
         total_paid = pawn_amount
         
-        # ยอดไถ่ถอน
-        total_redemption = pawn_amount + interest_amount
+        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย)
+        total_redemption = pawn_amount + interest_amount + fee_amount - withholding_tax_amount
         
         # แสดงผล
         self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
+        self.withholding_tax_amount_label.setText(f"{withholding_tax_amount:,.2f} บาท")
         self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
         self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
     
@@ -390,6 +411,8 @@ class NewContractDialog(QDialog):
             'pawn_amount': self.pawn_amount_spin.value(),
             'interest_rate': self.interest_rate_spin.value(),
             'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
+            'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
+            'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
             'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
             'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),

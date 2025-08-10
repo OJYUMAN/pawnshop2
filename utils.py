@@ -9,6 +9,11 @@ class PawnShopUtils:
         return (principal * rate * days) / 100
     
     @staticmethod
+    def calculate_withholding_tax(interest_amount: float, tax_rate: float) -> float:
+        """คำนวณหัก ณ ที่จ่าย"""
+        return interest_amount * (tax_rate / 100)
+    
+    @staticmethod
     def calculate_penalty(principal: float, overdue_days: int, penalty_rate: float = 1.0) -> float:
         """คำนวณค่าปรับ"""
         return (principal * penalty_rate * overdue_days) / 100
@@ -34,6 +39,11 @@ class PawnShopUtils:
                                  penalty_amount: float = 0, discount_amount: float = 0) -> float:
         """คำนวณยอดไถ่ถอนรวม"""
         return pawn_amount + interest_amount + penalty_amount - discount_amount
+    
+    @staticmethod
+    def calculate_net_payment(pawn_amount: float, withholding_tax_amount: float) -> float:
+        """คำนวณยอดจ่ายหลังหัก ณ ที่จ่าย"""
+        return pawn_amount - withholding_tax_amount
     
     @staticmethod
     def format_currency(amount: float) -> str:

@@ -16,6 +16,7 @@ from dialogs import CustomerDialog, ProductDialog, InterestPaymentDialog, Redemp
 from data_viewer import DataViewerDialog
 from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
+from fee_management import FeeManagementDialog
 
 class PawnShopUI(QMainWindow):
     def __init__(self):
@@ -146,13 +147,16 @@ class PawnShopUI(QMainWindow):
         try:
             default_interest_rate = float(self.db.get_setting('default_interest_rate'))
             default_days = int(self.db.get_setting('default_contract_days'))
+            default_withholding_tax_rate = float(self.db.get_setting('default_withholding_tax_rate'))
             
             self.interest_rate_spin.setValue(default_interest_rate)
             self.days_spin.setValue(default_days)
+            self.withholding_tax_rate_spin.setValue(default_withholding_tax_rate)
         except:
             # ใช้ค่าเริ่มต้นถ้าไม่มีการตั้งค่า
             self.interest_rate_spin.setValue(3.0)
             self.days_spin.setValue(30)
+            self.withholding_tax_rate_spin.setValue(3.0)
 
     def create_top_section(self):
         """สร้างส่วนบนของ UI"""
@@ -233,19 +237,39 @@ class PawnShopUI(QMainWindow):
         self.fee_amount_label = QLabel("0.00 บาท")
         layout.addWidget(self.fee_amount_label, 2, 1)
         
+        # อัตราหัก ณ ที่จ่าย
+        layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย"), 3, 0)
+        self.withholding_tax_rate_spin = QDoubleSpinBox()
+        self.withholding_tax_rate_spin.setRange(0, 100)
+        self.withholding_tax_rate_spin.setSuffix(" %")
+        self.withholding_tax_rate_spin.setValue(3.0)
+        layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
+        
+        # ปุ่มอัปเดตอัตราหัก ณ ที่จ่าย
+        self.update_tax_rate_btn = QPushButton("อัปเดต")
+        self.update_tax_rate_btn.clicked.connect(self.update_withholding_tax_rate)
+        self.update_tax_rate_btn.setMaximumWidth(80)
+        layout.addWidget(self.update_tax_rate_btn, 3, 2)
+        
+        # ยอดหัก ณ ที่จ่าย
+        layout.addWidget(QLabel("ยอดหัก ณ ที่จ่าย"), 4, 0)
+        self.withholding_tax_amount_label = QLabel("0.00 บาท")
+        layout.addWidget(self.withholding_tax_amount_label, 4, 1)
+        
         # ยอดจ่าย
-        layout.addWidget(QLabel("ยอดจ่าย"), 3, 0)
+        layout.addWidget(QLabel("ยอดจ่าย"), 5, 0)
         self.total_paid_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_paid_label, 3, 1)
+        layout.addWidget(self.total_paid_label, 5, 1)
 
         # ยอดไถ่ถอน
-        layout.addWidget(QLabel("ยอดไถ่ถอน"), 4, 0)
+        layout.addWidget(QLabel("ยอดไถ่ถอน"), 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_redemption_label, 4, 1)
+        layout.addWidget(self.total_redemption_label, 6, 1)
 
         # เชื่อมต่อสัญญาณ
         self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
         self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
+        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
 
         group_box.setFixedWidth(350)
         return group_box
@@ -520,14 +544,24 @@ class PawnShopUI(QMainWindow):
         return group_box
 
     def create_data_table(self):
-        self.contract_table = QTableWidget(0, 7)  # Start with 0 rows
-        headers = ["ลำดับ", "ค่าเช่า", "ค่าปรับ", "ส่วนลด", "รวม", "วันที่กำหนดส่ง", "ครบกำหนด"]
+        self.contract_table = QTableWidget(0, 8)  # เพิ่มคอลัมน์หัก ณ ที่จ่าย
+        headers = ["ลำดับ", "ค่าเช่า", "ค่าปรับ", "ส่วนลด", "หัก ณ ที่จ่าย", "รวม", "วันที่กำหนดส่ง", "ครบกำหนด"]
         self.contract_table.setHorizontalHeaderLabels(headers)
         
         # ไม่แสดงข้อมูลใดๆ เมื่อเริ่มต้น
         self.contract_table.setRowCount(0)
         
-        self.contract_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # ตั้งค่าความกว้างคอลัมน์
+        header = self.contract_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # ลำดับ
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # ค่าเช่า
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # ค่าปรับ
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # ส่วนลด
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # หัก ณ ที่จ่าย
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # รวม
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # วันที่กำหนดส่ง
+        header.setSectionResizeMode(7, QHeaderView.ResizeToContents)  # ครบกำหนด
+        
         return self.contract_table
 
     def create_menu_bar(self):
@@ -554,6 +588,16 @@ class PawnShopUI(QMainWindow):
         monthly_report_action = QAction("รายงานประจำเดือน", self)
         monthly_report_action.triggered.connect(self.show_monthly_report)
         report_menu.addAction(monthly_report_action)
+        
+        withholding_tax_report_action = QAction("รายงานหัก ณ ที่จ่าย", self)
+        withholding_tax_report_action.triggered.connect(self.show_withholding_tax_report)
+        report_menu.addAction(withholding_tax_report_action)
+        
+        # เมนูจัดการค่าธรรมเนียม
+        fee_menu = menu_bar.addMenu("จัดการค่าธรรมเนียม")
+        fee_management_action = QAction("ตารางจัดการค่าธรรมเนียม", self)
+        fee_management_action.triggered.connect(self.show_fee_management)
+        fee_menu.addAction(fee_management_action)
 
     def create_bottom_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
@@ -569,8 +613,11 @@ class PawnShopUI(QMainWindow):
             ("ในขายฝาก", "folder-open", self.view_contracts),
             ("สรุปขายฝาก", "document-properties", self.summary_report),
             ("รับ", "arrow-down", self.receive_payment),
+            ("หัก ณ ที่จ่าย", "document-edit", self.calculate_withholding_tax),
+            ("รายงานหัก ณ ที่จ่าย", "document-properties", self.show_withholding_tax_report),
             ("บัญชีรายวัน", "x-office-calendar", self.daily_account),
-            ("ตารางดอก", "insert-object", self.interest_schedule)
+            ("ตารางดอก", "insert-object", self.interest_schedule),
+            ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management)
         ]
 
         for text, icon_name, slot in actions:
@@ -613,21 +660,26 @@ class PawnShopUI(QMainWindow):
         pawn_amount = self.pawn_amount_spin.value()
         interest_rate = self.interest_rate_spin.value()
         days = self.days_spin.value()
+        withholding_tax_rate = self.withholding_tax_rate_spin.value()
         
         # คำนวณดอกเบี้ย
         interest_amount = PawnShopUtils.calculate_interest(pawn_amount, interest_rate, days)
         
-        # ค่าธรรมเนียม (ตัวอย่าง)
-        fee_amount = interest_amount
+        # ค่าธรรมเนียมจากฐานข้อมูล
+        fee_amount = self.db.calculate_fee_amount(pawn_amount, days)
         
-        # ยอดจ่าย
-        total_paid = pawn_amount
+        # คำนวณหัก ณ ที่จ่าย (หักจากดอกเบี้ย)
+        withholding_tax_amount = interest_amount * (withholding_tax_rate / 100)
+        
+        # ยอดจ่าย (ยอดฝาก - หัก ณ ที่จ่าย)
+        total_paid = pawn_amount - withholding_tax_amount
         
         # ยอดไถ่ถอน
-        total_redemption = pawn_amount + interest_amount
+        total_redemption = pawn_amount + interest_amount + fee_amount
         
         # แสดงผล
         self.fee_amount_label.setText("{:,.2f} บาท".format(fee_amount))
+        self.withholding_tax_amount_label.setText("{:,.2f} บาท".format(withholding_tax_amount))
         self.total_paid_label.setText("{:,.2f} บาท".format(total_paid))
         self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
 
@@ -751,6 +803,8 @@ class PawnShopUI(QMainWindow):
             'pawn_amount': self.pawn_amount_spin.value(),
             'interest_rate': self.interest_rate_spin.value(),
             'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
+            'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
+            'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
             'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
             'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
@@ -805,12 +859,64 @@ class PawnShopUI(QMainWindow):
         if contracts:
             self.current_contract = contracts[0]
             self.load_contract_data()
+            self.display_contract_in_table(contracts)
         else:
             QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาที่ตรงกับคำค้นหา")
+    
+    def display_contract_in_table(self, contracts: list):
+        """แสดงข้อมูลสัญญาในตาราง"""
+        self.contract_table.setRowCount(len(contracts))
+        
+        for row, contract in enumerate(contracts):
+            # ลำดับ
+            self.contract_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            
+            # ค่าเช่า (ดอกเบี้ย)
+            interest_amount = (contract.get('pawn_amount', 0) * contract.get('interest_rate', 0) * contract.get('days_count', 0)) / 100
+            self.contract_table.setItem(row, 1, QTableWidgetItem(f"{interest_amount:,.2f}"))
+            
+            # ค่าปรับ
+            penalty_amount = contract.get('penalty_amount', 0)
+            self.contract_table.setItem(row, 2, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+            
+            # ส่วนลด
+            discount_amount = contract.get('discount_amount', 0)
+            self.contract_table.setItem(row, 3, QTableWidgetItem(f"{discount_amount:,.2f}"))
+            
+            # หัก ณ ที่จ่าย
+            withholding_tax_amount = contract.get('withholding_tax_amount', 0)
+            self.contract_table.setItem(row, 4, QTableWidgetItem(f"{withholding_tax_amount:,.2f}"))
+            
+            # รวม
+            total_amount = interest_amount + penalty_amount - discount_amount - withholding_tax_amount
+            self.contract_table.setItem(row, 5, QTableWidgetItem(f"{total_amount:,.2f}"))
+            
+            # วันที่กำหนดส่ง
+            end_date = contract.get('end_date', '')
+            self.contract_table.setItem(row, 6, QTableWidgetItem(end_date))
+            
+            # ครบกำหนด
+            is_overdue = "ครบกำหนด" if contract.get('status') == 'active' else "ไถ่ถอนแล้ว"
+            self.contract_table.setItem(row, 7, QTableWidgetItem(is_overdue))
+            
+            # เก็บข้อมูล ID ไว้ใน item
+            self.contract_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
 
     def search_by_name(self):
         """ค้นหาตามชื่อ"""
-        QMessageBox.information(self, "ค้นหาตามชื่อ", "ฟีเจอร์ค้นหาตามชื่อ")
+        # เปิดหน้าต่างค้นหาลูกค้า
+        dialog = CustomerSearchDialog(self)
+        if dialog.exec():
+            selected_customer = dialog.selected_customer
+            if selected_customer:
+                # ค้นหาสัญญาของลูกค้าคนนี้
+                contracts = self.db.get_contracts_by_customer(selected_customer['id'])
+                if contracts:
+                    self.current_contract = contracts[0]
+                    self.load_contract_data()
+                    self.display_contract_in_table(contracts)
+                else:
+                    QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาของลูกค้าคนนี้")
 
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
@@ -821,6 +927,13 @@ class PawnShopUI(QMainWindow):
             self.customer_name_edit.setText(customer_name)
             # โหลดข้อมูลสินค้า
             self.product_name_display_edit.setText(self.current_contract.get('product_name', ''))
+            
+            # โหลดข้อมูลหัก ณ ที่จ่าย
+            if 'withholding_tax_rate' in self.current_contract:
+                self.withholding_tax_rate_spin.setValue(self.current_contract.get('withholding_tax_rate', 3.0))
+            
+            # คำนวณยอดต่างๆ ใหม่
+            self.calculate_amounts()
 
     def clear_form(self):
         """ล้างฟอร์ม"""
@@ -851,6 +964,7 @@ class PawnShopUI(QMainWindow):
         
         # รีเซ็ตยอด
         self.pawn_amount_spin.setValue(0)
+        self.withholding_tax_rate_spin.setValue(3.0)
         self.calculate_amounts()
 
     def generate_new_contract_number(self):
@@ -889,6 +1003,83 @@ class PawnShopUI(QMainWindow):
     def show_monthly_report(self):
         """แสดงรายงานประจำเดือน"""
         QMessageBox.information(self, "รายงานประจำเดือน", "ฟีเจอร์รายงานประจำเดือน")
+    
+    def show_withholding_tax_report(self):
+        """แสดงรายงานหัก ณ ที่จ่าย"""
+        try:
+            # ดึงข้อมูลหัก ณ ที่จ่ายจากฐานข้อมูล
+            contracts = self.db.get_contracts_with_withholding_tax()
+            
+            if not contracts:
+                QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", "ไม่พบข้อมูลหัก ณ ที่จ่าย")
+                return
+            
+            # สร้างรายงาน
+            total_withholding_tax = sum(contract.get('withholding_tax_amount', 0) for contract in contracts)
+            total_interest = sum(contract.get('interest_amount', 0) for contract in contracts)
+            
+            message = f"""
+รายงานหัก ณ ที่จ่าย:
+
+จำนวนสัญญา: {len(contracts)} สัญญา
+ยอดดอกเบี้ยรวม: {total_interest:,.2f} บาท
+ยอดหัก ณ ที่จ่ายรวม: {total_withholding_tax:,.2f} บาท
+ยอดจ่ายจริงรวม: {total_interest - total_withholding_tax:,.2f} บาท
+
+หมายเหตุ: หัก ณ ที่จ่ายจะถูกหักจากดอกเบี้ยที่ลูกค้าต้องจ่าย
+            """
+            
+            QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", message)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
+    
+    def calculate_withholding_tax(self):
+        """คำนวณหัก ณ ที่จ่าย"""
+        if not self.current_contract and not self.pawn_amount_spin.value():
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกยอดฝากก่อน")
+            return
+        
+        # คำนวณหัก ณ ที่จ่ายใหม่
+        self.calculate_amounts()
+        
+        # แสดงผลลัพธ์
+        withholding_tax_amount = float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', ''))
+        total_paid = float(self.total_paid_label.text().replace(' บาท', '').replace(',', ''))
+        
+        message = f"""
+การคำนวณหัก ณ ที่จ่าย:
+
+ยอดฝาก: {self.pawn_amount_spin.value():,.2f} บาท
+อัตราหัก ณ ที่จ่าย: {self.withholding_tax_rate_spin.value():.2f}%
+ยอดหัก ณ ที่จ่าย: {withholding_tax_amount:,.2f} บาท
+ยอดจ่ายจริง: {total_paid:,.2f} บาท
+
+หัก ณ ที่จ่ายจะถูกหักจากดอกเบี้ยที่ลูกค้าต้องจ่าย
+        """
+        
+        QMessageBox.information(self, "ผลการคำนวณหัก ณ ที่จ่าย", message)
+    
+    def update_withholding_tax_rate(self):
+        """อัปเดตอัตราหัก ณ ที่จ่าย"""
+        current_rate = self.withholding_tax_rate_spin.value()
+        
+        # อัปเดตในฐานข้อมูล
+        if self.db.update_withholding_tax_rate(current_rate):
+            QMessageBox.information(self, "สำเร็จ", f"อัปเดตอัตราหัก ณ ที่จ่ายเป็น {current_rate:.2f}% เรียบร้อย")
+        else:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตอัตราหัก ณ ที่จ่ายได้")
+    
+    def show_fee_management(self):
+        """แสดงหน้าต่างจัดการค่าธรรมเนียม"""
+        dialog = FeeManagementDialog(self)
+        dialog.fee_updated.connect(self.on_fee_updated)
+        dialog.exec()
+    
+    def on_fee_updated(self):
+        """เมื่อมีการอัปเดตข้อมูลค่าธรรมเนียม"""
+        # รีเฟรชการคำนวณค่าธรรมเนียมในฟอร์ม
+        self.calculate_amounts()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
