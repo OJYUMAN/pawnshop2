@@ -3,6 +3,7 @@
 หน้าต่างดูข้อมูลทั้งหมด
 """
 
+# -*- coding: utf-8 -*-
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QDateEdit, QSpinBox,
@@ -19,7 +20,11 @@ from utils import PawnShopUtils
 class DataViewerDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.setup_ui()
         self.load_data()
     
@@ -78,12 +83,14 @@ class DataViewerDialog(QDialog):
         
         # ตารางลูกค้า
         self.customer_table = QTableWidget()
-        self.customer_table.setColumnCount(7)
+        self.customer_table.setColumnCount(8)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
         self.customer_table.setHorizontalHeaderLabels([
             "รหัสลูกค้า", "ชื่อ", "นามสกุล", "เลขบัตรประชาชน", 
-            "เบอร์โทรศัพท์", "ที่อยู่", "รายละเอียด"
+            "เบอร์โทรศัพท์", "ที่อยู่", "รายละเอียด", "การดำเนินการ"
         ])
         self.customer_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.customer_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
+        self.customer_table.setColumnWidth(7, 100)
         layout.addWidget(self.customer_table)
         
         return widget
@@ -104,12 +111,14 @@ class DataViewerDialog(QDialog):
         
         # ตารางสินค้า
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(7)
+        self.product_table.setColumnCount(8)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
         self.product_table.setHorizontalHeaderLabels([
             "ชื่อสินค้า", "ยี่ห้อ/รุ่น", "ขนาด", "น้ำหนัก", 
-            "หมายเลขซีเรียล", "รายละเอียด", "วันที่สร้าง"
+            "หมายเลขซีเรียล", "รายละเอียด", "วันที่สร้าง", "การดำเนินการ"
         ])
         self.product_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.product_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
+        self.product_table.setColumnWidth(7, 100)
         layout.addWidget(self.product_table)
         
         return widget
@@ -125,7 +134,6 @@ class DataViewerDialog(QDialog):
         self.contract_search_edit = QLineEdit()
         self.contract_search_edit.setPlaceholderText("เลขที่สัญญา, ชื่อลูกค้า")
         self.contract_search_edit.textChanged.connect(self.filter_contracts)
-        filter_layout.addWidget(self.contract_search_edit)
         
         filter_layout.addWidget(QLabel("สถานะ:"))
         self.status_combo = QComboBox()
@@ -137,13 +145,15 @@ class DataViewerDialog(QDialog):
         
         # ตารางสัญญา
         self.contract_table = QTableWidget()
-        self.contract_table.setColumnCount(10)
+        self.contract_table.setColumnCount(11)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
         self.contract_table.setHorizontalHeaderLabels([
             "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ยอดฝาก", 
             "อัตราดอกเบี้ย", "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
-            "สถานะ", "ยอดไถ่ถอน", "วันที่สร้าง"
+            "สถานะ", "ยอดไถ่ถอน", "วันที่สร้าง", "การดำเนินการ"
         ])
         self.contract_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.contract_table.horizontalHeader().setSectionResizeMode(10, QHeaderView.Fixed)
+        self.contract_table.setColumnWidth(10, 100)
         layout.addWidget(self.contract_table)
         
         return widget
@@ -265,6 +275,12 @@ class DataViewerDialog(QDialog):
                 
                 self.customer_table.setItem(row, 6, QTableWidgetItem(customer.get('other_details', '')))
                 
+                # เพิ่มปุ่มลบ
+                delete_button = QPushButton("ลบ")
+                delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                delete_button.clicked.connect(lambda checked, row=row: self.delete_customer(row))
+                self.customer_table.setCellWidget(row, 7, delete_button)
+                
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลลูกค้า: {str(e)}")
     
@@ -304,6 +320,12 @@ class DataViewerDialog(QDialog):
                     else:
                         date_str = ''
                     self.product_table.setItem(row, 6, QTableWidgetItem(date_str))
+                    
+                    # เพิ่มปุ่มลบ
+                    delete_button = QPushButton("ลบ")
+                    delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                    delete_button.clicked.connect(lambda checked, row=row: self.delete_product(row))
+                    self.product_table.setCellWidget(row, 7, delete_button)
                     
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสินค้า: {str(e)}")
@@ -366,6 +388,12 @@ class DataViewerDialog(QDialog):
                 else:
                     date_str = ''
                 self.contract_table.setItem(row, 9, QTableWidgetItem(date_str))
+                
+                # เพิ่มปุ่มลบ
+                delete_button = QPushButton("ลบ")
+                delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                delete_button.clicked.connect(lambda checked, row=row: self.delete_contract(row))
+                self.contract_table.setCellWidget(row, 10, delete_button)
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสัญญา: {str(e)}")
@@ -470,6 +498,12 @@ class DataViewerDialog(QDialog):
                 
                 self.customer_table.setItem(row, 6, QTableWidgetItem(customer.get('other_details', '')))
                 
+                # เพิ่มปุ่มลบ
+                delete_button = QPushButton("ลบ")
+                delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                delete_button.clicked.connect(lambda checked, row=row: self.delete_customer(row))
+                self.customer_table.setCellWidget(row, 7, delete_button)
+                
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลลูกค้า: {str(e)}")
     
@@ -517,6 +551,12 @@ class DataViewerDialog(QDialog):
                     else:
                         date_str = ''
                     self.product_table.setItem(row, 6, QTableWidgetItem(date_str))
+                    
+                    # เพิ่มปุ่มลบ
+                    delete_button = QPushButton("ลบ")
+                    delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                    delete_button.clicked.connect(lambda checked, row=row: self.delete_product(row))
+                    self.product_table.setCellWidget(row, 7, delete_button)
                     
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลสินค้า: {str(e)}")
@@ -590,5 +630,106 @@ class DataViewerDialog(QDialog):
                     date_str = ''
                 self.contract_table.setItem(row, 9, QTableWidgetItem(date_str))
                 
+                # เพิ่มปุ่มลบ
+                delete_button = QPushButton("ลบ")
+                delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
+                delete_button.clicked.connect(lambda checked, row=row: self.delete_contract(row))
+                self.contract_table.setCellWidget(row, 10, delete_button)
+                
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลสัญญา: {str(e)}")
+    
+    def delete_customer(self, row: int):
+        """ลบข้อมูลลูกค้า"""
+        try:
+            customer_code = self.customer_table.item(row, 0).text()
+            customer_name = f"{self.customer_table.item(row, 1).text()} {self.customer_table.item(row, 2).text()}"
+            
+            # ยืนยันการลบ
+            reply = QMessageBox.question(
+                self, 
+                "ยืนยันการลบ", 
+                f"คุณต้องการลบข้อมูลลูกค้า {customer_name} (รหัส: {customer_code}) หรือไม่?\n\nการลบนี้จะลบข้อมูลลูกค้าออกจากระบบอย่างถาวร",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # ดึง ID ของลูกค้า
+                customer_id = self.db.get_customer_id_by_code(customer_code)
+                if customer_id:
+                    # ลบข้อมูลลูกค้า
+                    if self.db.delete_customer(customer_id):
+                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลลูกค้า {customer_name} เรียบร้อยแล้ว")
+                        self.load_data()  # รีเฟรชข้อมูล
+                    else:
+                        QMessageBox.warning(self, "ไม่สามารถลบได้", 
+                                          "ไม่สามารถลบข้อมูลลูกค้าได้ เนื่องจากมีสัญญาที่เกี่ยวข้องอยู่")
+                else:
+                    QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลลูกค้าที่ต้องการลบ")
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")
+    
+    def delete_product(self, row: int):
+        """ลบข้อมูลสินค้า"""
+        try:
+            product_name = self.product_table.item(row, 0).text()
+            serial_number = self.product_table.item(row, 4).text()
+            
+            # ยืนยันการลบ
+            reply = QMessageBox.question(
+                self, 
+                "ยืนยันการลบ", 
+                f"คุณต้องการลบข้อมูลสินค้า {product_name} (ซีเรียล: {serial_number}) หรือไม่?\n\nการลบนี้จะลบข้อมูลสินค้าออกจากระบบอย่างถาวร",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # ดึง ID ของสินค้า
+                product_id = self.db.get_product_id_by_serial(serial_number)
+                if product_id:
+                    # ลบข้อมูลสินค้า
+                    if self.db.delete_product(product_id):
+                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลสินค้า {product_name} เรียบร้อยแล้ว")
+                        self.load_data()  # รีเฟรชข้อมูล
+                    else:
+                        QMessageBox.warning(self, "ไม่สามารถลบได้", 
+                                          "ไม่สามารถลบข้อมูลสินค้าได้ เนื่องจากมีสัญญาที่เกี่ยวข้องอยู่")
+                else:
+                    QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลสินค้าที่ต้องการลบ")
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")
+    
+    def delete_contract(self, row: int):
+        """ลบข้อมูลสัญญา"""
+        try:
+            contract_number = self.contract_table.item(row, 0).text()
+            customer_name = self.contract_table.item(row, 1).text()
+            
+            # ยืนยันการลบ
+            reply = QMessageBox.question(
+                self, 
+                "ยืนยันการลบ", 
+                f"คุณต้องการลบข้อมูลสัญญา {contract_number} ของ {customer_name} หรือไม่?\n\nการลบนี้จะลบข้อมูลสัญญาออกจากระบบอย่างถาวร",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # ดึง ID ของสัญญา
+                contract_id = self.db.get_contract_by_number(contract_number).get('id')
+                if contract_id:
+                    # ลบข้อมูลสัญญา
+                    if self.db.delete_contract(contract_id):
+                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลสัญญา {contract_number} เรียบร้อยแล้ว")
+                        self.load_data()  # รีเฟรชข้อมูล
+                    else:
+                        QMessageBox.warning(self, "ไม่สามารถลบได้", "ไม่สามารถลบข้อมูลสัญญาได้")
+                else:
+                    QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลสัญญาที่ต้องการลบ")
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")

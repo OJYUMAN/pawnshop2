@@ -59,7 +59,13 @@ class PawnShopUtils:
     @staticmethod
     def validate_id_card(id_card: str) -> bool:
         """ตรวจสอบเลขบัตรประชาชน"""
-        if not id_card or len(id_card) != 13:
+        if not id_card:
+            return True  # อนุญาตให้ไม่กรอกได้
+        
+        # ลบช่องว่างและเครื่องหมาย
+        id_card = re.sub(r'[\s\-]', '', id_card)
+        
+        if len(id_card) != 13:
             return False
         
         try:
@@ -78,6 +84,9 @@ class PawnShopUtils:
     @staticmethod
     def validate_phone(phone: str) -> bool:
         """ตรวจสอบเบอร์โทรศัพท์"""
+        if not phone:
+            return True  # อนุญาตให้ไม่กรอกได้
+        
         # ลบช่องว่างและเครื่องหมาย
         phone = re.sub(r'[\s\-\(\)]', '', phone)
         

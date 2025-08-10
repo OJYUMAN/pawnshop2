@@ -3,6 +3,7 @@
 หน้าต่างค้นหาสินค้า
 """
 
+# -*- coding:utf-8 -*-
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QTableWidget,
@@ -17,7 +18,11 @@ from database import PawnShopDatabase
 class ProductSearchDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.selected_product = None
         self.setup_ui()
         self.load_products()
@@ -68,19 +73,8 @@ class ProductSearchDialog(QDialog):
     def load_products(self):
         """โหลดข้อมูลสินค้าทั้งหมด"""
         try:
-            import sqlite3
-            conn = sqlite3.connect(self.db.db_path)
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM products ORDER BY created_at DESC')
-            products = cursor.fetchall()
-            conn.close()
-            
-            if products:
-                columns = [description[0] for description in cursor.description]
-                self.display_products([dict(zip(columns, product_data)) for product_data in products])
-            else:
-                self.display_products([])
-                
+            products = self.db.search_products("")  # ดึงทั้งหมด
+            self.display_products(products)
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสินค้า: {str(e)}")
     
@@ -92,25 +86,8 @@ class ProductSearchDialog(QDialog):
             return
         
         try:
-            import sqlite3
-            conn = sqlite3.connect(self.db.db_path)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT * FROM products 
-                WHERE name LIKE ? OR brand LIKE ? OR serial_number LIKE ?
-                ORDER BY created_at DESC
-            ''', (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
-            
-            products = cursor.fetchall()
-            conn.close()
-            
-            if products:
-                columns = [description[0] for description in cursor.description]
-                self.display_products([dict(zip(columns, product_data)) for product_data in products])
-            else:
-                self.display_products([])
-                
+            products = self.db.search_products(search_term)
+            self.display_products(products)
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถค้นหาสินค้า: {str(e)}")
     
@@ -153,21 +130,13 @@ class ProductSearchDialog(QDialog):
             serial_number = self.product_table.item(current_row, 4).text()
             
             try:
-                import sqlite3
-                conn = sqlite3.connect(self.db.db_path)
-                cursor = conn.cursor()
-                
                 if serial_number:
-                    cursor.execute('SELECT * FROM products WHERE serial_number = ?', (serial_number,))
+                    products = self.db.search_products(serial_number)
                 else:
-                    cursor.execute('SELECT * FROM products WHERE name = ?', (product_name,))
+                    products = self.db.search_products(product_name)
                 
-                product_data = cursor.fetchone()
-                conn.close()
-                
-                if product_data:
-                    columns = [description[0] for description in cursor.description]
-                    self.selected_product = dict(zip(columns, product_data))
+                if products:
+                    self.selected_product = products[0]
                     self.accept()
                 else:
                     QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสินค้า")

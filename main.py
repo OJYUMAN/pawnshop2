@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 import sys
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
-    QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox
+    QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
+    QScrollArea, QFrame
 )
 from PySide6.QtGui import QIcon, QAction
 from PySide6.QtCore import Qt, QSize, QDate
@@ -11,8 +13,9 @@ from datetime import datetime, timedelta
 from database import PawnShopDatabase
 from utils import PawnShopUtils
 from dialogs import CustomerDialog, ProductDialog, InterestPaymentDialog, RedemptionDialog
-from contract_form import NewContractDialog
 from data_viewer import DataViewerDialog
+from customer_search import CustomerSearchDialog
+from product_search import ProductSearchDialog
 
 class PawnShopUI(QMainWindow):
     def __init__(self):
@@ -23,7 +26,7 @@ class PawnShopUI(QMainWindow):
         self.current_contract = None
         
         self.setWindowTitle("โปรแกรมรับจำนำ")
-        self.setGeometry(100, 100, 1400, 800)
+        self.setGeometry(100, 100, 1600, 900)
 
         # Apply styles to mimic the original UI
         self.setStyleSheet("""
@@ -84,6 +87,18 @@ class PawnShopUI(QMainWindow):
             QToolButton {
                  background-color: #F0F0F0;
             }
+            QLineEdit {
+                padding: 2px;
+                border: 1px solid #888;
+            }
+            QDateEdit {
+                padding: 2px;
+                border: 1px solid #888;
+            }
+            QSpinBox, QDoubleSpinBox {
+                padding: 2px;
+                border: 1px solid #888;
+            }
         """)
 
         # --- Menu Bar ---
@@ -92,26 +107,22 @@ class PawnShopUI(QMainWindow):
         # --- Main Widget and Layout ---
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
 
-        left_v_layout = QVBoxLayout()
-        right_v_layout = QVBoxLayout()
+        # --- Top Section ---
+        main_layout.addWidget(self.create_top_section())
 
-        main_layout.addLayout(left_v_layout, 2)  # Left side takes more space
-        main_layout.addLayout(right_v_layout, 1) # Right side
-
-        # --- Top Section (Left and Middle) ---
-        top_h_layout = QHBoxLayout()
-        top_h_layout.addWidget(self.create_top_left_group())
-        top_h_layout.addWidget(self.create_top_middle_group())
-        left_v_layout.addLayout(top_h_layout)
-
-        # --- Tab Widget ---
-        left_v_layout.addWidget(self.create_main_tabs())
-
-        # --- Right Section ---
-        right_v_layout.addWidget(self.create_search_group())
-        right_v_layout.addWidget(self.create_data_table())
+        # --- Main Content Area ---
+        content_widget = QWidget()
+        content_layout = QHBoxLayout(content_widget)
+        
+        # Left side - Contract form
+        content_layout.addWidget(self.create_contract_form(), 2)
+        
+        # Right side - Search and data
+        content_layout.addWidget(self.create_right_panel(), 1)
+        
+        main_layout.addWidget(content_widget)
 
         # --- Bottom Toolbar ---
         self.create_bottom_toolbar()
@@ -121,8 +132,8 @@ class PawnShopUI(QMainWindow):
 
     def initialize_ui(self):
         """เริ่มต้น UI"""
-        # สร้างเลขที่สัญญาใหม่
-        self.generate_new_contract_number()
+        # ไม่แสดงข้อมูลใดๆ เมื่อเริ่มต้น
+        self.clear_form()
         
         # ตั้งค่าวันที่เริ่มต้น
         self.start_date_edit.setDate(QDate.currentDate())
@@ -132,53 +143,45 @@ class PawnShopUI(QMainWindow):
 
     def load_settings(self):
         """โหลดการตั้งค่า"""
-        default_interest_rate = float(self.db.get_setting('default_interest_rate'))
-        default_days = int(self.db.get_setting('default_contract_days'))
-        
-        self.interest_rate_spin.setValue(default_interest_rate)
-        self.days_spin.setValue(default_days)
+        try:
+            default_interest_rate = float(self.db.get_setting('default_interest_rate'))
+            default_days = int(self.db.get_setting('default_contract_days'))
+            
+            self.interest_rate_spin.setValue(default_interest_rate)
+            self.days_spin.setValue(default_days)
+        except:
+            # ใช้ค่าเริ่มต้นถ้าไม่มีการตั้งค่า
+            self.interest_rate_spin.setValue(3.0)
+            self.days_spin.setValue(30)
 
-    def generate_new_contract_number(self):
-        """สร้างเลขที่สัญญาใหม่"""
-        prefix = self.db.get_setting('contract_prefix')
-        # TODO: คำนวณลำดับถัดไปจากฐานข้อมูล
-        sequence = 1078  # ตัวอย่าง
-        contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
-        self.contract_number_edit.setText(contract_number)
-
-    def create_menu_bar(self):
-        menu_bar = self.menuBar()
+    def create_top_section(self):
+        """สร้างส่วนบนของ UI"""
+        top_widget = QWidget()
+        top_layout = QHBoxLayout(top_widget)
         
-        # เมนูไฟล์
-        file_menu = menu_bar.addMenu("ไฟล์")
-        new_contract_action = QAction("สัญญาใหม่", self)
-        new_contract_action.triggered.connect(self.new_contract)
-        file_menu.addAction(new_contract_action)
+        # Left group - Contract info
+        left_group = self.create_top_left_group()
+        top_layout.addWidget(left_group)
         
-        # เมนูลูกค้า
-        customer_menu = menu_bar.addMenu("ลูกค้า")
-        add_customer_action = QAction("เพิ่มลูกค้า", self)
-        add_customer_action.triggered.connect(self.add_customer)
-        customer_menu.addAction(add_customer_action)
+        # Middle group - Financial calculations
+        middle_group = self.create_top_middle_group()
+        top_layout.addWidget(middle_group)
         
-        # เมนูรายงาน
-        report_menu = menu_bar.addMenu("รายงาน")
-        daily_report_action = QAction("รายงานประจำวัน", self)
-        daily_report_action.triggered.connect(self.show_daily_report)
-        report_menu.addAction(daily_report_action)
+        # Right group - Action buttons
+        right_group = self.create_top_right_group()
+        top_layout.addWidget(right_group)
         
-        monthly_report_action = QAction("รายงานประจำเดือน", self)
-        monthly_report_action.triggered.connect(self.show_monthly_report)
-        report_menu.addAction(monthly_report_action)
+        return top_widget
 
     def create_top_left_group(self):
-        group_box = QGroupBox()
+        group_box = QGroupBox("ข้อมูลสัญญา")
         group_box.setObjectName("TopLeftGroup")
         layout = QGridLayout(group_box)
         
         # เลขที่สัญญา
         layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
         self.contract_number_edit = QLineEdit()
+        self.contract_number_edit.setReadOnly(True)
         layout.addWidget(self.contract_number_edit, 0, 1)
         
         # วันที่เริ่มต้น
@@ -247,154 +250,237 @@ class PawnShopUI(QMainWindow):
         group_box.setFixedWidth(350)
         return group_box
 
-    def create_main_tabs(self):
+    def create_top_right_group(self):
+        group_box = QGroupBox("การดำเนินการ")
+        layout = QVBoxLayout(group_box)
+        
+        # ปุ่มสร้างสัญญาใหม่
+        self.new_contract_btn = QPushButton("สร้างสัญญาใหม่")
+        self.new_contract_btn.clicked.connect(self.generate_new_contract)
+        self.new_contract_btn.setMinimumHeight(40)
+        layout.addWidget(self.new_contract_btn)
+        
+        # ปุ่มล้างฟอร์ม
+        clear_btn = QPushButton("ล้างฟอร์ม")
+        clear_btn.clicked.connect(self.clear_form)
+        clear_btn.setMinimumHeight(30)
+        layout.addWidget(clear_btn)
+        
+        # ปุ่มบันทึกสัญญา
+        save_btn = QPushButton("บันทึกสัญญา")
+        save_btn.clicked.connect(self.save_contract)
+        save_btn.setMinimumHeight(30)
+        layout.addWidget(save_btn)
+        
+        group_box.setFixedWidth(200)
+        return group_box
+
+    def create_contract_form(self):
+        """สร้างฟอร์มสัญญา"""
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        
+        form_widget = QWidget()
+        form_layout = QVBoxLayout(form_widget)
+        
+        # Tab widget for contract form
         tab_widget = QTabWidget()
         tab_widget.setObjectName("TabWidget")
+        
+        # Tab 1: Customer Info
+        customer_tab = self.create_customer_tab()
+        tab_widget.addTab(customer_tab, "ข้อมูลผู้ขายฝาก (F2)")
+        
+        # Tab 2: Product Info
+        product_tab = self.create_product_tab()
+        tab_widget.addTab(product_tab, "ข้อมูลสินค้าขายฝาก (F3)")
+        
 
-        # Tab 1: Seller Info
-        seller_tab = QWidget()
-        seller_layout = QGridLayout(seller_tab)
-        seller_layout.addWidget(QLabel("(F2)"), 0, 0)
-        seller_group = QGroupBox("ข้อมูลผู้ขายฝาก")
         
-        seller_form_layout = QGridLayout(seller_group)
+        form_layout.addWidget(tab_widget)
+        scroll_area.setWidget(form_widget)
         
-        # รหัสลูกค้า
-        seller_form_layout.addWidget(QLabel("รหัสลูกค้า"), 0, 0)
+        return scroll_area
+
+    def create_customer_tab(self):
+        """สร้างแท็บข้อมูลลูกค้า"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # Customer search section
+        search_group = QGroupBox("ค้นหาลูกค้า")
+        search_layout = QGridLayout(search_group)
+        
+        search_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
         self.customer_code_edit = QLineEdit()
-        seller_form_layout.addWidget(self.customer_code_edit, 0, 1)
+        search_layout.addWidget(self.customer_code_edit, 0, 1)
+        
         self.customer_search_btn = QPushButton("ค้นหา")
         self.customer_search_btn.clicked.connect(self.search_customer)
-        seller_form_layout.addWidget(self.customer_search_btn, 0, 2)
+        search_layout.addWidget(self.customer_search_btn, 0, 2)
+        
+        self.add_customer_btn = QPushButton("เพิ่มลูกค้าใหม่")
+        self.add_customer_btn.clicked.connect(self.add_customer)
+        search_layout.addWidget(self.add_customer_btn, 0, 3)
+        
+        layout.addWidget(search_group)
+        
+        # Customer info section
+        info_group = QGroupBox("ข้อมูลลูกค้า")
+        info_layout = QGridLayout(info_group)
         
         # ชื่อลูกค้า
-        seller_form_layout.addWidget(QLabel("ชื่อผู้กู้"), 1, 0)
+        info_layout.addWidget(QLabel("ชื่อผู้กู้:"), 0, 0)
         self.customer_name_edit = QLineEdit()
         self.customer_name_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.customer_name_edit, 1, 1)
+        info_layout.addWidget(self.customer_name_edit, 0, 1)
         
         # ที่อยู่
-        seller_form_layout.addWidget(QLabel("ที่อยู่"), 2, 0)
+        info_layout.addWidget(QLabel("ที่อยู่:"), 1, 0)
         self.customer_address_edit = QLineEdit()
         self.customer_address_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.customer_address_edit, 2, 1)
+        info_layout.addWidget(self.customer_address_edit, 1, 1)
         
         # เลขบัตรประชาชน
-        seller_form_layout.addWidget(QLabel("บัตร"), 3, 0)
+        info_layout.addWidget(QLabel("บัตร:"), 2, 0)
         self.id_card_type_combo = QComboBox()
         self.id_card_type_combo.addItems(["บัตรประชาชน", "ใบขับขี่", "พาสปอร์ต"])
-        seller_form_layout.addWidget(self.id_card_type_combo, 3, 1)
+        info_layout.addWidget(self.id_card_type_combo, 2, 1)
         self.id_card_edit = QLineEdit()
         self.id_card_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.id_card_edit, 3, 2)
+        info_layout.addWidget(self.id_card_edit, 2, 2)
         
         # ที่อยู่บ้าน
-        seller_form_layout.addWidget(QLabel("ที่อยู่บ้านเลขที่"), 4, 0)
+        info_layout.addWidget(QLabel("ที่อยู่บ้านเลขที่:"), 3, 0)
         self.house_number_edit = QLineEdit()
         self.house_number_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.house_number_edit, 4, 1)
+        info_layout.addWidget(self.house_number_edit, 3, 1)
         
         # ซอย/ถนน
-        seller_form_layout.addWidget(QLabel("ซอย/ถนน"), 5, 0)
+        info_layout.addWidget(QLabel("ซอย/ถนน:"), 4, 0)
         self.street_edit = QLineEdit()
         self.street_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.street_edit, 5, 1)
+        info_layout.addWidget(self.street_edit, 4, 1)
         
         # ตำบล
-        seller_form_layout.addWidget(QLabel("ตำบล"), 6, 0)
+        info_layout.addWidget(QLabel("ตำบล:"), 5, 0)
         self.subdistrict_edit = QLineEdit()
         self.subdistrict_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.subdistrict_edit, 6, 1)
+        info_layout.addWidget(self.subdistrict_edit, 5, 1)
         
         # อำเภอ
-        seller_form_layout.addWidget(QLabel("อำเภอ"), 7, 0)
+        info_layout.addWidget(QLabel("อำเภอ:"), 6, 0)
         self.district_edit = QLineEdit()
         self.district_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.district_edit, 7, 1)
+        info_layout.addWidget(self.district_edit, 6, 1)
         
         # จังหวัด
-        seller_form_layout.addWidget(QLabel("จังหวัด"), 8, 0)
+        info_layout.addWidget(QLabel("จังหวัด:"), 7, 0)
         self.province_edit = QLineEdit()
         self.province_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.province_edit, 8, 1)
+        info_layout.addWidget(self.province_edit, 7, 1)
         
         # โทรศัพท์
-        seller_form_layout.addWidget(QLabel("โทรศัพท์"), 9, 0)
+        info_layout.addWidget(QLabel("โทรศัพท์:"), 8, 0)
         self.phone_edit = QLineEdit()
         self.phone_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.phone_edit, 9, 1)
+        info_layout.addWidget(self.phone_edit, 8, 1)
         
         # รายละเอียดอื่นๆ
-        seller_form_layout.addWidget(QLabel("รายละเอียดอื่นๆ"), 10, 0)
+        info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 9, 0)
         self.other_details_edit = QLineEdit()
         self.other_details_edit.setReadOnly(True)
-        seller_form_layout.addWidget(self.other_details_edit, 10, 1)
+        info_layout.addWidget(self.other_details_edit, 9, 1)
         
-        seller_layout.addWidget(seller_group, 1, 0, 1, 2)
-        tab_widget.addTab(seller_tab, "F2 ข้อมูลผู้ขายฝาก")
+        layout.addWidget(info_group)
+        
+        return tab
 
-        # Tab 2: Product Info
-        product_tab = QWidget()
-        product_layout = QGridLayout(product_tab)
-        product_layout.addWidget(QLabel("(F3)"), 0, 0)
-        product_group = QGroupBox("ข้อมูลสินค้าขายฝาก")
-
-        product_form_layout = QGridLayout(product_group)
+    def create_product_tab(self):
+        """สร้างแท็บข้อมูลสินค้า"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        
+        # Product search section
+        search_group = QGroupBox("ค้นหาสินค้า")
+        search_layout = QGridLayout(search_group)
+        
+        search_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
+        self.product_name_edit = QLineEdit()
+        search_layout.addWidget(self.product_name_edit, 0, 1)
+        
+        self.product_search_btn = QPushButton("ค้นหา")
+        self.product_search_btn.clicked.connect(self.search_product)
+        search_layout.addWidget(self.product_search_btn, 0, 2)
+        
+        self.add_product_btn = QPushButton("เพิ่มสินค้าใหม่")
+        self.add_product_btn.clicked.connect(self.add_product)
+        search_layout.addWidget(self.add_product_btn, 0, 3)
+        
+        layout.addWidget(search_group)
+        
+        # Product info section
+        info_group = QGroupBox("ข้อมูลสินค้า")
+        info_layout = QGridLayout(info_group)
         
         # สินค้าฝากขาย
-        product_form_layout.addWidget(QLabel("สินค้าฝากขาย"), 0, 0)
-        self.product_name_edit = QLineEdit()
-        product_form_layout.addWidget(self.product_name_edit, 0, 1)
-        self.product_add_btn = QPushButton("เพิ่ม")
-        self.product_add_btn.clicked.connect(self.add_product)
-        product_form_layout.addWidget(self.product_add_btn, 0, 2)
-
+        info_layout.addWidget(QLabel("สินค้าฝากขาย:"), 0, 0)
+        self.product_name_display_edit = QLineEdit()
+        self.product_name_display_edit.setReadOnly(True)
+        info_layout.addWidget(self.product_name_display_edit, 0, 1)
+        
         # ยี่ห้อ/รุ่น
-        product_form_layout.addWidget(QLabel("ยี่ห้อ/รุ่น"), 1, 0)
+        info_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
         self.product_brand_edit = QLineEdit()
-        product_form_layout.addWidget(self.product_brand_edit, 1, 1)
-        self.brand_add_btn = QPushButton("เพิ่ม")
-        product_form_layout.addWidget(self.brand_add_btn, 1, 2)
-
+        self.product_brand_edit.setReadOnly(True)
+        info_layout.addWidget(self.product_brand_edit, 1, 1)
+        
         # ขนาด
-        product_form_layout.addWidget(QLabel("ขนาด"), 2, 0)
+        info_layout.addWidget(QLabel("ขนาด:"), 2, 0)
         self.product_size_edit = QLineEdit()
-        product_form_layout.addWidget(self.product_size_edit, 2, 1)
-        self.size_add_btn = QPushButton("เพิ่ม")
-        product_form_layout.addWidget(self.size_add_btn, 2, 2)
-
+        self.product_size_edit.setReadOnly(True)
+        info_layout.addWidget(self.product_size_edit, 2, 1)
+        
         # น้ำหนัก
-        product_form_layout.addWidget(QLabel("น้ำหนัก"), 3, 0)
+        info_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
         self.product_weight_combo = QComboBox()
         self.product_weight_combo.addItems(["กรัม", "กิโลกรัม", "บาท"])
-        product_form_layout.addWidget(self.product_weight_combo, 3, 1)
-        self.weight_add_btn = QPushButton("เพิ่ม")
-        product_form_layout.addWidget(self.weight_add_btn, 3, 2)
-
+        self.product_weight_combo.setEnabled(False)
+        info_layout.addWidget(self.product_weight_combo, 3, 1)
+        
         # หมายเลขซีเรียล
-        product_form_layout.addWidget(QLabel("หมายเลขซีเรียล"), 4, 0, Qt.AlignTop)
+        info_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
         self.serial_number_edit = QLineEdit()
-        product_form_layout.addWidget(self.serial_number_edit, 4, 1)
+        self.serial_number_edit.setReadOnly(True)
+        info_layout.addWidget(self.serial_number_edit, 4, 1)
         
         # รายละเอียดอื่นๆ
-        product_form_layout.addWidget(QLabel("รายละเอียดอื่นๆ"), 5, 0, Qt.AlignTop)
+        info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
         self.product_details_edit = QLineEdit()
-        product_form_layout.addWidget(self.product_details_edit, 5, 1)
-
-        # รูปภาพสินค้า
-        image_layout = QVBoxLayout()
-        image_layout.addWidget(QLabel("รูปภาพสินค้า"))
-        for i in range(4):
-            btn_layout = QHBoxLayout()
-            btn_layout.addWidget(QPushButton("📂"))
-            btn_layout.addWidget(QPushButton("VIEW"))
-            image_layout.addLayout(btn_layout)
-        product_form_layout.addLayout(image_layout, 0, 3, 6, 1)
+        self.product_details_edit.setReadOnly(True)
+        info_layout.addWidget(self.product_details_edit, 5, 1)
         
-        product_layout.addWidget(product_group, 1, 0, 1, 2)
-        tab_widget.addTab(product_tab, "F3 ข้อมูลสินค้าขายฝาก")
+        layout.addWidget(info_group)
+        
+        return tab
 
-        return tab_widget
+
+
+    def create_right_panel(self):
+        """สร้างแผงด้านขวา"""
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        
+        # Search group
+        search_group = self.create_search_group()
+        right_layout.addWidget(search_group)
+        
+        # Data table
+        data_table = self.create_data_table()
+        right_layout.addWidget(data_table)
+        
+        return right_widget
 
     def create_search_group(self):
         group_box = QGroupBox("ค้นหา")
@@ -404,11 +490,10 @@ class PawnShopUI(QMainWindow):
         form_layout = QGridLayout()
         form_layout.addWidget(QLabel("เลขที่สัญญา"), 0, 0)
         self.search_contract_combo = QComboBox()
-        self.search_contract_combo.setEditable(True)
+        self.search_contract_combo.addItems(["=", ">", "<", ">=", "<="])
         form_layout.addWidget(self.search_contract_combo, 0, 1)
-        form_layout.addWidget(QLabel("="), 0, 2)
         self.search_contract_edit = QLineEdit()
-        form_layout.addWidget(self.search_contract_edit, 0, 3)
+        form_layout.addWidget(self.search_contract_edit, 0, 2)
 
         layout.addLayout(form_layout)
         
@@ -435,23 +520,40 @@ class PawnShopUI(QMainWindow):
         return group_box
 
     def create_data_table(self):
-        self.contract_table = QTableWidget(19, 7)
+        self.contract_table = QTableWidget(0, 7)  # Start with 0 rows
         headers = ["ลำดับ", "ค่าเช่า", "ค่าปรับ", "ส่วนลด", "รวม", "วันที่กำหนดส่ง", "ครบกำหนด"]
         self.contract_table.setHorizontalHeaderLabels(headers)
         
-        # Sample data
-        data = [
-            ("1", "300", "0", "0", "300", "23/11/2553", "23/12/2553"),
-            ("2", "300", "100", "0", "400", "23/12/2553", "22/1/2554"),
-            ("3", "300", "50", "0", "350", "22/1/2554", "21/2/2554")
-        ]
-
-        for row_idx, row_data in enumerate(data):
-            for col_idx, cell_data in enumerate(row_data):
-                self.contract_table.setItem(row_idx, col_idx, QTableWidgetItem(cell_data))
-
+        # ไม่แสดงข้อมูลใดๆ เมื่อเริ่มต้น
+        self.contract_table.setRowCount(0)
+        
         self.contract_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         return self.contract_table
+
+    def create_menu_bar(self):
+        menu_bar = self.menuBar()
+        
+        # เมนูไฟล์
+        file_menu = menu_bar.addMenu("ไฟล์")
+        view_data_action = QAction("ดูข้อมูลทั้งหมด", self)
+        view_data_action.triggered.connect(self.view_contracts)
+        file_menu.addAction(view_data_action)
+        
+        # เมนูลูกค้า
+        customer_menu = menu_bar.addMenu("ลูกค้า")
+        add_customer_action = QAction("เพิ่มลูกค้า", self)
+        add_customer_action.triggered.connect(self.add_customer)
+        customer_menu.addAction(add_customer_action)
+        
+        # เมนูรายงาน
+        report_menu = menu_bar.addMenu("รายงาน")
+        daily_report_action = QAction("รายงานประจำวัน", self)
+        daily_report_action.triggered.connect(self.show_daily_report)
+        report_menu.addAction(daily_report_action)
+        
+        monthly_report_action = QAction("รายงานประจำเดือน", self)
+        monthly_report_action.triggered.connect(self.show_monthly_report)
+        report_menu.addAction(monthly_report_action)
 
     def create_bottom_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
@@ -461,11 +563,9 @@ class PawnShopUI(QMainWindow):
 
         # Using standard icons as placeholders
         actions = [
-            ("สัญญาใหม่", "document-new", self.new_contract),
             ("ต่อดอก", "view-refresh", self.extend_interest),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
             ("หลุดจำนำ", "edit-delete", self.lost_contract),
-            ("จัดเก็บ", "document-save", self.save_contract),
             ("ในขายฝาก", "folder-open", self.view_contracts),
             ("สรุปขายฝาก", "document-properties", self.summary_report),
             ("รับ", "arrow-down", self.receive_payment),
@@ -478,6 +578,28 @@ class PawnShopUI(QMainWindow):
             action = QAction(icon, text, self)
             action.triggered.connect(slot)
             toolbar.addAction(action)
+
+    def generate_new_contract(self):
+        """สร้างสัญญาใหม่ - สร้างเลขที่สัญญาและแสดงบน UI"""
+        # สร้างเลขที่สัญญาใหม่
+        prefix = self.db.get_setting('contract_prefix') if hasattr(self.db, 'get_setting') else "CN"
+        # คำนวณลำดับถัดไปจากฐานข้อมูล
+        sequence = self.db.get_next_contract_sequence(prefix)
+        contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
+        
+        # แสดงเลขที่สัญญาบน UI
+        self.contract_number_edit.setText(contract_number)
+        
+        # ล้างฟอร์มเพื่อเตรียมข้อมูลใหม่
+        self.clear_form()
+        
+        # ตั้งค่าวันที่เริ่มต้น
+        self.start_date_edit.setDate(QDate.currentDate())
+        
+        # คำนวณวันที่สิ้นสุด
+        self.calculate_end_date()
+        
+        QMessageBox.information(self, "สำเร็จ", "สร้างสัญญาใหม่: {}".format(contract_number))
 
     def calculate_end_date(self):
         """คำนวณวันที่สิ้นสุด"""
@@ -505,17 +627,9 @@ class PawnShopUI(QMainWindow):
         total_redemption = pawn_amount + interest_amount
         
         # แสดงผล
-        self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
-        self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
-        self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
-
-    def new_contract(self):
-        """สร้างสัญญาใหม่"""
-        dialog = NewContractDialog(self)
-        if dialog.exec():
-            QMessageBox.information(self, "สำเร็จ", "สร้างสัญญาใหม่เรียบร้อย")
-            # รีเฟรชข้อมูลในหน้าหลัก
-            self.load_contract_data()
+        self.fee_amount_label.setText("{:,.2f} บาท".format(fee_amount))
+        self.total_paid_label.setText("{:,.2f} บาท".format(total_paid))
+        self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
 
     def add_customer(self):
         """เพิ่มลูกค้า"""
@@ -543,7 +657,7 @@ class PawnShopUI(QMainWindow):
         """โหลดข้อมูลลูกค้า"""
         if self.current_customer:
             self.customer_code_edit.setText(self.current_customer.get('customer_code', ''))
-            customer_name = f"{self.current_customer.get('first_name', '')} {self.current_customer.get('last_name', '')}"
+            customer_name = "{} {}".format(self.current_customer.get('first_name', ''), self.current_customer.get('last_name', ''))
             self.customer_name_edit.setText(customer_name)
             self.id_card_edit.setText(self.current_customer.get('id_card', ''))
             self.phone_edit.setText(self.current_customer.get('phone', ''))
@@ -573,10 +687,25 @@ class PawnShopUI(QMainWindow):
             self.current_product = dialog.product_data
             self.load_product_data()
 
+    def search_product(self):
+        """ค้นหาสินค้า"""
+        product_name = self.product_name_edit.text().strip()
+        if not product_name:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
+            return
+        
+        # ค้นหาสินค้าในฐานข้อมูล
+        products = self.db.search_products(product_name)
+        if products:
+            self.current_product = products[0]
+            self.load_product_data()
+        else:
+            QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสินค้าที่มีชื่อนี้")
+
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
         if self.current_product:
-            self.product_name_edit.setText(self.current_product.get('name', ''))
+            self.product_name_display_edit.setText(self.current_product.get('name', ''))
             self.product_brand_edit.setText(self.current_product.get('brand', ''))
             self.product_size_edit.setText(self.current_product.get('size', ''))
             self.serial_number_edit.setText(self.current_product.get('serial_number', ''))
@@ -634,7 +763,7 @@ class PawnShopUI(QMainWindow):
             QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
             self.generate_new_contract_number()
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
 
     def view_contracts(self):
         """ดูข้อมูลทั้งหมด"""
@@ -688,10 +817,10 @@ class PawnShopUI(QMainWindow):
         if self.current_contract:
             self.contract_number_edit.setText(self.current_contract.get('contract_number', ''))
             # โหลดข้อมูลลูกค้า
-            customer_name = f"{self.current_contract.get('first_name', '')} {self.current_contract.get('last_name', '')}"
+            customer_name = "{} {}".format(self.current_contract.get('first_name', ''), self.current_contract.get('last_name', ''))
             self.customer_name_edit.setText(customer_name)
             # โหลดข้อมูลสินค้า
-            self.product_name_edit.setText(self.current_contract.get('product_name', ''))
+            self.product_name_display_edit.setText(self.current_contract.get('product_name', ''))
 
     def clear_form(self):
         """ล้างฟอร์ม"""
@@ -714,6 +843,7 @@ class PawnShopUI(QMainWindow):
         
         # ล้างข้อมูลสินค้า
         self.product_name_edit.clear()
+        self.product_name_display_edit.clear()
         self.product_brand_edit.clear()
         self.product_size_edit.clear()
         self.serial_number_edit.clear()
@@ -723,17 +853,36 @@ class PawnShopUI(QMainWindow):
         self.pawn_amount_spin.setValue(0)
         self.calculate_amounts()
 
+    def generate_new_contract_number(self):
+        """สร้างเลขที่สัญญาใหม่"""
+        prefix = self.db.get_setting('contract_prefix') if hasattr(self.db, 'get_setting') else "CN"
+        # คำนวณลำดับถัดไปจากฐานข้อมูล
+        sequence = self.db.get_next_contract_sequence(prefix)
+        contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
+        self.contract_number_edit.setText(contract_number)
+
     def show_daily_report(self):
         """แสดงรายงานประจำวัน"""
         today = datetime.now().strftime("%Y-%m-%d")
-        summary = self.db.get_daily_summary(today)
-        
-        message = f"""
-รายงานประจำวัน: {today}
-สัญญาใหม่: {summary['new_contracts_count']} สัญญา ({summary['new_contracts_amount']:,.2f} บาท)
-การไถ่ถอน: {summary['redemptions_count']} สัญญา ({summary['redemptions_amount']:,.2f} บาท)
-การชำระดอกเบี้ย: {summary['interest_payments_count']} ครั้ง ({summary['interest_payments_amount']:,.2f} บาท)
-        """
+        try:
+            summary = self.db.get_daily_summary(today)
+            
+            message = """
+รายงานประจำวัน: {}
+สัญญาใหม่: {} สัญญา ({:,.2f} บาท)
+การไถ่ถอน: {} สัญญา ({:,.2f} บาท)
+การชำระดอกเบี้ย: {} ครั้ง ({:,.2f} บาท)
+            """.format(
+                today,
+                summary['new_contracts_count'],
+                summary['new_contracts_amount'],
+                summary['redemptions_count'],
+                summary['redemptions_amount'],
+                summary['interest_payments_count'],
+                summary['interest_payments_amount']
+            )
+        except:
+            message = "รายงานประจำวัน: {}\nไม่สามารถโหลดข้อมูลได้".format(today)
         
         QMessageBox.information(self, "รายงานประจำวัน", message)
 

@@ -3,6 +3,7 @@
 หน้าต่างค้นหาลูกค้า
 """
 
+# -*- coding: utf-8 -*-
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QTableWidget,
@@ -16,7 +17,11 @@ from database import PawnShopDatabase
 class CustomerSearchDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.selected_customer = None
         self.setup_ui()
         self.load_customers()
@@ -55,11 +60,14 @@ class CustomerSearchDialog(QDialog):
         
         # ปุ่ม
         button_layout = QHBoxLayout()
+        self.add_new_button = QPushButton("เพิ่มลูกค้าใหม่")
+        self.add_new_button.clicked.connect(self.add_new_customer)
         self.select_button = QPushButton("เลือกลูกค้า")
         self.select_button.clicked.connect(self.select_customer)
         self.cancel_button = QPushButton("ยกเลิก")
         self.cancel_button.clicked.connect(self.reject)
         
+        button_layout.addWidget(self.add_new_button)
         button_layout.addWidget(self.select_button)
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
@@ -128,3 +136,15 @@ class CustomerSearchDialog(QDialog):
                 QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลลูกค้า")
         else:
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกลูกค้า")
+    
+    def add_new_customer(self):
+        """เพิ่มลูกค้าใหม่"""
+        from dialogs import CustomerDialog
+        dialog = CustomerDialog(self)
+        if dialog.exec():
+            # โหลดข้อมูลลูกค้าใหม่
+            self.load_customers()
+            # เลือกลูกค้าที่เพิ่งเพิ่ม
+            if dialog.customer_data:
+                self.selected_customer = dialog.customer_data
+                self.accept()

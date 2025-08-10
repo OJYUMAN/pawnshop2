@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+import re
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QDateEdit, QSpinBox,
@@ -14,11 +16,18 @@ from utils import PawnShopUtils
 class CustomerDialog(QDialog):
     def __init__(self, parent=None, customer_data=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.customer_data = customer_data
         self.setup_ui()
         if customer_data:
             self.load_customer_data()
+        else:
+            # สร้างรหัสลูกค้าอัตโนมัติเมื่อเพิ่มลูกค้าใหม่
+            self.generate_customer_code()
     
     def setup_ui(self):
         self.setWindowTitle("ข้อมูลลูกค้า")
@@ -37,8 +46,13 @@ class CustomerDialog(QDialog):
         self.id_card_edit = QLineEdit()
         self.phone_edit = QLineEdit()
         
+        # เพิ่มปุ่มสร้างรหัสลูกค้าอัตโนมัติ
+        generate_code_button = QPushButton("สร้างรหัสอัตโนมัติ")
+        generate_code_button.clicked.connect(self.generate_customer_code)
+        
         basic_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
         basic_layout.addWidget(self.customer_code_edit, 0, 1)
+        basic_layout.addWidget(generate_code_button, 0, 2)
         basic_layout.addWidget(QLabel("ชื่อ:"), 1, 0)
         basic_layout.addWidget(self.first_name_edit, 1, 1)
         basic_layout.addWidget(QLabel("นามสกุล:"), 2, 0)
@@ -103,12 +117,34 @@ class CustomerDialog(QDialog):
         self.province_edit.setText(self.customer_data.get('province', ''))
         self.other_details_edit.setPlainText(self.customer_data.get('other_details', ''))
     
+    def generate_customer_code(self):
+        """สร้างรหัสลูกค้าอัตโนมัติ"""
+        try:
+            next_code = self.db.get_next_customer_code()
+            self.customer_code_edit.setText(next_code)
+        except Exception as e:
+            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
+    
+    def clean_input_data(self, text: str) -> str:
+        """ทำความสะอาดข้อมูลที่กรอก"""
+        if not text:
+            return ""
+        # ลบช่องว่างและเครื่องหมายที่ไม่จำเป็น
+        cleaned = re.sub(r'[\s\-\(\)]', '', text.strip())
+        return cleaned
+    
     def save_customer(self):
         """บันทึกข้อมูลลูกค้า"""
         # ตรวจสอบข้อมูลที่จำเป็น
-        if not self.customer_code_edit.text().strip():
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกรหัสลูกค้า")
-            return
+        customer_code = self.customer_code_edit.text().strip()
+        if not customer_code:
+            # สร้างรหัสลูกค้าอัตโนมัติถ้าไม่ได้กรอก
+            try:
+                customer_code = self.db.get_next_customer_code()
+                self.customer_code_edit.setText(customer_code)
+            except Exception as e:
+                QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
+                return
         
         if not self.first_name_edit.text().strip():
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อ")
@@ -117,21 +153,23 @@ class CustomerDialog(QDialog):
         # ตรวจสอบเลขบัตรประชาชน
         id_card = self.id_card_edit.text().strip()
         if id_card and not PawnShopUtils.validate_id_card(id_card):
-            QMessageBox.warning(self, "แจ้งเตือน", "เลขบัตรประชาชนไม่ถูกต้อง")
+            QMessageBox.warning(self, "แจ้งเตือน", 
+                "เลขบัตรประชาชนไม่ถูกต้อง\nกรุณาตรวจสอบว่าเป็นเลข 13 หลักและไม่มีช่องว่าง")
             return
         
         # ตรวจสอบเบอร์โทรศัพท์
         phone = self.phone_edit.text().strip()
         if phone and not PawnShopUtils.validate_phone(phone):
-            QMessageBox.warning(self, "แจ้งเตือน", "เบอร์โทรศัพท์ไม่ถูกต้อง")
+            QMessageBox.warning(self, "แจ้งเตือน", 
+                "เบอร์โทรศัพท์ไม่ถูกต้อง\nกรุณาตรวจสอบรูปแบบเบอร์โทรศัพท์ไทย")
             return
         
         customer_data = {
-            'customer_code': self.customer_code_edit.text().strip(),
+            'customer_code': customer_code,
             'first_name': self.first_name_edit.text().strip(),
             'last_name': self.last_name_edit.text().strip(),
-            'id_card': id_card,
-            'phone': phone,
+            'id_card': self.clean_input_data(id_card),
+            'phone': self.clean_input_data(phone),
             'house_number': self.house_number_edit.text().strip(),
             'street': self.street_edit.text().strip(),
             'subdistrict': self.subdistrict_edit.text().strip(),
@@ -142,23 +180,51 @@ class CustomerDialog(QDialog):
         
         try:
             if self.customer_data:  # แก้ไข
-                # TODO: เพิ่มฟังก์ชันอัปเดตลูกค้า
-                pass
+                # ตรวจสอบข้อมูลซ้ำก่อนอัปเดต (ยกเว้นตัวเอง)
+                existing_customer = self.db.get_customer_by_id(self.customer_data['id'])
+                if existing_customer:
+                    # ตรวจสอบว่าข้อมูลที่เปลี่ยนไปซ้ำกับลูกค้าอื่นหรือไม่
+                    if (id_card and id_card != existing_customer.get('id_card', '') and 
+                        self.db.check_customer_exists(id_card=id_card)):
+                        QMessageBox.warning(self, "แจ้งเตือน", 
+                            "เลขบัตรประชาชนนี้มีลูกค้าอื่นใช้อยู่แล้ว")
+                        return
+                    
+                    if (customer_data['customer_code'] != existing_customer.get('customer_code', '') and 
+                        self.db.check_customer_exists(customer_code=customer_data['customer_code'])):
+                        QMessageBox.warning(self, "แจ้งเตือน", 
+                            "รหัสลูกค้านี้มีลูกค้าอื่นใช้อยู่แล้ว")
+                        return
+                
+                success = self.db.update_customer(self.customer_data['id'], customer_data)
+                if success:
+                    QMessageBox.information(self, "สำเร็จ", "อัปเดตข้อมูลลูกค้าเรียบร้อย")
+                    self.accept()
+                else:
+                    QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตข้อมูลลูกค้าได้")
             else:  # เพิ่มใหม่
+                # ตรวจสอบข้อมูลซ้ำก่อนเพิ่ม
+                if self.db.check_customer_exists(id_card=id_card, customer_code=customer_data['customer_code']):
+                    QMessageBox.warning(self, "แจ้งเตือน", 
+                        "ลูกค้านี้มีอยู่ในระบบแล้ว (เลขบัตรประชาชนหรือรหัสลูกค้าซ้ำ)")
+                    return
+                
                 customer_id = self.db.add_customer(customer_data)
                 customer_data['id'] = customer_id
-            
-            self.customer_data = customer_data
-            QMessageBox.information(self, "สำเร็จ", "บันทึกข้อมูลลูกค้าเรียบร้อย")
-            self.accept()
+                QMessageBox.information(self, "สำเร็จ", "เพิ่มข้อมูลลูกค้าเรียบร้อย")
+                self.accept()
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
 
 class ProductDialog(QDialog):
     def __init__(self, parent=None, product_data=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.product_data = product_data
         self.setup_ui()
         if product_data:
@@ -238,23 +304,46 @@ class ProductDialog(QDialog):
         
         try:
             if self.product_data:  # แก้ไข
-                # TODO: เพิ่มฟังก์ชันอัปเดตสินค้า
-                pass
+                # ตรวจสอบหมายเลขซีเรียลซ้ำก่อนอัปเดต (ยกเว้นตัวเอง)
+                existing_product = self.db.get_product_by_id(self.product_data['id'])
+                if existing_product:
+                    serial_number = product_data['serial_number']
+                    if (serial_number and serial_number != existing_product.get('serial_number', '') and 
+                        self.db.check_product_exists(serial_number=serial_number)):
+                        QMessageBox.warning(self, "แจ้งเตือน", 
+                            "หมายเลขซีเรียลนี้มีสินค้าอื่นใช้อยู่แล้ว")
+                        return
+                
+                success = self.db.update_product(self.product_data['id'], product_data)
+                if success:
+                    QMessageBox.information(self, "สำเร็จ", "อัปเดตข้อมูลสินค้าเรียบร้อย")
+                    self.accept()
+                else:
+                    QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตข้อมูลสินค้าได้")
             else:  # เพิ่มใหม่
+                # ตรวจสอบหมายเลขซีเรียลซ้ำก่อนเพิ่ม
+                serial_number = product_data['serial_number']
+                if serial_number and self.db.check_product_exists(serial_number=serial_number):
+                    QMessageBox.warning(self, "แจ้งเตือน", 
+                        "สินค้านี้มีอยู่ในระบบแล้ว (หมายเลขซีเรียลซ้ำ)")
+                    return
+                
                 product_id = self.db.add_product(product_data)
                 product_data['id'] = product_id
-            
-            self.product_data = product_data
-            QMessageBox.information(self, "สำเร็จ", "บันทึกข้อมูลสินค้าเรียบร้อย")
-            self.accept()
+                QMessageBox.information(self, "สำเร็จ", "เพิ่มข้อมูลสินค้าเรียบร้อย")
+                self.accept()
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
 
 class InterestPaymentDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.contract_data = contract_data
         self.setup_ui()
         if contract_data:
@@ -338,10 +427,10 @@ class InterestPaymentDialog(QDialog):
         """โหลดข้อมูลสัญญา"""
         if self.contract_data:
             self.contract_number_label.setText(self.contract_data.get('contract_number', ''))
-            customer_name = f"{self.contract_data.get('first_name', '')} {self.contract_data.get('last_name', '')}"
+            customer_name = "{} {}".format(self.contract_data.get('first_name', ''), self.contract_data.get('last_name', ''))
             self.customer_name_label.setText(customer_name)
-            self.pawn_amount_label.setText(f"{self.contract_data.get('pawn_amount', 0):,.2f} บาท")
-            self.interest_rate_label.setText(f"{self.contract_data.get('interest_rate', 0):.2f}%")
+            self.pawn_amount_label.setText("{:,.2f} บาท".format(self.contract_data.get('pawn_amount', 0)))
+            self.interest_rate_label.setText("{:.2f}%".format(self.contract_data.get('interest_rate', 0)))
     
     def calculate_total(self):
         """คำนวณยอดรวม"""
@@ -349,7 +438,7 @@ class InterestPaymentDialog(QDialog):
         penalty = self.penalty_amount_spin.value()
         discount = self.discount_amount_spin.value()
         total = interest + penalty - discount
-        self.total_amount_label.setText(f"{total:,.2f} บาท")
+        self.total_amount_label.setText("{:,.2f} บาท".format(total))
     
     def save_payment(self):
         """บันทึกการชำระ"""
@@ -372,12 +461,16 @@ class InterestPaymentDialog(QDialog):
             self.accept()
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
 
 class RedemptionDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):
         super().__init__(parent)
-        self.db = PawnShopDatabase()
+        # ใช้ database connection จาก parent window
+        if hasattr(parent, 'db') and parent.db is not None:
+            self.db = parent.db
+        else:
+            self.db = PawnShopDatabase()
         self.contract_data = contract_data
         self.setup_ui()
         if contract_data:
@@ -443,10 +536,10 @@ class RedemptionDialog(QDialog):
         """โหลดข้อมูลสัญญา"""
         if self.contract_data:
             self.contract_number_label.setText(self.contract_data.get('contract_number', ''))
-            customer_name = f"{self.contract_data.get('first_name', '')} {self.contract_data.get('last_name', '')}"
+            customer_name = "{} {}".format(self.contract_data.get('first_name', ''), self.contract_data.get('last_name', ''))
             self.customer_name_label.setText(customer_name)
-            self.pawn_amount_label.setText(f"{self.contract_data.get('pawn_amount', 0):,.2f} บาท")
-            self.total_redemption_label.setText(f"{self.contract_data.get('total_redemption', 0):,.2f} บาท")
+            self.pawn_amount_label.setText("{:,.2f} บาท".format(self.contract_data.get('pawn_amount', 0)))
+            self.total_redemption_label.setText("{:,.2f} บาท".format(self.contract_data.get('total_redemption', 0)))
             self.redemption_amount_spin.setValue(self.contract_data.get('total_redemption', 0))
     
     def save_redemption(self):

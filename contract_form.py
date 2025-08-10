@@ -49,9 +49,7 @@ class NewContractDialog(QDialog):
         product_tab = self.create_product_tab()
         tab_widget.addTab(product_tab, "ข้อมูลสินค้า")
         
-        # Tab 4: สรุปข้อมูล
-        summary_tab = self.create_summary_tab()
-        tab_widget.addTab(summary_tab, "สรุปข้อมูล")
+
         
         layout.addWidget(tab_widget)
         
@@ -258,58 +256,7 @@ class NewContractDialog(QDialog):
         
         return widget
     
-    def create_summary_tab(self):
-        """สร้าง Tab สรุปข้อมูล"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # สรุปข้อมูลสัญญา
-        summary_group = QGroupBox("สรุปข้อมูลสัญญา")
-        summary_layout = QGridLayout(summary_group)
-        
-        # เลขที่สัญญา
-        summary_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
-        self.summary_contract_number = QLabel()
-        summary_layout.addWidget(self.summary_contract_number, 0, 1)
-        
-        # ชื่อลูกค้า
-        summary_layout.addWidget(QLabel("ชื่อลูกค้า:"), 1, 0)
-        self.summary_customer_name = QLabel()
-        summary_layout.addWidget(self.summary_customer_name, 1, 1)
-        
-        # ชื่อสินค้า
-        summary_layout.addWidget(QLabel("ชื่อสินค้า:"), 2, 0)
-        self.summary_product_name = QLabel()
-        summary_layout.addWidget(self.summary_product_name, 2, 1)
-        
-        # ยอดฝาก
-        summary_layout.addWidget(QLabel("ยอดฝาก:"), 3, 0)
-        self.summary_pawn_amount = QLabel()
-        summary_layout.addWidget(self.summary_pawn_amount, 3, 1)
-        
-        # อัตราดอกเบี้ย
-        summary_layout.addWidget(QLabel("อัตราดอกเบี้ย:"), 4, 0)
-        self.summary_interest_rate = QLabel()
-        summary_layout.addWidget(self.summary_interest_rate, 4, 1)
-        
-        # วันที่เริ่มต้น
-        summary_layout.addWidget(QLabel("วันที่เริ่มต้น:"), 5, 0)
-        self.summary_start_date = QLabel()
-        summary_layout.addWidget(self.summary_start_date, 5, 1)
-        
-        # วันที่สิ้นสุด
-        summary_layout.addWidget(QLabel("วันที่สิ้นสุด:"), 6, 0)
-        self.summary_end_date = QLabel()
-        summary_layout.addWidget(self.summary_end_date, 6, 1)
-        
-        # ยอดไถ่ถอน
-        summary_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 7, 0)
-        self.summary_total_redemption = QLabel()
-        summary_layout.addWidget(self.summary_total_redemption, 7, 1)
-        
-        layout.addWidget(summary_group)
-        
-        return widget
+
     
     def load_settings(self):
         """โหลดการตั้งค่า"""
@@ -325,8 +272,8 @@ class NewContractDialog(QDialog):
     def generate_new_contract_number(self):
         """สร้างเลขที่สัญญาใหม่"""
         prefix = self.db.get_setting('contract_prefix')
-        # TODO: คำนวณลำดับถัดไปจากฐานข้อมูล
-        sequence = 1078  # ตัวอย่าง
+        # คำนวณลำดับถัดไปจากฐานข้อมูล
+        sequence = self.db.get_next_contract_sequence(prefix)
         contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
         self.contract_number_edit.setText(contract_number)
     
@@ -336,7 +283,6 @@ class NewContractDialog(QDialog):
         days = self.days_spin.value()
         end_date = start_date.addDays(days)
         self.end_date_edit.setText(end_date.toString("dd/MM/yyyy"))
-        self.update_summary()
     
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
@@ -360,7 +306,6 @@ class NewContractDialog(QDialog):
         self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
         self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
         self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
-        self.update_summary()
     
     def search_customer(self):
         """ค้นหาลูกค้า"""
@@ -368,7 +313,6 @@ class NewContractDialog(QDialog):
         if dialog.exec():
             self.current_customer = dialog.selected_customer
             self.load_customer_data()
-            self.update_summary()
     
     def add_customer(self):
         """เพิ่มลูกค้าใหม่"""
@@ -376,7 +320,6 @@ class NewContractDialog(QDialog):
         if dialog.exec():
             self.current_customer = dialog.customer_data
             self.load_customer_data()
-            self.update_summary()
     
     def load_customer_data(self):
         """โหลดข้อมูลลูกค้า"""
@@ -404,7 +347,6 @@ class NewContractDialog(QDialog):
         if dialog.exec():
             self.current_product = dialog.selected_product
             self.load_product_data()
-            self.update_summary()
     
     def add_product(self):
         """เพิ่มสินค้าใหม่"""
@@ -412,7 +354,6 @@ class NewContractDialog(QDialog):
         if dialog.exec():
             self.current_product = dialog.product_data
             self.load_product_data()
-            self.update_summary()
     
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
@@ -424,28 +365,7 @@ class NewContractDialog(QDialog):
             self.serial_number_edit.setText(self.current_product.get('serial_number', ''))
             self.product_details_edit.setText(self.current_product.get('other_details', ''))
     
-    def update_summary(self):
-        """อัปเดตสรุปข้อมูล"""
-        # ข้อมูลสัญญา
-        self.summary_contract_number.setText(self.contract_number_edit.text())
-        self.summary_start_date.setText(self.start_date_edit.date().toString("dd/MM/yyyy"))
-        self.summary_end_date.setText(self.end_date_edit.text())
-        self.summary_pawn_amount.setText(f"{self.pawn_amount_spin.value():,.2f} บาท")
-        self.summary_interest_rate.setText(f"{self.interest_rate_spin.value():.2f}%")
-        self.summary_total_redemption.setText(self.total_redemption_label.text())
-        
-        # ข้อมูลลูกค้า
-        if self.current_customer:
-            customer_name = f"{self.current_customer.get('first_name', '')} {self.current_customer.get('last_name', '')}"
-            self.summary_customer_name.setText(customer_name)
-        else:
-            self.summary_customer_name.setText("ยังไม่ได้เลือก")
-        
-        # ข้อมูลสินค้า
-        if self.current_product:
-            self.summary_product_name.setText(self.current_product.get('name', ''))
-        else:
-            self.summary_product_name.setText("ยังไม่ได้เลือก")
+
     
     def save_contract(self):
         """บันทึกสัญญา"""
