@@ -1147,8 +1147,10 @@ class PawnShopUI(QMainWindow):
         # ยอดจ่าย (ยอดฝาก - หัก ณ ที่จ่าย)
         total_paid = pawn_amount - withholding_tax_amount
         
-        # ยอดไถ่ถอน
-        total_redemption = pawn_amount + interest_amount + fee_amount
+        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
+        total_redemption = PawnShopUtils.calculate_redemption_with_tax(
+            pawn_amount, interest_amount, fee_amount, withholding_tax_amount
+        )
         
         # แสดงผล
         self.fee_amount_label.setText("{:,.2f} บาท".format(fee_amount))

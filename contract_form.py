@@ -319,8 +319,10 @@ class NewContractDialog(QDialog):
         # ยอดจ่าย
         total_paid = pawn_amount
         
-        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย)
-        total_redemption = pawn_amount + interest_amount + fee_amount - withholding_tax_amount
+        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
+        total_redemption = PawnShopUtils.calculate_redemption_with_tax(
+            pawn_amount, interest_amount, fee_amount, withholding_tax_amount
+        )
         
         # แสดงผล
         self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")

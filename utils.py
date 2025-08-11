@@ -5,8 +5,10 @@ import re
 class PawnShopUtils:
     @staticmethod
     def calculate_interest(principal: float, rate: float, days: int) -> float:
-        """คำนวณดอกเบี้ย"""
-        return (principal * rate * days) / 100
+        """คำนวณดอกเบี้ย (rate เป็นอัตราดอกเบี้ยต่อเดือน)"""
+        # แปลงอัตราดอกเบี้ยต่อเดือนเป็นต่อวัน
+        daily_rate = rate / 30
+        return (principal * daily_rate * days) / 100
     
     @staticmethod
     def calculate_withholding_tax(interest_amount: float, tax_rate: float) -> float:
@@ -39,6 +41,18 @@ class PawnShopUtils:
                                  penalty_amount: float = 0, discount_amount: float = 0) -> float:
         """คำนวณยอดไถ่ถอนรวม"""
         return pawn_amount + interest_amount + penalty_amount - discount_amount
+    
+    @staticmethod
+    def calculate_redemption_with_tax(pawn_amount: float, interest_amount: float, 
+                                    fee_amount: float, withholding_tax_amount: float) -> float:
+        """คำนวณยอดไถ่ถอนรวม (รวมหัก ณ ที่จ่าย)"""
+        return pawn_amount + interest_amount + fee_amount - withholding_tax_amount
+    
+    @staticmethod
+    def calculate_redemption_without_tax(pawn_amount: float, interest_amount: float, 
+                                       fee_amount: float) -> float:
+        """คำนวณยอดไถ่ถอนรวม (ไม่รวมหัก ณ ที่จ่าย)"""
+        return pawn_amount + interest_amount + fee_amount
     
     @staticmethod
     def calculate_net_payment(pawn_amount: float, withholding_tax_amount: float) -> float:
