@@ -1190,6 +1190,8 @@ class PawnShopUI(QMainWindow):
         # ล้างฟอร์มเพื่อเตรียมข้อมูลใหม่
         self.clear_form()
         
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+        
         # ตั้งค่าวันที่เริ่มต้น
         self.start_date_edit.setDate(QDate.currentDate())
         
@@ -1204,6 +1206,8 @@ class PawnShopUI(QMainWindow):
         days = self.days_spin.value()
         end_date = start_date.addDays(days)
         self.end_date_edit.setText(end_date.toString("dd/MM/yyyy"))
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
@@ -1234,10 +1238,14 @@ class PawnShopUI(QMainWindow):
         self.withholding_tax_amount_label.setText("{:,.2f} บาท".format(withholding_tax_amount))
         self.total_paid_label.setText("{:,.2f} บาท".format(total_paid))
         self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def add_customer(self):
         """เพิ่มลูกค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.toggle_customer_mode()
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def search_customer(self):
         """ค้นหาลูกค้า"""
@@ -1253,6 +1261,8 @@ class PawnShopUI(QMainWindow):
             self.load_customer_data()
         else:
             QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบลูกค้าที่มีรหัสนี้")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_customer_data(self):
         """โหลดข้อมูลลูกค้า"""
@@ -1280,10 +1290,16 @@ class PawnShopUI(QMainWindow):
             self.district_edit.setText(self.current_customer.get('district', ''))
             self.province_edit.setText(self.current_customer.get('province', ''))
             self.other_details_edit.setText(self.current_customer.get('other_details', ''))
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def add_product(self):
         """เพิ่มสินค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.toggle_product_mode()
+        
+        # ล้างตารางประวัติการต่อดอก
+        if hasattr(self, 'renewal_history_table'):
+            self.renewal_history_table.setRowCount(0)
 
     def search_product(self):
         """ค้นหาสินค้า"""
@@ -1299,6 +1315,8 @@ class PawnShopUI(QMainWindow):
             self.load_product_data()
         else:
             QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสินค้าที่มีชื่อนี้")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
@@ -1325,6 +1343,8 @@ class PawnShopUI(QMainWindow):
                     self.product_image_display.setText("ไม่สามารถโหลดรูปภาพได้")
             else:
                 self.product_image_display.setText("ไม่มีรูปภาพ")
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def extend_interest(self):
         """ต่อดอกเบี้ย"""
@@ -1348,6 +1368,12 @@ class PawnShopUI(QMainWindow):
                     # อัปเดตตารางประวัติในแท็บต่อดอก (ถ้ามี)
                     if hasattr(self, 'renewal_history_table'):
                         self.load_renewal_history(contract_number)
+                    
+                    # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
+                    updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
+                    if updated_contract:
+                        self.current_contract = updated_contract
+                        self.load_contract_data()
             except Exception as e:
                 QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการต่อดอก: {str(e)}")
     
@@ -1371,6 +1397,11 @@ class PawnShopUI(QMainWindow):
                         )
                         if contracts:
                             self.display_contract_in_table(contracts)
+                    
+                    # อัปเดตประวัติการต่อดอก
+                    contract_number = self.current_contract.get('contract_number', '')
+                    if contract_number:
+                        self.load_renewal_history(contract_number)
         except Exception as e:
             print(f"Error refreshing contract table: {e}")
 
@@ -1412,6 +1443,12 @@ class PawnShopUI(QMainWindow):
                         self.show_redemptions_table(redemptions, contract_specific=True)
                     else:
                         QMessageBox.information(self, "ข้อมูลการไถ่ถอน", "ไม่พบข้อมูลการไถ่ถอนของสัญญานี้")
+                    
+                    # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
+                    updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
+                    if updated_contract:
+                        self.current_contract = updated_contract
+                        self.load_contract_data()
                         
                 except Exception as e:
                     QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่ถอน: {str(e)}")
@@ -1422,6 +1459,8 @@ class PawnShopUI(QMainWindow):
     def lost_contract(self):
         """หลุดจำนำ"""
         QMessageBox.information(self, "หลุดจำนำ", "ฟีเจอร์หลุดจำนำ")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def save_contract(self):
         """บันทึกสัญญา"""
@@ -1470,6 +1509,12 @@ class PawnShopUI(QMainWindow):
             }
             
             QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
+            
+            # โหลดประวัติการต่อดอก (ถ้ามี)
+            contract_number = contract_data['contract_number']
+            if contract_number:
+                self.load_renewal_history(contract_number)
+            
             self.generate_new_contract_number()
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
@@ -1478,6 +1523,8 @@ class PawnShopUI(QMainWindow):
         """ดูข้อมูลทั้งหมด"""
         dialog = DataViewerDialog(self)
         dialog.exec()
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
     def view_renewals(self):
         """ดูข้อมูลการต่อดอก"""
@@ -1491,6 +1538,8 @@ class PawnShopUI(QMainWindow):
             
             # สร้างหน้าต่างแสดงข้อมูลการต่อดอก
             self.show_renewals_table(renewals)
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}")
@@ -1618,6 +1667,8 @@ class PawnShopUI(QMainWindow):
             
             # สร้างหน้าต่างแสดงข้อมูลการไถ่ถอน
             self.show_redemptions_table(redemptions)
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}")
@@ -1751,18 +1802,26 @@ class PawnShopUI(QMainWindow):
     def summary_report(self):
         """สรุปขายฝาก"""
         QMessageBox.information(self, "สรุปขายฝาก", "ฟีเจอร์สรุปขายฝาก")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def receive_payment(self):
         """รับเงิน"""
         QMessageBox.information(self, "รับเงิน", "ฟีเจอร์รับเงิน")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def daily_account(self):
         """บัญชีรายวัน"""
         QMessageBox.information(self, "บัญชีรายวัน", "ฟีเจอร์บัญชีรายวัน")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def interest_schedule(self):
         """ตารางดอกเบี้ย"""
         QMessageBox.information(self, "ตารางดอกเบี้ย", "ฟีเจอร์ตารางดอกเบี้ย")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def on_search_type_changed(self):
         """เมื่อเปลี่ยนประเภทการค้นหา"""
@@ -1787,6 +1846,8 @@ class PawnShopUI(QMainWindow):
         
         # ล้างข้อมูลการค้นหา
         self.clear_search_fields()
+        
+        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def clear_search_fields(self):
         """ล้างข้อมูลในฟิลด์ค้นหา"""
@@ -1794,6 +1855,8 @@ class PawnShopUI(QMainWindow):
         self.search_id_card_edit.clear()
         self.search_first_name_edit.clear()
         self.search_last_name_edit.clear()
+        
+        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def search_contracts(self):
         """ค้นหาสัญญาตามประเภทที่เลือก"""
@@ -1849,6 +1912,11 @@ class PawnShopUI(QMainWindow):
                 # โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม
                 self.load_additional_contract_data(contracts[0])
                 
+                # โหลดประวัติการต่อดอก
+                contract_number = contracts[0].get('contract_number', '')
+                if contract_number:
+                    self.load_renewal_history(contract_number)
+                
                 # แสดงข้อมูลในตาราง
                 self.display_contract_in_table(contracts)
                 
@@ -1865,11 +1933,16 @@ class PawnShopUI(QMainWindow):
         self.clear_search_fields()
         self.contract_table.setRowCount(0)
         self.current_contract = None
+        
+        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+        
         QMessageBox.information(self, "ล้างการค้นหา", "ล้างการค้นหาเรียบร้อยแล้ว")
 
     def search_next(self):
         """ค้นหาถัดไป (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.search_contracts()
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
     def display_contract_in_table(self, contracts: list):
         """แสดงข้อมูลสัญญาในตาราง"""
@@ -1934,6 +2007,8 @@ class PawnShopUI(QMainWindow):
             
             # เก็บข้อมูล ID ไว้ใน item
             self.contract_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def search_by_name(self):
         """ค้นหาตามชื่อ (legacy - ใช้ฟังก์ชันใหม่แทน)"""
@@ -1941,6 +2016,8 @@ class PawnShopUI(QMainWindow):
         self.search_type_combo.setCurrentText("ชื่อนามสกุล")
         self.on_search_type_changed()
         QMessageBox.information(self, "การค้นหา", "กรุณาเลือกประเภทการค้นหาเป็น 'ชื่อนามสกุล' และกรอกข้อมูล")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
@@ -2021,6 +2098,11 @@ class PawnShopUI(QMainWindow):
                 self.lost_radio.setChecked(True)
             else:
                 self.active_radio.setChecked(True)
+            
+            # โหลดประวัติการต่อดอก
+            contract_number = self.current_contract.get('contract_number', '')
+            if contract_number:
+                self.load_renewal_history(contract_number)
 
     def clear_form(self):
         """ล้างฟอร์ม"""
@@ -2089,6 +2171,8 @@ class PawnShopUI(QMainWindow):
         if hasattr(self, 'product_add_group'):
             self.product_add_group.hide()
             self.product_info_group.show()
+        
+        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def generate_new_contract_number(self):
         """สร้างเลขที่สัญญาใหม่"""
@@ -2097,6 +2181,8 @@ class PawnShopUI(QMainWindow):
         sequence = self.db.get_next_contract_sequence(prefix)
         contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
         self.contract_number_edit.setText(contract_number)
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def show_daily_report(self):
         """แสดงรายงานประจำวัน"""
@@ -2125,10 +2211,14 @@ class PawnShopUI(QMainWindow):
             message = "รายงานประจำวัน: {}\nไม่สามารถโหลดข้อมูลได้".format(today)
         
         QMessageBox.information(self, "รายงานประจำวัน", message)
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def show_monthly_report(self):
         """แสดงรายงานประจำเดือน"""
         QMessageBox.information(self, "รายงานประจำเดือน", "ฟีเจอร์รายงานประจำเดือน")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
     def show_withholding_tax_report(self):
         """แสดงรายงานหัก ณ ที่จ่าย"""
@@ -2156,6 +2246,8 @@ class PawnShopUI(QMainWindow):
             """
             
             QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", message)
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
@@ -2202,6 +2294,8 @@ class PawnShopUI(QMainWindow):
             
             QMessageBox.information(self, "รายงานการต่อดอก", message)
             
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+            
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
     
@@ -2230,6 +2324,10 @@ class PawnShopUI(QMainWindow):
         """
         
         QMessageBox.information(self, "ผลการคำนวณหัก ณ ที่จ่าย", message)
+        
+        # ล้างตารางประวัติการต่อดอก
+        if hasattr(self, 'renewal_history_table'):
+            self.renewal_history_table.setRowCount(0)
     
     def update_withholding_tax_rate(self):
         """อัปเดตอัตราหัก ณ ที่จ่าย"""
@@ -2238,6 +2336,10 @@ class PawnShopUI(QMainWindow):
         # อัปเดตในฐานข้อมูล
         if self.db.update_withholding_tax_rate(current_rate):
             QMessageBox.information(self, "สำเร็จ", f"อัปเดตอัตราหัก ณ ที่จ่ายเป็น {current_rate:.2f}% เรียบร้อย")
+            
+            # ล้างตารางประวัติการต่อดอก
+            if hasattr(self, 'renewal_history_table'):
+                self.renewal_history_table.setRowCount(0)
         else:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตอัตราหัก ณ ที่จ่ายได้")
     
@@ -2251,6 +2353,10 @@ class PawnShopUI(QMainWindow):
         """เมื่อมีการอัปเดตข้อมูลค่าธรรมเนียม"""
         # รีเฟรชการคำนวณค่าธรรมเนียมในฟอร์ม
         self.calculate_amounts()
+        
+        # ล้างตารางประวัติการต่อดอก
+        if hasattr(self, 'renewal_history_table'):
+            self.renewal_history_table.setRowCount(0)
 
     def toggle_customer_mode(self):
         """สลับโหมดการเพิ่มลูกค้า"""
@@ -2266,6 +2372,8 @@ class PawnShopUI(QMainWindow):
             self.customer_add_group.hide()
             self.customer_info_group.show()
             self.customer_info_group.setFocus()
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def save_new_customer(self):
         """บันทึกข้อมูลลูกค้าใหม่"""
@@ -2313,6 +2421,9 @@ class PawnShopUI(QMainWindow):
             self.current_customer = self.db.get_customer_by_id(new_customer_id)
             self.load_customer_data()
             self.toggle_customer_mode()
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+            
             QMessageBox.information(self, "สำเร็จ", f"เพิ่มลูกค้าเรียบร้อย\nรหัสลูกค้า: {customer_code}")
         except ValueError as e:
             QMessageBox.warning(self, "ข้อมูลซ้ำซ้อน", str(e))
@@ -2335,6 +2446,8 @@ class PawnShopUI(QMainWindow):
             self.product_add_group.hide()
             self.product_info_group.show()
             self.product_info_group.setFocus()
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def save_new_product(self):
         """บันทึกข้อมูลสินค้าใหม่"""
@@ -2368,6 +2481,9 @@ class PawnShopUI(QMainWindow):
             self.current_product = self.db.get_product_by_id(new_product_id)
             self.load_product_data()
             self.toggle_product_mode()
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+            
             QMessageBox.information(self, "สำเร็จ", "เพิ่มสินค้าเรียบร้อย")
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการเพิ่มสินค้า: {str(e)}")
@@ -2382,6 +2498,8 @@ class PawnShopUI(QMainWindow):
         # สร้างรหัสลูกค้าใหม่จากฐานข้อมูล
         customer_code = self.db.get_next_customer_code(prefix)
         self.customer_code_display_edit.setText(customer_code)
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def browse_product_image(self):
         """เลือกไฟล์รูปภาพสินค้า"""
@@ -2407,6 +2525,8 @@ class PawnShopUI(QMainWindow):
                 self.product_image_preview.setPixmap(scaled_pixmap)
             else:
                 self.product_image_preview.setText("ไม่สามารถโหลดรูปภาพได้")
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def copy_product_image(self, source_path: str) -> str:
         """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม"""
@@ -2426,6 +2546,8 @@ class PawnShopUI(QMainWindow):
             # คัดลอกไฟล์
             import shutil
             shutil.copy2(source_path, new_path)
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
             return new_path
         except Exception as e:
@@ -2469,6 +2591,8 @@ class PawnShopUI(QMainWindow):
             self._create_pawn_contract_pdf(file_name)
             
             QMessageBox.information(self, "สำเร็จ", f"สร้างใบขายฝากเรียบร้อยแล้ว\nบันทึกที่: {file_name}")
+            
+            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
@@ -2662,6 +2786,8 @@ class PawnShopUI(QMainWindow):
                     message += f"- เลขบัตรประชาชนซ้ำซ้อน: {id_cards_fixed} รายการ"
                 
                 QMessageBox.information(self, "สำเร็จ", message)
+                
+                # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             else:
                 QMessageBox.information(self, "ไม่พบปัญหา", "ไม่พบข้อมูลซ้ำซ้อนในฐานข้อมูล")
                 
@@ -2723,6 +2849,11 @@ class PawnShopUI(QMainWindow):
         
         # คำนวณวันที่ครบกำหนดใหม่
         self.calculate_renewal_dates()
+        
+        # โหลดประวัติการต่อดอก
+        contract_number = contract.get('contract_number', '')
+        if contract_number:
+            self.load_renewal_history(contract_number)
 
     def load_renewal_history(self, contract_number: str):
         """โหลดประวัติการต่อดอก"""
@@ -2783,6 +2914,8 @@ class PawnShopUI(QMainWindow):
                     self.renewal_history_table.setItem(row, 7, QTableWidgetItem(new_due_date))
             else:
                 self.renewal_history_table.setItem(row, 7, QTableWidgetItem(""))
+        
+        # แสดงข้อมูลประวัติการต่อดอกเรียบร้อยแล้ว
 
     def calculate_renewal_dates(self):
         """คำนวณวันที่ครบกำหนดใหม่"""
@@ -2853,6 +2986,15 @@ class PawnShopUI(QMainWindow):
                 
                 # รีเฟรชข้อมูล
                 self.load_renewal_history(contract_number)
+                
+                # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
+                if self.current_contract and self.current_contract.get('contract_number') == contract_number:
+                    # โหลดข้อมูลสัญญาใหม่
+                    updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
+                    if updated_contract:
+                        self.current_contract = updated_contract
+                        self.load_contract_data()
+                
                 self.clear_renewal_form()
             else:
                 QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถดำเนินการต่อดอกได้")
@@ -2863,7 +3005,10 @@ class PawnShopUI(QMainWindow):
     def clear_renewal_search(self):
         """ล้างการค้นหาการต่อดอก"""
         self.renewal_contract_search_edit.clear()
-        self.renewal_history_table.setRowCount(0)
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+        
+        # ล้างฟอร์มการต่อดอก
+        self.clear_renewal_form()
 
     def clear_renewal_form(self):
         """ล้างฟอร์มการต่อดอก"""
@@ -2878,6 +3023,8 @@ class PawnShopUI(QMainWindow):
         self.renewal_penalty_amount_spin.setValue(0)
         self.renewal_discount_amount_spin.setValue(0)
         self.renewal_total_amount_label.setText("0.00 บาท")
+        
+        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_additional_contract_data(self, contract: dict):
         """โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม"""
@@ -2948,6 +3095,11 @@ class PawnShopUI(QMainWindow):
                     
                     # โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม
                     self.load_additional_contract_data(contract)
+                    
+                    # โหลดประวัติการต่อดอก
+                    contract_number = contract.get('contract_number', '')
+                    if contract_number:
+                        self.load_renewal_history(contract_number)
                     
                     # แสดงข้อความแจ้งเตือน
                     QMessageBox.information(self, "โหลดข้อมูล", f"โหลดข้อมูลสัญญา {contract.get('contract_number', '')} เรียบร้อยแล้ว")
