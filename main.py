@@ -34,7 +34,7 @@ class PawnShopUI(QMainWindow):
         self.current_product = None
         self.current_contract = None
         
-        self.setWindowTitle("Pownshop")
+        self.setWindowTitle("Pawnshop Management System")
         self.setGeometry(100, 100, 1600, 900)
 
         # Apply modern styles for better UI appearance
@@ -957,13 +957,13 @@ class PawnShopUI(QMainWindow):
             ("ต่อดอก", "view-refresh", self.extend_interest),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
             ("หลุดจำนำ", "edit-delete", self.lost_contract),
-            ("ในขายฝาก", "folder-open", self.view_contracts),
-            ("สรุปขายฝาก", "document-properties", self.summary_report),
-            ("รับ", "arrow-down", self.receive_payment),
-            ("หัก ณ ที่จ่าย", "document-edit", self.calculate_withholding_tax),
-            ("รายงานหัก ณ ที่จ่าย", "document-properties", self.show_withholding_tax_report),
-            ("บัญชีรายวัน", "x-office-calendar", self.daily_account),
-            ("ตารางดอก", "insert-object", self.interest_schedule),
+            ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
+            # ("สรุปขายฝาก", "document-properties", self.summary_report),
+            # ("รับ", "arrow-down", self.receive_payment),
+            # ("หัก ณ ที่จ่าย", "document-edit", self.calculate_withholding_tax),
+            # ("รายงานหัก ณ ที่จ่าย", "document-properties", self.show_withholding_tax_report),
+            # ("บัญชีรายวัน", "x-office-calendar", self.daily_account),
+            # ("ตารางดอก", "insert-object", self.interest_schedule),
             ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management)
         ]
 
