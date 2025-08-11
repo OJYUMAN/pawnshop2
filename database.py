@@ -126,6 +126,25 @@ class PawnShopDatabase:
                 )
             ''')
             
+            # ตารางการต่อดอก
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS renewals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contract_id INTEGER NOT NULL,
+                    renewal_count INTEGER NOT NULL,
+                    fee_amount REAL DEFAULT 0,
+                    penalty_amount REAL DEFAULT 0,
+                    discount_amount REAL DEFAULT 0,
+                    total_amount REAL NOT NULL,
+                    renewal_date DATE NOT NULL,
+                    current_due_date DATE NOT NULL,
+                    new_due_date DATE NOT NULL,
+                    deposit_days INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (contract_id) REFERENCES contracts (id)
+                )
+            ''')
+            
             # ตารางการไถ่ถอน
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS redemptions (
@@ -526,6 +545,119 @@ class PawnShopDatabase:
             conn.commit()
             return payment_id
     
+    def add_renewal(self, renewal_data: Dict) -> int:
+        """เพิ่มการต่อดอก"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # ค้นหา contract_id จาก contract_number
+            contract_number = renewal_data.get('contract_number')
+            if contract_number:
+                cursor.execute('SELECT id FROM contracts WHERE contract_number = ?', (contract_number,))
+                contract_result = cursor.fetchone()
+                if contract_result:
+                    contract_id = contract_result[0]
+                else:
+                    raise ValueError(f"ไม่พบสัญญาที่มีเลขที่: {contract_number}")
+            else:
+                contract_id = renewal_data.get('contract_id')
+                if not contract_id:
+                    raise ValueError("ต้องระบุ contract_number หรือ contract_id")
+            
+            # คำนวณ renewal_count
+            cursor.execute('''
+                SELECT COUNT(*) + 1 FROM renewals WHERE contract_id = ?
+            ''', (contract_id,))
+            renewal_count = cursor.fetchone()[0]
+            
+            # ค้นหาวันที่ครบกำหนดปัจจุบัน
+            cursor.execute('''
+                SELECT end_date FROM contracts WHERE id = ?
+            ''', (contract_id,))
+            current_due_date = cursor.fetchone()[0]
+            
+            cursor.execute('''
+                INSERT INTO renewals (
+                    contract_id, renewal_count, fee_amount, penalty_amount,
+                    discount_amount, total_amount, renewal_date, current_due_date,
+                    new_due_date, deposit_days
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                contract_id,
+                renewal_count,
+                renewal_data.get('fee_amount', 0),
+                renewal_data.get('penalty_amount', 0),
+                renewal_data.get('discount_amount', 0),
+                renewal_data.get('total_amount', 0),
+                renewal_data.get('renewal_date', datetime.now().strftime("%Y-%m-%d")),
+                current_due_date,
+                renewal_data.get('new_due_date'),
+                renewal_data.get('extension_days', 0)
+            ))
+            
+            renewal_id = cursor.lastrowid
+            conn.commit()
+            return renewal_id
+    
+    def update_contract_due_date(self, contract_id: int, new_due_date: str) -> bool:
+        """อัปเดตวันที่ครบกำหนดใหม่ในสัญญา"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            try:
+                cursor.execute('''
+                    UPDATE contracts SET end_date = ? WHERE id = ?
+                ''', (new_due_date, contract_id))
+                
+                conn.commit()
+                return True
+            except Exception as e:
+                print(f"Error updating contract due date: {e}")
+                return False
+    
+    def get_renewals_by_contract(self, contract_id: int) -> List[Dict]:
+        """ดึงข้อมูลการต่อดอกตามสัญญา"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT * FROM renewals 
+                WHERE contract_id = ? 
+                ORDER BY renewal_count ASC, created_at ASC
+            ''', (contract_id,))
+            
+            columns = [description[0] for description in cursor.description]
+            renewals = []
+            
+            for row in cursor.fetchall():
+                renewal = dict(zip(columns, row))
+                renewals.append(renewal)
+            
+            return renewals
+    
+    def get_all_renewals(self) -> List[Dict]:
+        """ดึงข้อมูลการต่อดอกทั้งหมด"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                FROM renewals r
+                JOIN contracts c ON r.contract_id = c.id
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                ORDER BY r.created_at DESC
+            ''')
+            
+            columns = [description[0] for description in cursor.description]
+            renewals = []
+            
+            for row in cursor.fetchall():
+                renewal = dict(zip(columns, row))
+                renewals.append(renewal)
+            
+            return renewals
+    
     def redeem_contract(self, redemption_data: Dict) -> int:
         """ไถ่ถอนสัญญา"""
         with self.get_connection() as conn:
@@ -577,6 +709,13 @@ class PawnShopDatabase:
             ''', (date,))
             interest_payments = cursor.fetchone()
             
+            # การต่อดอก
+            cursor.execute('''
+                SELECT COUNT(*), SUM(total_amount) FROM renewals 
+                WHERE DATE(renewal_date) = ?
+            ''', (date,))
+            renewals = cursor.fetchone()
+            
             return {
                 'date': date,
                 'new_contracts_count': new_contracts[0] or 0,
@@ -584,7 +723,9 @@ class PawnShopDatabase:
                 'redemptions_count': redemptions[0] or 0,
                 'redemptions_amount': redemptions[1] or 0,
                 'interest_payments_count': interest_payments[0] or 0,
-                'interest_payments_amount': interest_payments[1] or 0
+                'interest_payments_amount': interest_payments[1] or 0,
+                'renewals_count': renewals[0] or 0,
+                'renewals_amount': renewals[1] or 0
             }
     
     def get_expiring_contracts(self, days: int = 7) -> List[Dict]:
@@ -1138,3 +1279,80 @@ class PawnShopDatabase:
                 columns = [description[0] for description in cursor.description]
                 return dict(zip(columns, row))
             return None
+
+    def get_renewals_by_contract(self, contract_number: str) -> List[Dict]:
+        """ดึงข้อมูลการต่อดอกตามเลขที่สัญญา"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                FROM renewals r
+                JOIN contracts c ON r.contract_id = c.id
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE c.contract_number = ?
+                ORDER BY r.renewal_date DESC
+            ''', (contract_number,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def update_contract_end_date(self, contract_number: str, new_end_date: str) -> bool:
+        """อัปเดตวันที่ครบกำหนดใหม่ในสัญญา"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE contracts 
+                    SET end_date = ?, 
+                        days_count = (julianday(?) - julianday(start_date))
+                    WHERE contract_number = ?
+                ''', (new_end_date, new_end_date, contract_number))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error updating contract end date: {e}")
+            return False
+
+    def get_all_redemptions(self) -> List[Dict]:
+        """ดึงข้อมูลการไถ่ถอนทั้งหมด"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                FROM redemptions r
+                JOIN contracts c ON r.contract_id = c.id
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                ORDER BY r.redemption_date DESC
+            ''')
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def get_redemptions_by_contract(self, contract_id: int) -> List[Dict]:
+        """ดึงข้อมูลการไถ่ถอนตาม contract_id"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                FROM redemptions r
+                JOIN contracts c ON r.contract_id = c.id
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE r.contract_id = ?
+                ORDER BY r.redemption_date DESC
+            ''', (contract_id,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
