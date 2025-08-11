@@ -187,6 +187,7 @@ class PawnShopDatabase:
             ('company_address', ''),
             ('company_phone', ''),
             ('contract_prefix', '53-10-4-'),
+            ('customer_prefix', 'C'),
         ]
         
         for key, value in default_settings:
@@ -217,6 +218,17 @@ class PawnShopDatabase:
         """เพิ่มลูกค้าใหม่"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # ตรวจสอบความซ้ำซ้อนก่อนเพิ่มข้อมูล
+            if customer_data.get('customer_code'):
+                cursor.execute('SELECT COUNT(*) FROM customers WHERE customer_code = ?', (customer_data['customer_code'],))
+                if cursor.fetchone()[0] > 0:
+                    raise ValueError(f"รหัสลูกค้า {customer_data['customer_code']} มีอยู่ในระบบแล้ว")
+            
+            if customer_data.get('id_card'):
+                cursor.execute('SELECT COUNT(*) FROM customers WHERE id_card = ?', (customer_data['id_card'],))
+                if cursor.fetchone()[0] > 0:
+                    raise ValueError(f"เลขบัตรประชาชน {customer_data['id_card']} มีอยู่ในระบบแล้ว")
             
             cursor.execute('''
                 INSERT INTO customers (
@@ -366,27 +378,122 @@ class PawnShopDatabase:
             return None
     
     def search_contracts(self, search_term: str, status: str = 'all') -> List[Dict]:
-        """ค้นหาสัญญา"""
+        """ค้นหาสัญญา (legacy function - ใช้ฟังก์ชันใหม่แทน)"""
+        # เรียกใช้ฟังก์ชันใหม่ตามประเภทการค้นหา
+        return self.search_contracts_by_number(search_term, status)
+
+    def search_contracts_by_number(self, contract_number: str, status: str = 'all') -> List[Dict]:
+        """ค้นหาสัญญาตามเลขที่สัญญา"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
+            # สร้าง query ตามสถานะ
             if status == 'all':
-                cursor.execute('''
-                    SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
-                    FROM contracts c
-                    JOIN customers cu ON c.customer_id = cu.id
-                    JOIN products p ON c.product_id = p.id
-                    WHERE c.contract_number LIKE ? OR cu.first_name LIKE ? OR cu.last_name LIKE ? OR cu.id_card LIKE ?
-                ''', (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+                status_condition = ""
             else:
-                cursor.execute('''
-                    SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
-                    FROM contracts c
-                    JOIN customers cu ON c.customer_id = cu.id
-                    JOIN products p ON c.product_id = p.id
-                    WHERE (c.contract_number LIKE ? OR cu.first_name LIKE ? OR cu.last_name LIKE ? OR cu.id_card LIKE ?)
-                    AND c.status = ?
-                ''', (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', status))
+                status_condition = "AND c.status = ?"
+            
+            query = f'''
+                SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE c.contract_number LIKE ?
+                {status_condition}
+                ORDER BY c.created_at DESC
+            '''
+            
+            search_pattern = f"%{contract_number}%"
+            if status == 'all':
+                cursor.execute(query, (search_pattern,))
+            else:
+                cursor.execute(query, (search_pattern, status))
+            
+            rows = cursor.fetchall()
+            
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def search_contracts_by_id_card(self, id_card: str, status: str = 'all') -> List[Dict]:
+        """ค้นหาสัญญาตามเลขบัตรประชาชน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # สร้าง query ตามสถานะ
+            if status == 'all':
+                status_condition = ""
+            else:
+                status_condition = "AND c.status = ?"
+            
+            query = f'''
+                SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE cu.id_card LIKE ?
+                {status_condition}
+                ORDER BY c.created_at DESC
+            '''
+            
+            search_pattern = f"%{id_card}%"
+            if status == 'all':
+                cursor.execute(query, (search_pattern,))
+            else:
+                cursor.execute(query, (search_pattern, status))
+            
+            rows = cursor.fetchall()
+            
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def search_contracts_by_name(self, first_name: str = "", last_name: str = "", status: str = 'all') -> List[Dict]:
+        """ค้นหาสัญญาตามชื่อและนามสกุล"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # สร้าง query ตามสถานะ
+            if status == 'all':
+                status_condition = ""
+            else:
+                status_condition = "AND c.status = ?"
+            
+            # สร้างเงื่อนไขการค้นหาตามชื่อ
+            name_conditions = []
+            params = []
+            
+            if first_name:
+                name_conditions.append("cu.first_name LIKE ?")
+                params.append(f"%{first_name}%")
+            
+            if last_name:
+                name_conditions.append("cu.last_name LIKE ?")
+                params.append(f"%{last_name}%")
+            
+            if not name_conditions:
+                # ถ้าไม่มีการกรอกชื่อใดๆ ให้ค้นหาทั้งหมด
+                name_conditions.append("1=1")
+            
+            name_condition = " AND ".join(name_conditions)
+            
+            query = f'''
+                SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE {name_condition}
+                {status_condition}
+                ORDER BY c.created_at DESC
+            '''
+            
+            if status == 'all':
+                cursor.execute(query, params)
+            else:
+                params.append(status)
+                cursor.execute(query, params)
             
             rows = cursor.fetchall()
             
@@ -898,3 +1005,116 @@ class PawnShopDatabase:
                 contracts.append(contract)
             
             return contracts
+
+    def get_contracts_by_customer(self, customer_id: int) -> List[Dict]:
+        """ดึงข้อมูลสัญญาของลูกค้าคนหนึ่ง"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT 
+                    c.*,
+                    cu.first_name,
+                    cu.last_name,
+                    cu.id_card,
+                    p.name as product_name
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE c.customer_id = ?
+                ORDER BY c.created_at DESC
+            ''', (customer_id,))
+            
+            rows = cursor.fetchall()
+            
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def fix_duplicate_customer_codes(self):
+        """แก้ไขปัญหารหัสลูกค้าซ้ำซ้อน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # ค้นหารหัสลูกค้าที่ซ้ำซ้อน
+            cursor.execute('''
+                SELECT customer_code, COUNT(*) as count
+                FROM customers 
+                GROUP BY customer_code 
+                HAVING COUNT(*) > 1
+            ''')
+            
+            duplicates = cursor.fetchall()
+            fixed_count = 0
+            
+            for duplicate_code, count in duplicates:
+                if count > 1:
+                    # ค้นหาลูกค้าทั้งหมดที่มีรหัสซ้ำ
+                    cursor.execute('''
+                        SELECT id, customer_code, first_name, last_name, created_at
+                        FROM customers 
+                        WHERE customer_code = ?
+                        ORDER BY created_at ASC
+                    ''', (duplicate_code,))
+                    
+                    customers = cursor.fetchall()
+                    
+                    # เก็บลูกค้าคนแรกไว้ เปลี่ยนรหัสของคนอื่น
+                    for i, (customer_id, old_code, first_name, last_name, created_at) in enumerate(customers[1:], 1):
+                        # สร้างรหัสใหม่
+                        new_code = f"{old_code}-{i:02d}"
+                        
+                        # อัปเดตรหัสใหม่
+                        cursor.execute('''
+                            UPDATE customers 
+                            SET customer_code = ? 
+                            WHERE id = ?
+                        ''', (new_code, customer_id))
+                        
+                        fixed_count += 1
+            
+            conn.commit()
+            return fixed_count
+
+    def fix_duplicate_id_cards(self):
+        """แก้ไขปัญหาเลขบัตรประชาชนซ้ำซ้อน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # ค้นหาเลขบัตรประชาชนที่ซ้ำซ้อน
+            cursor.execute('''
+                SELECT id_card, COUNT(*) as count
+                FROM customers 
+                WHERE id_card IS NOT NULL AND id_card != ''
+                GROUP BY id_card 
+                HAVING COUNT(*) > 1
+            ''')
+            
+            duplicates = cursor.fetchall()
+            fixed_count = 0
+            
+            for duplicate_id_card, count in duplicates:
+                if count > 1:
+                    # ค้นหาลูกค้าทั้งหมดที่มีเลขบัตรซ้ำ
+                    cursor.execute('''
+                        SELECT id, id_card, first_name, last_name, created_at
+                        FROM customers 
+                        WHERE id_card = ?
+                        ORDER BY created_at ASC
+                    ''', (duplicate_id_card,))
+                    
+                    customers = cursor.fetchall()
+                    
+                    # เก็บลูกค้าคนแรกไว้ ลบเลขบัตรของคนอื่น
+                    for i, (customer_id, id_card, first_name, last_name, created_at) in enumerate(customers[1:], 1):
+                        # ลบเลขบัตรประชาชน
+                        cursor.execute('''
+                            UPDATE customers 
+                            SET id_card = '' 
+                            WHERE id = ?
+                        ''', (customer_id,))
+                        
+                        fixed_count += 1
+            
+            conn.commit()
+            return fixed_count

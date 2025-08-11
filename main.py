@@ -784,38 +784,78 @@ class PawnShopUI(QMainWindow):
         return group_box
 
     def create_search_group(self):
-        group_box = QGroupBox("ค้นหา")
+        group_box = QGroupBox("ค้นหาสัญญา")
         group_box.setObjectName("SearchGroup")
         layout = QVBoxLayout(group_box)
         layout.setSpacing(15)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
         layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
+        # เลือกประเภทการค้นหา
+        search_type_layout = QHBoxLayout()
+        search_type_layout.addWidget(QLabel("ค้นหาตาม:"))
+        self.search_type_combo = QComboBox()
+        self.search_type_combo.addItems(["เลขที่สัญญา", "เลขบัตรประชาชน", "ชื่อนามสกุล"])
+        self.search_type_combo.currentTextChanged.connect(self.on_search_type_changed)
+        search_type_layout.addWidget(self.search_type_combo)
+        layout.addLayout(search_type_layout)
+        
+        # ฟอร์มค้นหา
         form_layout = QGridLayout()
         form_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างคอลัมน์
-        form_layout.addWidget(QLabel("เลขที่สัญญา"), 0, 0)
+        
+        # เลขที่สัญญา (เริ่มต้น)
+        form_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
         self.search_contract_combo = QComboBox()
         self.search_contract_combo.addItems(["=", ">", "<", ">=", "<="])
         form_layout.addWidget(self.search_contract_combo, 0, 1)
         self.search_contract_edit = QLineEdit()
+        self.search_contract_edit.setPlaceholderText("กรอกเลขที่สัญญา...")
         form_layout.addWidget(self.search_contract_edit, 0, 2)
+        
+        # เลขบัตรประชาชน (ซ่อนไว้)
+        form_layout.addWidget(QLabel("เลขบัตรประชาชน:"), 1, 0)
+        self.search_id_card_edit = QLineEdit()
+        self.search_id_card_edit.setPlaceholderText("กรอกเลขบัตรประชาชน...")
+        self.search_id_card_edit.hide()
+        form_layout.addWidget(self.search_id_card_edit, 1, 1, 1, 2)
+        
+        # ชื่อนามสกุล (ซ่อนไว้)
+        form_layout.addWidget(QLabel("ชื่อ:"), 2, 0)
+        self.search_first_name_edit = QLineEdit()
+        self.search_first_name_edit.setPlaceholderText("กรอกชื่อ...")
+        self.search_first_name_edit.hide()
+        form_layout.addWidget(self.search_first_name_edit, 2, 1)
+        
+        form_layout.addWidget(QLabel("นามสกุล:"), 2, 2)
+        self.search_last_name_edit = QLineEdit()
+        self.search_last_name_edit.setPlaceholderText("กรอกนามสกุล...")
+        self.search_last_name_edit.hide()
+        form_layout.addWidget(self.search_last_name_edit, 2, 3)
 
         layout.addLayout(form_layout)
         
+        # ปุ่มค้นหา
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างปุ่ม
-        self.search_next_btn = QPushButton("ถัดไป")
-        self.search_next_btn.clicked.connect(self.search_next)
-        self.search_next_btn.setIcon(QIcon.fromTheme("go-next"))
-        button_layout.addWidget(self.search_next_btn)
-        self.search_name_btn = QPushButton("หาชื่อนอกรีต")
-        self.search_name_btn.clicked.connect(self.search_by_name)
-        self.search_name_btn.setIcon(QIcon.fromTheme("system-search"))
-        button_layout.addWidget(self.search_name_btn)
+        
+        self.search_btn = QPushButton("ค้นหา")
+        self.search_btn.clicked.connect(self.search_contracts)
+        self.search_btn.setIcon(QIcon.fromTheme("system-search"))
+        self.search_btn.setMinimumHeight(32)
+        button_layout.addWidget(self.search_btn)
+        
+        self.clear_search_btn = QPushButton("ล้างการค้นหา")
+        self.clear_search_btn.clicked.connect(self.clear_search)
+        self.clear_search_btn.setIcon(QIcon.fromTheme("edit-clear"))
+        self.clear_search_btn.setMinimumHeight(32)
+        button_layout.addWidget(self.clear_search_btn)
+        
         layout.addLayout(button_layout)
 
+        # ตัวเลือกสถานะสัญญา
         radio_layout = QHBoxLayout()
         radio_layout.setSpacing(15)  # เพิ่มระยะห่างระหว่าง radio button
-        radio_layout.addWidget(QLabel("(F5)"))
+        radio_layout.addWidget(QLabel("สถานะสัญญา:"))
         self.active_radio = QRadioButton("สัญญาเปิด")
         self.closed_radio = QRadioButton("สัญญาปิด")
         self.all_radio = QRadioButton("ทั้งหมด")
@@ -887,6 +927,12 @@ class PawnShopUI(QMainWindow):
         fee_management_action = QAction("ตารางจัดการค่าธรรมเนียม", self)
         fee_management_action.triggered.connect(self.show_fee_management)
         fee_menu.addAction(fee_management_action)
+        
+        # เมนูจัดการฐานข้อมูล
+        db_menu = menu_bar.addMenu("จัดการฐานข้อมูล")
+        fix_duplicates_action = QAction("แก้ไขข้อมูลซ้ำซ้อน", self)
+        fix_duplicates_action.triggered.connect(self.fix_database_duplicates)
+        db_menu.addAction(fix_duplicates_action)
 
     def create_bottom_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
@@ -1282,11 +1328,61 @@ class PawnShopUI(QMainWindow):
         """ตารางดอกเบี้ย"""
         QMessageBox.information(self, "ตารางดอกเบี้ย", "ฟีเจอร์ตารางดอกเบี้ย")
 
-    def search_next(self):
-        """ค้นหาถัดไป"""
-        search_term = self.search_contract_edit.text().strip()
-        if not search_term:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกคำค้นหา")
+    def on_search_type_changed(self):
+        """เมื่อเปลี่ยนประเภทการค้นหา"""
+        search_type = self.search_type_combo.currentText()
+        
+        # ซ่อนฟอร์มทั้งหมดก่อน
+        self.search_contract_edit.hide()
+        self.search_contract_combo.hide()
+        self.search_id_card_edit.hide()
+        self.search_first_name_edit.hide()
+        self.search_last_name_edit.hide()
+        
+        # แสดงฟอร์มที่เหมาะสม
+        if search_type == "เลขที่สัญญา":
+            self.search_contract_edit.show()
+            self.search_contract_combo.show()
+        elif search_type == "เลขบัตรประชาชน":
+            self.search_id_card_edit.show()
+        elif search_type == "ชื่อนามสกุล":
+            self.search_first_name_edit.show()
+            self.search_last_name_edit.show()
+        
+        # ล้างข้อมูลการค้นหา
+        self.clear_search_fields()
+
+    def clear_search_fields(self):
+        """ล้างข้อมูลในฟิลด์ค้นหา"""
+        self.search_contract_edit.clear()
+        self.search_id_card_edit.clear()
+        self.search_first_name_edit.clear()
+        self.search_last_name_edit.clear()
+
+    def search_contracts(self):
+        """ค้นหาสัญญาตามประเภทที่เลือก"""
+        search_type = self.search_type_combo.currentText()
+        
+        # ตรวจสอบข้อมูลการค้นหา
+        if search_type == "เลขที่สัญญา":
+            search_term = self.search_contract_edit.text().strip()
+            if not search_term:
+                QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขที่สัญญา")
+                return
+        elif search_type == "เลขบัตรประชาชน":
+            search_term = self.search_id_card_edit.text().strip()
+            if not search_term:
+                QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขบัตรประชาชน")
+                return
+        elif search_type == "ชื่อนามสกุล":
+            first_name = self.search_first_name_edit.text().strip()
+            last_name = self.search_last_name_edit.text().strip()
+            if not first_name and not last_name:
+                QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อหรือนามสกุลอย่างน้อยหนึ่งตัว")
+                return
+            search_term = f"{first_name} {last_name}".strip()
+        else:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกประเภทการค้นหา")
             return
         
         # กำหนดสถานะการค้นหา
@@ -1296,14 +1392,39 @@ class PawnShopUI(QMainWindow):
         elif self.closed_radio.isChecked():
             status = 'redeemed'
         
-        # ค้นหาสัญญา
-        contracts = self.db.search_contracts(search_term, status)
-        if contracts:
-            self.current_contract = contracts[0]
-            self.load_contract_data()
-            self.display_contract_in_table(contracts)
-        else:
-            QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาที่ตรงกับคำค้นหา")
+        try:
+            # ค้นหาสัญญาตามประเภทที่เลือก
+            if search_type == "เลขที่สัญญา":
+                contracts = self.db.search_contracts_by_number(search_term, status)
+            elif search_type == "เลขบัตรประชาชน":
+                contracts = self.db.search_contracts_by_id_card(search_term, status)
+            elif search_type == "ชื่อนามสกุล":
+                contracts = self.db.search_contracts_by_name(first_name, last_name, status)
+            else:
+                contracts = []
+            
+            if contracts:
+                self.current_contract = contracts[0]
+                self.load_contract_data()
+                self.display_contract_in_table(contracts)
+                QMessageBox.information(self, "ผลการค้นหา", f"พบ {len(contracts)} สัญญา")
+            else:
+                QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาที่ตรงกับคำค้นหา")
+                self.contract_table.setRowCount(0)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการค้นหา: {str(e)}")
+
+    def clear_search(self):
+        """ล้างการค้นหา"""
+        self.clear_search_fields()
+        self.contract_table.setRowCount(0)
+        self.current_contract = None
+        QMessageBox.information(self, "ล้างการค้นหา", "ล้างการค้นหาเรียบร้อยแล้ว")
+
+    def search_next(self):
+        """ค้นหาถัดไป (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
+        self.search_contracts()
     
     def display_contract_in_table(self, contracts: list):
         """แสดงข้อมูลสัญญาในตาราง"""
@@ -1345,20 +1466,11 @@ class PawnShopUI(QMainWindow):
             self.contract_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
 
     def search_by_name(self):
-        """ค้นหาตามชื่อ"""
-        # เปิดหน้าต่างค้นหาลูกค้า
-        dialog = CustomerSearchDialog(self)
-        if dialog.exec():
-            selected_customer = dialog.selected_customer
-            if selected_customer:
-                # ค้นหาสัญญาของลูกค้าคนนี้
-                contracts = self.db.get_contracts_by_customer(selected_customer['id'])
-                if contracts:
-                    self.current_contract = contracts[0]
-                    self.load_contract_data()
-                    self.display_contract_in_table(contracts)
-                else:
-                    QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาของลูกค้าคนนี้")
+        """ค้นหาตามชื่อ (legacy - ใช้ฟังก์ชันใหม่แทน)"""
+        # เปลี่ยนไปใช้การค้นหาตามชื่อนามสกุล
+        self.search_type_combo.setCurrentText("ชื่อนามสกุล")
+        self.on_search_type_changed()
+        QMessageBox.information(self, "การค้นหา", "กรุณาเลือกประเภทการค้นหาเป็น 'ชื่อนามสกุล' และกรอกข้อมูล")
 
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
@@ -1592,6 +1704,16 @@ class PawnShopUI(QMainWindow):
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกข้อมูลชื่อ, นามสกุล, และเลขบัตรประชาชน")
             return
 
+        # ตรวจสอบความซ้ำซ้อนของรหัสลูกค้าและเลขบัตรประชาชน
+        if self.db.check_customer_exists(customer_code=customer_code):
+            QMessageBox.warning(self, "แจ้งเตือน", f"รหัสลูกค้า {customer_code} มีอยู่ในระบบแล้ว กรุณาสร้างรหัสใหม่")
+            self.generate_new_customer_code()
+            return
+        
+        if self.db.check_customer_exists(id_card=id_card):
+            QMessageBox.warning(self, "แจ้งเตือน", f"เลขบัตรประชาชน {id_card} มีอยู่ในระบบแล้ว")
+            return
+
         try:
             customer_data = {
                 'customer_code': customer_code,
@@ -1611,6 +1733,8 @@ class PawnShopUI(QMainWindow):
             self.load_customer_data()
             self.toggle_customer_mode()
             QMessageBox.information(self, "สำเร็จ", f"เพิ่มลูกค้าเรียบร้อย\nรหัสลูกค้า: {customer_code}")
+        except ValueError as e:
+            QMessageBox.warning(self, "ข้อมูลซ้ำซ้อน", str(e))
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการเพิ่มลูกค้า: {str(e)}")
 
@@ -1669,10 +1793,13 @@ class PawnShopUI(QMainWindow):
 
     def generate_new_customer_code(self):
         """สร้างรหัสลูกค้าใหม่"""
-        prefix = self.db.get_setting('customer_prefix') if hasattr(self.db, 'get_setting') else "C"
-        # คำนวณลำดับถัดไปจากฐานข้อมูล
-        sequence = self.db.get_next_customer_sequence(prefix)
-        customer_code = PawnShopUtils.generate_customer_code(prefix, sequence)
+        try:
+            prefix = self.db.get_setting('customer_prefix')
+        except:
+            prefix = "C"  # ใช้ค่าเริ่มต้นถ้าไม่มีในฐานข้อมูล
+        
+        # สร้างรหัสลูกค้าใหม่จากฐานข้อมูล
+        customer_code = self.db.get_next_customer_code(prefix)
         self.customer_code_display_edit.setText(customer_code)
 
     def browse_product_image(self):
@@ -1936,6 +2063,29 @@ class PawnShopUI(QMainWindow):
         
         # สร้าง PDF
         doc.build(story)
+
+    def fix_database_duplicates(self):
+        """แก้ไขปัญหาข้อมูลซ้ำซ้อนในฐานข้อมูล"""
+        try:
+            # แก้ไขปัญหารหัสลูกค้าซ้ำซ้อน
+            customer_codes_fixed = self.db.fix_duplicate_customer_codes()
+            
+            # แก้ไขปัญหาเลขบัตรประชาชนซ้ำซ้อน
+            id_cards_fixed = self.db.fix_duplicate_id_cards()
+            
+            if customer_codes_fixed > 0 or id_cards_fixed > 0:
+                message = f"แก้ไขข้อมูลซ้ำซ้อนเรียบร้อย:\n"
+                if customer_codes_fixed > 0:
+                    message += f"- รหัสลูกค้าซ้ำซ้อน: {customer_codes_fixed} รายการ\n"
+                if id_cards_fixed > 0:
+                    message += f"- เลขบัตรประชาชนซ้ำซ้อน: {id_cards_fixed} รายการ"
+                
+                QMessageBox.information(self, "สำเร็จ", message)
+            else:
+                QMessageBox.information(self, "ไม่พบปัญหา", "ไม่พบข้อมูลซ้ำซ้อนในฐานข้อมูล")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการแก้ไขข้อมูลซ้ำซ้อน: {str(e)}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
