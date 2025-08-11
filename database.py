@@ -152,6 +152,13 @@ class PawnShopDatabase:
                     contract_id INTEGER NOT NULL,
                     redemption_date DATE NOT NULL,
                     redemption_amount REAL NOT NULL,
+                    deposit_date DATE,
+                    due_date DATE,
+                    total_days INTEGER,
+                    principal_amount REAL,
+                    fee_amount REAL,
+                    penalty_amount REAL,
+                    discount_amount REAL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (contract_id) REFERENCES contracts (id)
                 )
@@ -192,6 +199,25 @@ class PawnShopDatabase:
             if 'image_path' not in columns:
                 cursor.execute('ALTER TABLE products ADD COLUMN image_path TEXT')
                 print("Added image_path column to products table")
+            
+            # ตรวจสอบและเพิ่มคอลัมน์ใหม่ในตาราง redemptions
+            cursor.execute("PRAGMA table_info(redemptions)")
+            redemption_columns = [column[1] for column in cursor.fetchall()]
+            
+            new_redemption_columns = [
+                ('deposit_date', 'DATE'),
+                ('due_date', 'DATE'),
+                ('total_days', 'INTEGER'),
+                ('principal_amount', 'REAL'),
+                ('fee_amount', 'REAL'),
+                ('penalty_amount', 'REAL'),
+                ('discount_amount', 'REAL')
+            ]
+            
+            for col_name, col_type in new_redemption_columns:
+                if col_name not in redemption_columns:
+                    cursor.execute(f'ALTER TABLE redemptions ADD COLUMN {col_name} {col_type}')
+                    print(f"Added {col_name} column to redemptions table")
                 
         except Exception as e:
             print(f"Error upgrading database: {e}")
@@ -666,12 +692,21 @@ class PawnShopDatabase:
             # เพิ่มข้อมูลการไถ่ถอน
             cursor.execute('''
                 INSERT INTO redemptions (
-                    contract_id, redemption_date, redemption_amount
-                ) VALUES (?, ?, ?)
+                    contract_id, redemption_date, redemption_amount,
+                    deposit_date, due_date, total_days,
+                    principal_amount, fee_amount, penalty_amount, discount_amount
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 redemption_data['contract_id'],
                 redemption_data['redemption_date'],
-                redemption_data['redemption_amount']
+                redemption_data['redemption_amount'],
+                redemption_data.get('deposit_date'),
+                redemption_data.get('due_date'),
+                redemption_data.get('total_days'),
+                redemption_data.get('principal_amount'),
+                redemption_data.get('fee_amount'),
+                redemption_data.get('penalty_amount'),
+                redemption_data.get('discount_amount')
             ))
             
             # อัปเดตสถานะสัญญา
@@ -1323,7 +1358,9 @@ class PawnShopDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name,
+                       r.deposit_date, r.due_date, r.total_days, r.principal_amount,
+                       r.fee_amount, r.penalty_amount, r.discount_amount
                 FROM redemptions r
                 JOIN contracts c ON r.contract_id = c.id
                 JOIN customers cu ON c.customer_id = cu.id
@@ -1342,7 +1379,9 @@ class PawnShopDatabase:
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name,
+                       r.deposit_date, r.due_date, r.total_days, r.principal_amount,
+                       r.fee_amount, r.penalty_amount, r.discount_amount
                 FROM redemptions r
                 JOIN contracts c ON r.contract_id = c.id
                 JOIN customers cu ON c.customer_id = cu.id

@@ -477,90 +477,476 @@ class RedemptionDialog(QDialog):
             self.load_contract_data()
     
     def setup_ui(self):
-        self.setWindowTitle("ไถ่ถอนสัญญา")
+        self.setWindowTitle("ไถ่ถอน")
         self.setModal(True)
-        self.resize(500, 400)
+        self.resize(600, 700)
+        
+        # ใช้สีพื้นหลังเหมือนรูปภาพ
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #F5E6D3;
+            }
+            QGroupBox {
+                font-weight: bold;
+                color: #8B4513;
+                border: 2px solid #D2691E;
+                border-radius: 8px;
+                margin-top: 15px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 8px;
+                margin-left: 15px;
+                background-color: #F5E6D3;
+                color: #8B4513;
+            }
+            QLabel {
+                color: #8B4513;
+                font-weight: bold;
+            }
+            QLineEdit, QDateEdit, QSpinBox, QDoubleSpinBox {
+                border: 2px solid #D2691E;
+                border-radius: 5px;
+                padding: 5px;
+                background-color: white;
+                color: #8B4513;
+            }
+            QPushButton {
+                background-color: #D2691E;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 120px;
+                min-height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #CD853F;
+            }
+            QPushButton:pressed {
+                background-color: #A0522D;
+            }
+        """)
         
         layout = QVBoxLayout(self)
         
-        # ข้อมูลสัญญา
-        contract_group = QGroupBox("ข้อมูลสัญญา")
-        contract_layout = QGridLayout(contract_group)
+        # หัวข้อหลัก
+        title_label = QLabel("ไถ่ถอน")
+        title_label.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            text-align: center;
+            margin: 10px;
+        """)
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
         
-        self.contract_number_label = QLabel()
-        self.customer_name_label = QLabel()
-        self.pawn_amount_label = QLabel()
-        self.total_redemption_label = QLabel()
+        # ข้อมูลวันที่และจำนวนวัน
+        date_group = QGroupBox("ข้อมูลวันที่")
+        date_layout = QGridLayout(date_group)
         
-        contract_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
-        contract_layout.addWidget(self.contract_number_label, 0, 1)
-        contract_layout.addWidget(QLabel("ชื่อลูกค้า:"), 1, 0)
-        contract_layout.addWidget(self.customer_name_label, 1, 1)
-        contract_layout.addWidget(QLabel("ยอดฝาก:"), 2, 0)
-        contract_layout.addWidget(self.pawn_amount_label, 2, 1)
-        contract_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 3, 0)
-        contract_layout.addWidget(self.total_redemption_label, 3, 1)
-        
-        layout.addWidget(contract_group)
-        
-        # ข้อมูลการไถ่ถอน
-        redemption_group = QGroupBox("ข้อมูลการไถ่ถอน")
-        redemption_layout = QGridLayout(redemption_group)
+        self.deposit_date_edit = QDateEdit()
+        self.deposit_date_edit.setDate(QDate.currentDate())
+        self.deposit_date_edit.setCalendarPopup(True)
         
         self.redemption_date_edit = QDateEdit()
         self.redemption_date_edit.setDate(QDate.currentDate())
-        self.redemption_amount_spin = QDoubleSpinBox()
-        self.redemption_amount_spin.setRange(0, 999999)
-        self.redemption_amount_spin.setSuffix(" บาท")
+        self.redemption_date_edit.setCalendarPopup(True)
         
-        redemption_layout.addWidget(QLabel("วันที่ไถ่ถอน:"), 0, 0)
-        redemption_layout.addWidget(self.redemption_date_edit, 0, 1)
-        redemption_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 1, 0)
-        redemption_layout.addWidget(self.redemption_amount_spin, 1, 1)
+        self.due_date_edit = QDateEdit()
+        self.due_date_edit.setDate(QDate.currentDate())
+        self.due_date_edit.setCalendarPopup(True)
         
-        layout.addWidget(redemption_group)
+        self.total_days_label = QLabel("0")
+        self.total_days_label.setStyleSheet("""
+            background-color: #FFD700;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+        """)
         
-        # ปุ่ม
+        date_layout.addWidget(QLabel("วันที่รับฝาก / ผากต่อ:"), 0, 0)
+        date_layout.addWidget(self.deposit_date_edit, 0, 1)
+        date_layout.addWidget(QLabel("วันที่ไถ่ถอน:"), 1, 0)
+        date_layout.addWidget(self.redemption_date_edit, 1, 1)
+        date_layout.addWidget(QLabel("วันที่ครบกำหนด:"), 2, 0)
+        date_layout.addWidget(self.due_date_edit, 2, 1)
+        date_layout.addWidget(QLabel("รวมวันที่ฝากไว้:"), 3, 0)
+        date_layout.addWidget(self.total_days_label, 3, 1)
+        
+        layout.addWidget(date_group)
+        
+        # ข้อมูลจำนวนเงิน
+        amount_group = QGroupBox("ข้อมูลจำนวนเงิน")
+        amount_layout = QGridLayout(amount_group)
+        
+        self.principal_amount_label = QLabel("0")
+        self.principal_amount_label.setStyleSheet("""
+            background-color: white;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+        """)
+        
+        self.fee_amount_label = QLabel("0")
+        self.fee_amount_label.setStyleSheet("""
+            background-color: white;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+        """)
+        
+        self.penalty_amount_label = QLabel("0")
+        self.penalty_amount_label.setStyleSheet("""
+            background-color: white;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+        """)
+        
+        self.discount_amount_label = QLabel("0")
+        self.discount_amount_label.setStyleSheet("""
+            background-color: white;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+        """)
+        
+        self.total_amount_label = QLabel("0")
+        self.total_amount_label.setStyleSheet("""
+            background-color: #FFD700;
+            border: 2px solid #D2691E;
+            border-radius: 5px;
+            padding: 5px;
+            font-weight: bold;
+            color: #8B4513;
+            font-size: 16px;
+        """)
+        
+        amount_layout.addWidget(QLabel("เงินต้น:"), 0, 0)
+        amount_layout.addWidget(self.principal_amount_label, 0, 1)
+        amount_layout.addWidget(QLabel("ค่าธรรมเนียม:"), 1, 0)
+        amount_layout.addWidget(self.fee_amount_label, 1, 1)
+        amount_layout.addWidget(QLabel("ค่าปรับ:"), 2, 0)
+        amount_layout.addWidget(self.penalty_amount_label, 2, 1)
+        amount_layout.addWidget(QLabel("ส่วนลด:"), 3, 0)
+        amount_layout.addWidget(self.discount_amount_label, 3, 1)
+        amount_layout.addWidget(QLabel("รวม:"), 4, 0)
+        amount_layout.addWidget(self.total_amount_label, 4, 1)
+        
+        layout.addWidget(amount_group)
+        
+        # คำถามยืนยัน
+        confirm_label = QLabel("ต้องการไถ่ถอนสัญญานี้ใช่หรือไม่")
+        confirm_label.setStyleSheet("""
+            font-size: 16px;
+            font-weight: bold;
+            color: #8B4513;
+            text-align: center;
+            margin: 20px;
+        """)
+        confirm_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(confirm_label)
+        
+        # ปุ่มยืนยัน
         button_layout = QHBoxLayout()
-        save_button = QPushButton("บันทึก")
-        cancel_button = QPushButton("ยกเลิก")
         
-        save_button.clicked.connect(self.save_redemption)
-        cancel_button.clicked.connect(self.reject)
+        # ปุ่มใช่ (มีไอคอนไฟ)
+        yes_button = QPushButton("ใช่")
+        yes_button.setIcon(self.create_fire_icon())
+        yes_button.clicked.connect(self.confirm_redemption)
         
-        button_layout.addWidget(save_button)
-        button_layout.addWidget(cancel_button)
+        # ปุ่มไม่ใช่ (มีไอคอนถังขยะ)
+        no_button = QPushButton("ไม่ใช่")
+        no_button.setIcon(self.create_trash_icon())
+        no_button.clicked.connect(self.reject)
+        
+        button_layout.addWidget(yes_button)
+        button_layout.addWidget(no_button)
         layout.addLayout(button_layout)
+        
+        # เชื่อมต่อสัญญาณการเปลี่ยนแปลงวันที่
+        self.deposit_date_edit.dateChanged.connect(self.calculate_total_days)
+        self.redemption_date_edit.dateChanged.connect(self.calculate_total_days)
+        self.due_date_edit.dateChanged.connect(self.calculate_total_days)
+    
+    def create_fire_icon(self):
+        """สร้างไอคอนไฟสำหรับปุ่มใช่"""
+        # สร้างไอคอนแบบง่ายๆ ด้วยข้อความ
+        return QIcon()
+    
+    def create_trash_icon(self):
+        """สร้างไอคอนถังขยะสำหรับปุ่มไม่ใช่"""
+        # สร้างไอคอนแบบง่ายๆ ด้วยข้อความ
+        return QIcon()
+    
+    def calculate_total_days(self):
+        """คำนวณจำนวนวันที่ฝากไว้"""
+        try:
+            deposit_date = self.deposit_date_edit.date()
+            redemption_date = self.redemption_date_edit.date()
+            
+            # คำนวณจำนวนวันระหว่างวันที่รับฝากกับวันที่ไถ่ถอน
+            days = deposit_date.daysTo(redemption_date)
+            if days < 0:
+                days = 0
+            
+            self.total_days_label.setText(str(days))
+            
+            # คำนวณค่าต่างๆ ใหม่
+            self.calculate_amounts()
+            
+        except Exception as e:
+            print(f"Error calculating days: {e}")
+    
+    def calculate_amounts(self):
+        """คำนวณจำนวนเงินต่างๆ"""
+        try:
+            # ดึงข้อมูลจากสัญญา
+            if not self.contract_data:
+                return
+            
+            principal = self.contract_data.get('pawn_amount', 0)
+            days = int(self.total_days_label.text())
+            
+            # คำนวณค่าธรรมเนียมตามจำนวนวัน
+            fee_rate = self.db.get_fee_rate_by_days(days)
+            fee_amount = 0
+            if fee_rate:
+                fee_amount = (principal * fee_rate['fee_rate']) / 100
+            
+            # คำนวณค่าปรับ (ถ้าเกินกำหนด)
+            penalty = 0
+            if self.redemption_date_edit.date() > self.due_date_edit.date():
+                overdue_days = self.due_date_edit.date().daysTo(self.redemption_date_edit.date())
+                penalty = overdue_days * 10  # ค่าปรับวันละ 10 บาท
+            
+            # คำนวณส่วนลด (ถ้ามี)
+            discount = 0
+            
+            # คำนวณยอดรวม
+            total = principal + fee_amount + penalty - discount
+            
+            # แสดงผลลัพธ์
+            self.principal_amount_label.setText(f"{principal:,.0f}")
+            self.fee_amount_label.setText(f"{fee_amount:,.0f}")
+            self.penalty_amount_label.setText(f"{penalty:,.0f}")
+            self.discount_amount_label.setText(f"{discount:,.0f}")
+            self.total_amount_label.setText(f"{total:,.0f}")
+            
+        except Exception as e:
+            print(f"Error calculating amounts: {e}")
     
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
-        if self.contract_data:
-            self.contract_number_label.setText(self.contract_data.get('contract_number', ''))
-            customer_name = "{} {}".format(self.contract_data.get('first_name', ''), self.contract_data.get('last_name', ''))
-            self.customer_name_label.setText(customer_name)
-            self.pawn_amount_label.setText("{:,.2f} บาท".format(self.contract_data.get('pawn_amount', 0)))
-            self.total_redemption_label.setText("{:,.2f} บาท".format(self.contract_data.get('total_redemption', 0)))
-            self.redemption_amount_spin.setValue(self.contract_data.get('total_redemption', 0))
-    
-    def save_redemption(self):
-        """บันทึกการไถ่ถอน"""
         if not self.contract_data:
-            QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
             return
         
-        redemption_data = {
-            'contract_id': self.contract_data['id'],
-            'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
-            'redemption_amount': self.redemption_amount_spin.value()
-        }
-        
         try:
+            # ตั้งค่าวันที่
+            if 'start_date' in self.contract_data:
+                start_date = QDate.fromString(self.contract_data['start_date'], "yyyy-MM-dd")
+                self.deposit_date_edit.setDate(start_date)
+            
+            if 'end_date' in self.contract_data:
+                end_date = QDate.fromString(self.contract_data['end_date'], "yyyy-MM-dd")
+                self.due_date_edit.setDate(end_date)
+            
+            # ตั้งค่าวันที่ไถ่ถอนเป็นวันปัจจุบัน
+            self.redemption_date_edit.setDate(QDate.currentDate())
+            
+            # คำนวณจำนวนวันและจำนวนเงิน
+            self.calculate_total_days()
+            
+        except Exception as e:
+            print(f"Error loading contract data: {e}")
+    
+    def confirm_redemption(self):
+        """ยืนยันการไถ่ถอน"""
+        try:
+            if not self.contract_data:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
+                return
+            
+            # สร้างข้อมูลการไถ่ถอน
+            redemption_data = {
+                'contract_id': self.contract_data['id'],
+                'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
+                'redemption_amount': float(self.total_amount_label.text().replace(',', '')),
+                'deposit_date': self.deposit_date_edit.date().toString("yyyy-MM-dd"),
+                'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
+                'total_days': int(self.total_days_label.text()),
+                'principal_amount': float(self.principal_amount_label.text().replace(',', '')),
+                'fee_amount': float(self.fee_amount_label.text().replace(',', '')),
+                'penalty_amount': float(self.penalty_amount_label.text().replace(',', '')),
+                'discount_amount': float(self.discount_amount_label.text().replace(',', ''))
+            }
+            
+            # บันทึกการไถ่ถอน
             redemption_id = self.db.redeem_contract(redemption_data)
-            QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย")
+            
+            # สร้างใบเสร็จ PDF
+            self.generate_redemption_receipt_pdf(redemption_data, redemption_id)
+            
+            QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างใบเสร็จเรียบร้อยแล้ว")
             self.accept()
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+    
+    def generate_redemption_receipt_pdf(self, redemption_data, redemption_id):
+        """สร้างใบเสร็จการไถ่ถอนเป็น PDF"""
+        try:
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import cm
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+            from reportlab.lib import colors
+            from PySide6.QtWidgets import QFileDialog
+            import os
+            
+            # เลือกตำแหน่งที่จะบันทึกไฟล์ PDF
+            options = QFileDialog.Options()
+            contract_number = self.contract_data.get('contract_number', 'ไม่ระบุ')
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "บันทึกใบเสร็จการไถ่ถอน",
+                f"ใบเสร็จการไถ่ถอน_{contract_number}.pdf",
+                "PDF Files (*.pdf)",
+                options=options
+            )
+            
+            if not file_name:
+                return
+            
+            # สร้าง PDF
+            doc = SimpleDocTemplate(file_name, pagesize=A4)
+            story = []
+            
+            # สร้าง styles
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=20,
+                spaceAfter=20,
+                alignment=1,  # center
+                textColor=colors.darkblue
+            )
+            
+            heading_style = ParagraphStyle(
+                'CustomHeading',
+                parent=styles['Heading2'],
+                fontSize=14,
+                spaceAfter=10,
+                textColor=colors.darkblue
+            )
+            
+            normal_style = styles['Normal']
+            
+            # หัวเอกสาร
+            story.append(Paragraph("ใบเสร็จการไถ่ถอน", title_style))
+            story.append(Spacer(1, 20))
+            
+            # ข้อมูลสัญญา
+            story.append(Paragraph("ข้อมูลสัญญา", heading_style))
+            contract_data = [
+                ["เลขที่สัญญา:", contract_number],
+                ["วันที่รับฝาก:", redemption_data['deposit_date']],
+                ["วันที่ครบกำหนด:", redemption_data['due_date']],
+                ["วันที่ไถ่ถอน:", redemption_data['redemption_date']],
+                ["จำนวนวันที่ฝาก:", f"{redemption_data['total_days']} วัน"]
+            ]
+            
+            contract_table = Table(contract_data, colWidths=[4*cm, 8*cm])
+            contract_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+            ]))
+            story.append(contract_table)
+            story.append(Spacer(1, 15))
+            
+            # ข้อมูลลูกค้า
+            if hasattr(self, 'db') and self.contract_data:
+                customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
+                if customer:
+                    story.append(Paragraph("ข้อมูลลูกค้า", heading_style))
+                    customer_data = [
+                        ["รหัสลูกค้า:", customer.get('customer_code', '')],
+                        ["ชื่อ-นามสกุล:", f"{customer.get('first_name', '')} {customer.get('last_name', '')}"],
+                        ["เลขบัตรประชาชน:", customer.get('id_card', '')],
+                        ["เบอร์โทรศัพท์:", customer.get('phone', '')]
+                    ]
+                    
+                    customer_table = Table(customer_data, colWidths=[4*cm, 8*cm])
+                    customer_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+                        ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                    ]))
+                    story.append(customer_table)
+                    story.append(Spacer(1, 15))
+            
+            # รายละเอียดการชำระ
+            story.append(Paragraph("รายละเอียดการชำระ", heading_style))
+            payment_data = [
+                ["รายการ", "จำนวนเงิน (บาท)"],
+                ["เงินต้น", f"{redemption_data['principal_amount']:,.2f}"],
+                ["ค่าธรรมเนียม", f"{redemption_data['fee_amount']:,.2f}"],
+                ["ค่าปรับ", f"{redemption_data['penalty_amount']:,.2f}"],
+                ["ส่วนลด", f"{redemption_data['discount_amount']:,.2f}"],
+                ["รวมทั้งสิ้น", f"{redemption_data['redemption_amount']:,.2f}"]
+            ]
+            
+            payment_table = Table(payment_data, colWidths=[8*cm, 4*cm])
+            payment_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('BACKGROUND', (0, -1), (-1, -1), colors.yellow)
+            ]))
+            story.append(payment_table)
+            story.append(Spacer(1, 20))
+            
+            # ข้อความท้าย
+            story.append(Paragraph("ขอบคุณที่ใช้บริการ", normal_style))
+            story.append(Paragraph(f"ออกใบเสร็จเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", normal_style))
+            
+            # สร้าง PDF
+            doc.build(story)
+            
+            QMessageBox.information(self, "สำเร็จ", f"สร้างใบเสร็จเรียบร้อยแล้ว\nบันทึกที่: {file_name}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
 
 class RenewalDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):

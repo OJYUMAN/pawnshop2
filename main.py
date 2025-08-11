@@ -1380,21 +1380,44 @@ class PawnShopUI(QMainWindow):
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
             return
         
-        dialog = RedemptionDialog(self, self.current_contract)
-        if dialog.exec() == QDialog.Accepted:
-            # หลังจากไถ่ถอนสำเร็จ ให้แสดงประวัติการไถ่ถอน
-            try:
-                # ดึงข้อมูลการไถ่ถอนของสัญญานี้
-                redemptions = self.db.get_redemptions_by_contract(self.current_contract['id'])
-                
-                if redemptions:
-                    # แสดงประวัติการไถ่ถอนเฉพาะสัญญานี้
-                    self.show_redemptions_table(redemptions, contract_specific=True)
-                else:
-                    QMessageBox.information(self, "ข้อมูลการไถ่ถอน", "ไม่พบข้อมูลการไถ่ถอนของสัญญานี้")
+        try:
+            # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
+            contract_id = self.current_contract['id']
+            customer = self.db.get_customer_by_id(self.current_contract.get('customer_id'))
+            product = self.db.get_product_by_id(self.current_contract.get('product_id'))
+            
+            # สร้างข้อมูลสัญญาที่ครบถ้วน
+            full_contract_data = {
+                **self.current_contract,
+                'customer_id': self.current_contract.get('customer_id'),
+                'first_name': customer.get('first_name', '') if customer else '',
+                'last_name': customer.get('last_name', '') if customer else '',
+                'customer_code': customer.get('customer_code', '') if customer else '',
+                'id_card': customer.get('id_card', '') if customer else '',
+                'phone': customer.get('phone', '') if customer else '',
+                'product_name': product.get('name', '') if product else '',
+                'brand': product.get('brand', '') if product else '',
+                'serial_number': product.get('serial_number', '') if product else ''
+            }
+            
+            dialog = RedemptionDialog(self, full_contract_data)
+            if dialog.exec() == QDialog.Accepted:
+                # หลังจากไถ่ถอนสำเร็จ ให้แสดงประวัติการไถ่ถอน
+                try:
+                    # ดึงข้อมูลการไถ่ถอนของสัญญานี้
+                    redemptions = self.db.get_redemptions_by_contract(contract_id)
                     
-            except Exception as e:
-                QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่ถอน: {str(e)}")
+                    if redemptions:
+                        # แสดงประวัติการไถ่ถอนเฉพาะสัญญานี้
+                        self.show_redemptions_table(redemptions, contract_specific=True)
+                    else:
+                        QMessageBox.information(self, "ข้อมูลการไถ่ถอน", "ไม่พบข้อมูลการไถ่ถอนของสัญญานี้")
+                        
+                except Exception as e:
+                    QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่ถอน: {str(e)}")
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูลสัญญา: {str(e)}")
 
     def lost_contract(self):
         """หลุดจำนำ"""
@@ -1605,28 +1628,29 @@ class PawnShopUI(QMainWindow):
             dialog = QDialog(self)
             dialog.setWindowTitle("ประวัติการไถ่ถอน - สัญญาเฉพาะ")
             dialog.setModal(True)
-            dialog.resize(1000, 400)
+            dialog.resize(1200, 500)
         else:
             dialog = QDialog(self)
             dialog.setWindowTitle("ข้อมูลการไถ่ถอน")
             dialog.setModal(True)
-            dialog.resize(1200, 600)
+            dialog.resize(1400, 600)
         
         layout = QVBoxLayout(dialog)
         
         # สร้างตาราง
         table = QTableWidget()
         if contract_specific:
-            table.setColumnCount(11)
+            table.setColumnCount(12)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
-                "ยอดฝาก", "ดอกเบี้ย", "ค่าธรรมเนียม", "ยอดไถ่ถอน", "วันที่ไถ่ถอน", "จำนวนวันที่ฝาก", "หมายเหตุ"
+                "วันที่รับฝาก", "วันที่ครบกำหนด", "วันที่ไถ่ถอน", "จำนวนวันที่ฝาก",
+                "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่ถอน"
             ]
         else:
-            table.setColumnCount(8)
+            table.setColumnCount(10)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
-                "ยอดไถ่ถอน", "วันที่ไถ่ถอน", "สถานะสัญญา", "หมายเหตุ"
+                "วันที่ไถ่ถอน", "จำนวนวันที่ฝาก", "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่ถอน"
             ]
         table.setHorizontalHeaderLabels(headers)
         
@@ -1655,168 +1679,67 @@ class PawnShopUI(QMainWindow):
             table.setItem(row, 3, QTableWidgetItem(redemption.get('product_name', '')))
             
             if contract_specific:
-                # ยอดฝาก (สำหรับประวัติเฉพาะสัญญา)
-                pawn_amount = self.current_contract.get('pawn_amount', 0) if hasattr(self, 'current_contract') else 0
-                table.setItem(row, 4, QTableWidgetItem(f"{pawn_amount:,.2f}"))
+                # วันที่รับฝาก
+                deposit_date = redemption.get('deposit_date', '')
+                table.setItem(row, 4, QTableWidgetItem(deposit_date))
                 
-                # ดอกเบี้ย
-                interest_rate = self.current_contract.get('interest_rate', 0) if hasattr(self, 'current_contract') else 0
-                start_date = self.current_contract.get('start_date', '') if hasattr(self, 'current_contract') else ''
-                redemption_date = redemption.get('redemption_date', '')
-                interest_amount = 0
-                if start_date and redemption_date:
-                    try:
-                        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
-                        end_obj = datetime.strptime(redemption_date, "%Y-%m-%d")
-                        days_diff = (end_obj - start_obj).days
-                        interest_amount = (pawn_amount * interest_rate / 100) * (days_diff / 30)
-                    except:
-                        pass
-                table.setItem(row, 5, QTableWidgetItem(f"{interest_amount:,.2f}"))
-                
-                # ค่าธรรมเนียม
-                fee_amount = self.current_contract.get('fee_amount', 0) if hasattr(self, 'current_contract') else 0
-                table.setItem(row, 6, QTableWidgetItem(f"{fee_amount:,.2f}"))
-                
-                # ยอดไถ่ถอน
-                table.setItem(row, 7, QTableWidgetItem(f"{redemption.get('redemption_amount', 0):,.2f}"))
+                # วันที่ครบกำหนด
+                due_date = redemption.get('due_date', '')
+                table.setItem(row, 5, QTableWidgetItem(due_date))
                 
                 # วันที่ไถ่ถอน
-                if redemption_date:
-                    try:
-                        date_obj = datetime.strptime(redemption_date, "%Y-%m-%d")
-                        formatted_date = date_obj.strftime("%d/%m/%Y")
-                        table.setItem(row, 8, QTableWidgetItem(formatted_date))
-                    except:
-                        table.setItem(row, 8, QTableWidgetItem(redemption_date))
-                else:
-                    table.setItem(row, 8, QTableWidgetItem(""))
+                redemption_date = redemption.get('redemption_date', '')
+                table.setItem(row, 6, QTableWidgetItem(redemption_date))
                 
                 # จำนวนวันที่ฝาก
-                if start_date and redemption_date:
-                    try:
-                        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
-                        end_obj = datetime.strptime(redemption_date, "%Y-%m-%d")
-                        days_diff = (end_obj - start_obj).days
-                        table.setItem(row, 9, QTableWidgetItem(f"{days_diff} วัน"))
-                    except:
-                        table.setItem(row, 9, QTableWidgetItem(""))
-                else:
-                    table.setItem(row, 9, QTableWidgetItem(""))
+                total_days = redemption.get('total_days', 0)
+                table.setItem(row, 7, QTableWidgetItem(str(total_days)))
                 
-                # หมายเหตุ
-                table.setItem(row, 10, QTableWidgetItem(""))
-            else:
+                # เงินต้น
+                principal_amount = redemption.get('principal_amount', 0)
+                table.setItem(row, 8, QTableWidgetItem(f"{principal_amount:,.2f}"))
+                
+                # ค่าธรรมเนียม
+                fee_amount = redemption.get('fee_amount', 0)
+                table.setItem(row, 9, QTableWidgetItem(f"{fee_amount:,.2f}"))
+                
+                # ค่าปรับ
+                penalty_amount = redemption.get('penalty_amount', 0)
+                table.setItem(row, 10, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+                
                 # ยอดไถ่ถอน
-                table.setItem(row, 4, QTableWidgetItem(f"{redemption.get('redemption_amount', 0):,.2f}"))
-                
+                redemption_amount = redemption.get('redemption_amount', 0)
+                table.setItem(row, 11, QTableWidgetItem(f"{redemption_amount:,.2f}"))
+            else:
                 # วันที่ไถ่ถอน
                 redemption_date = redemption.get('redemption_date', '')
-                if redemption_date:
-                    try:
-                        date_obj = datetime.strptime(redemption_date, "%Y-%m-%d")
-                        formatted_date = date_obj.strftime("%d/%m/%Y")
-                        table.setItem(row, 5, QTableWidgetItem(formatted_date))
-                    except:
-                        table.setItem(row, 5, QTableWidgetItem(redemption_date))
-                else:
-                    table.setItem(row, 5, QTableWidgetItem(""))
+                table.setItem(row, 4, QTableWidgetItem(redemption_date))
                 
-                # สถานะสัญญา
-                table.setItem(row, 6, QTableWidgetItem("ไถ่ถอนแล้ว"))
+                # จำนวนวันที่ฝาก
+                total_days = redemption.get('total_days', 0)
+                table.setItem(row, 5, QTableWidgetItem(str(total_days)))
                 
-                # หมายเหตุ
-                table.setItem(row, 7, QTableWidgetItem(""))
+                # เงินต้น
+                principal_amount = redemption.get('principal_amount', 0)
+                table.setItem(row, 6, QTableWidgetItem(f"{principal_amount:,.2f}"))
+                
+                # ค่าธรรมเนียม
+                fee_amount = redemption.get('fee_amount', 0)
+                table.setItem(row, 7, QTableWidgetItem(f"{fee_amount:,.2f}"))
+                
+                # ค่าปรับ
+                penalty_amount = redemption.get('penalty_amount', 0)
+                table.setItem(row, 8, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+                
+                # ยอดไถ่ถอน
+                redemption_amount = redemption.get('redemption_amount', 0)
+                table.setItem(row, 9, QTableWidgetItem(f"{redemption_amount:,.2f}"))
         
-        # ตั้งค่าการแสดงผลตาราง
-        table.setAlternatingRowColors(True)
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setSelectionMode(QTableWidget.SingleSelection)
-        
-        # เพิ่มตารางลงใน layout
         layout.addWidget(table)
-        
-        # เพิ่มข้อมูลสรุป
-        if redemptions:
-            summary_group = QGroupBox("สรุปการไถ่ถอน")
-            summary_layout = QGridLayout(summary_group)
-            
-            # คำนวณข้อมูลสรุป
-            total_redemption = sum(r.get('redemption_amount', 0) for r in redemptions)
-            total_contracts = len(set(r.get('contract_id', 0) for r in redemptions))
-            
-            if contract_specific:
-                # สรุปเฉพาะสัญญา
-                pawn_amount = self.current_contract.get('pawn_amount', 0) if hasattr(self, 'current_contract') else 0
-                start_date = self.current_contract.get('start_date', '') if hasattr(self, 'current_contract') else ''
-                redemption_date = redemptions[0].get('redemption_date', '') if redemptions else ''
-                
-                days_diff = 0
-                if start_date and redemption_date:
-                    try:
-                        start_obj = datetime.strptime(start_date, "%Y-%m-%d")
-                        end_obj = datetime.strptime(redemption_date, "%Y-%m-%d")
-                        days_diff = (end_obj - start_obj).days
-                    except:
-                        pass
-                
-                interest_rate = self.current_contract.get('interest_rate', 0) if hasattr(self, 'current_contract') else 0
-                interest_amount = (pawn_amount * interest_rate / 100) * (days_diff / 30) if days_diff > 0 else 0
-                fee_amount = self.current_contract.get('fee_amount', 0) if hasattr(self, 'current_contract') else 0
-                
-                summary_layout.addWidget(QLabel("ยอดฝาก:"), 0, 0)
-                summary_layout.addWidget(QLabel(f"{pawn_amount:,.2f} บาท"), 0, 1)
-                summary_layout.addWidget(QLabel("ดอกเบี้ย:"), 0, 2)
-                summary_layout.addWidget(QLabel(f"{interest_amount:,.2f} บาท"), 0, 3)
-                
-                summary_layout.addWidget(QLabel("ค่าธรรมเนียม:"), 1, 0)
-                summary_layout.addWidget(QLabel(f"{fee_amount:,.2f} บาท"), 1, 1)
-                summary_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 1, 2)
-                summary_layout.addWidget(QLabel(f"{total_redemption:,.2f} บาท"), 1, 3)
-                
-                summary_layout.addWidget(QLabel("จำนวนวันที่ฝาก:"), 2, 0)
-                summary_layout.addWidget(QLabel(f"{days_diff} วัน"), 2, 1)
-                summary_layout.addWidget(QLabel("อัตราดอกเบี้ย:"), 2, 2)
-                summary_layout.addWidget(QLabel(f"{interest_rate}% ต่อเดือน"), 2, 3)
-            else:
-                # สรุปทั้งหมด
-                summary_layout.addWidget(QLabel("จำนวนสัญญาที่ไถ่ถอน:"), 0, 0)
-                summary_layout.addWidget(QLabel(f"{total_contracts} สัญญา"), 0, 1)
-                summary_layout.addWidget(QLabel("ยอดไถ่ถอนรวม:"), 0, 2)
-                summary_layout.addWidget(QLabel(f"{total_redemption:,.2f} บาท"), 0, 3)
-                
-                # คำนวณช่วงวันที่
-                dates = [r.get('redemption_date', '') for r in redemptions if r.get('redemption_date')]
-                if dates:
-                    try:
-                        min_date = min(datetime.strptime(d, "%Y-%m-%d") for d in dates)
-                        max_date = max(datetime.strptime(d, "%Y-%m-%d") for d in dates)
-                        summary_layout.addWidget(QLabel("ช่วงวันที่ไถ่ถอน:"), 1, 0)
-                        summary_layout.addWidget(QLabel(f"{min_date.strftime('%d/%m/%Y')} - {max_date.strftime('%d/%m/%Y')}"), 1, 1)
-                    except:
-                        pass
-            
-            layout.addWidget(summary_group)
         
         # ปุ่มปิด
         close_button = QPushButton("ปิด")
-        close_button.clicked.connect(dialog.close)
-        close_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6C757D;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5A6268;
-            }
-            QPushButton:pressed {
-                background-color: #495057;
-            }
-        """)
+        close_button.clicked.connect(dialog.accept)
         
         button_layout = QHBoxLayout()
         button_layout.addStretch()
