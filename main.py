@@ -868,8 +868,12 @@ class PawnShopUI(QMainWindow):
         return group_box
 
     def create_data_table(self):
-        self.contract_table = QTableWidget(0, 8)  # เพิ่มคอลัมน์หัก ณ ที่จ่าย
-        headers = ["ลำดับ", "ค่าเช่า", "ค่าปรับ", "ส่วนลด", "หัก ณ ที่จ่าย", "รวม", "วันที่กำหนดส่ง", "ครบกำหนด"]
+        self.contract_table = QTableWidget(0, 14)  # เพิ่มคอลัมน์ให้ครบถ้วน
+        headers = [
+            "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ยอดจำนำ", 
+            "อัตราดอกเบี้ย", "ค่าธรรมเนียม", "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
+            "จำนวนวัน", "ดอกเบี้ย", "หัก ณ ที่จ่าย", "ยอดรวม", "สถานะ"
+        ]
         self.contract_table.setHorizontalHeaderLabels(headers)
         
         # ไม่แสดงข้อมูลใดๆ เมื่อเริ่มต้น
@@ -878,18 +882,27 @@ class PawnShopUI(QMainWindow):
         # ตั้งค่าความกว้างคอลัมน์
         header = self.contract_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)  # ลำดับ
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # ค่าเช่า
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # ค่าปรับ
-        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # ส่วนลด
-        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # หัก ณ ที่จ่าย
-        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # รวม
-        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # วันที่กำหนดส่ง
-        header.setSectionResizeMode(7, QHeaderView.ResizeToContents)  # ครบกำหนด
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # เลขที่สัญญา
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)  # ชื่อลูกค้า
+        header.setSectionResizeMode(3, QHeaderView.ResizeToContents)  # ชื่อสินค้า
+        header.setSectionResizeMode(4, QHeaderView.ResizeToContents)  # ยอดจำนำ
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)  # อัตราดอกเบี้ย
+        header.setSectionResizeMode(6, QHeaderView.ResizeToContents)  # ค่าธรรมเนียม
+        header.setSectionResizeMode(7, QHeaderView.ResizeToContents)  # วันที่เริ่มต้น
+        header.setSectionResizeMode(8, QHeaderView.ResizeToContents)  # วันที่สิ้นสุด
+        header.setSectionResizeMode(9, QHeaderView.ResizeToContents)  # จำนวนวัน
+        header.setSectionResizeMode(10, QHeaderView.ResizeToContents)  # ดอกเบี้ย
+        header.setSectionResizeMode(11, QHeaderView.ResizeToContents)  # หัก ณ ที่จ่าย
+        header.setSectionResizeMode(12, QHeaderView.ResizeToContents)  # ยอดรวม
+        header.setSectionResizeMode(13, QHeaderView.ResizeToContents)  # สถานะ
         
         # ตั้งค่าการแสดงผลตาราง
         self.contract_table.setAlternatingRowColors(True)  # สลับสีแถว
         self.contract_table.setSelectionBehavior(QTableWidget.SelectRows)  # เลือกทั้งแถว
         self.contract_table.setEditTriggers(QTableWidget.NoEditTriggers)  # ไม่ให้แก้ไขได้
+        
+        # เชื่อมต่อการคลิกในตารางเพื่อโหลดข้อมูลสัญญา
+        self.contract_table.itemClicked.connect(self.on_contract_table_clicked)
         
         return self.contract_table
 
@@ -1404,10 +1417,19 @@ class PawnShopUI(QMainWindow):
                 contracts = []
             
             if contracts:
+                # เลือกสัญญาแรกเป็นสัญญาปัจจุบัน
                 self.current_contract = contracts[0]
+                
+                # โหลดข้อมูลสัญญาในฟอร์ม
                 self.load_contract_data()
+                
+                # โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม
+                self.load_additional_contract_data(contracts[0])
+                
+                # แสดงข้อมูลในตาราง
                 self.display_contract_in_table(contracts)
-                QMessageBox.information(self, "ผลการค้นหา", f"พบ {len(contracts)} สัญญา")
+                
+                QMessageBox.information(self, "ผลการค้นหา", f"พบ {len(contracts)} สัญญา\nข้อมูลสัญญาแรกถูกโหลดในฟอร์มแล้ว")
             else:
                 QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาที่ตรงกับคำค้นหา")
                 self.contract_table.setRowCount(0)
@@ -1434,33 +1456,58 @@ class PawnShopUI(QMainWindow):
             # ลำดับ
             self.contract_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
             
-            # ค่าเช่า (ดอกเบี้ย)
-            interest_amount = (contract.get('pawn_amount', 0) * contract.get('interest_rate', 0) * contract.get('days_count', 0)) / 100
-            self.contract_table.setItem(row, 1, QTableWidgetItem(f"{interest_amount:,.2f}"))
+            # เลขที่สัญญา
+            contract_number = contract.get('contract_number', '')
+            self.contract_table.setItem(row, 1, QTableWidgetItem(contract_number))
             
-            # ค่าปรับ
-            penalty_amount = contract.get('penalty_amount', 0)
-            self.contract_table.setItem(row, 2, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+            # ชื่อลูกค้า
+            customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
+            self.contract_table.setItem(row, 2, QTableWidgetItem(customer_name))
             
-            # ส่วนลด
-            discount_amount = contract.get('discount_amount', 0)
-            self.contract_table.setItem(row, 3, QTableWidgetItem(f"{discount_amount:,.2f}"))
+            # ชื่อสินค้า
+            product_name = contract.get('product_name', '')
+            self.contract_table.setItem(row, 3, QTableWidgetItem(product_name))
+            
+            # ยอดจำนำ
+            pawn_amount = contract.get('pawn_amount', 0)
+            self.contract_table.setItem(row, 4, QTableWidgetItem(f"{pawn_amount:,.2f}"))
+            
+            # อัตราดอกเบี้ย
+            interest_rate = contract.get('interest_rate', 0)
+            self.contract_table.setItem(row, 5, QTableWidgetItem(f"{interest_rate:.2f}%"))
+            
+            # ค่าธรรมเนียม
+            fee_amount = contract.get('fee_amount', 0)
+            self.contract_table.setItem(row, 6, QTableWidgetItem(f"{fee_amount:,.2f}"))
+            
+            # วันที่เริ่มต้น
+            start_date = contract.get('start_date', '')
+            self.contract_table.setItem(row, 7, QTableWidgetItem(start_date))
+            
+            # วันที่สิ้นสุด
+            end_date = contract.get('end_date', '')
+            self.contract_table.setItem(row, 8, QTableWidgetItem(end_date))
+            
+            # จำนวนวัน
+            days_count = contract.get('days_count', 0)
+            self.contract_table.setItem(row, 9, QTableWidgetItem(str(days_count)))
+            
+            # ดอกเบี้ย
+            interest_amount = (pawn_amount * interest_rate * days_count) / 100
+            self.contract_table.setItem(row, 10, QTableWidgetItem(f"{interest_amount:,.2f}"))
             
             # หัก ณ ที่จ่าย
             withholding_tax_amount = contract.get('withholding_tax_amount', 0)
-            self.contract_table.setItem(row, 4, QTableWidgetItem(f"{withholding_tax_amount:,.2f}"))
+            self.contract_table.setItem(row, 11, QTableWidgetItem(f"{withholding_tax_amount:,.2f}"))
             
-            # รวม
-            total_amount = interest_amount + penalty_amount - discount_amount - withholding_tax_amount
-            self.contract_table.setItem(row, 5, QTableWidgetItem(f"{total_amount:,.2f}"))
+            # ยอดรวม
+            total_amount = pawn_amount + interest_amount + fee_amount - withholding_tax_amount
+            self.contract_table.setItem(row, 12, QTableWidgetItem(f"{total_amount:,.2f}"))
             
-            # วันที่กำหนดส่ง
-            end_date = contract.get('end_date', '')
-            self.contract_table.setItem(row, 6, QTableWidgetItem(end_date))
-            
-            # ครบกำหนด
-            is_overdue = "ครบกำหนด" if contract.get('status') == 'active' else "ไถ่ถอนแล้ว"
-            self.contract_table.setItem(row, 7, QTableWidgetItem(is_overdue))
+            # สถานะ
+            status = contract.get('status', 'active')
+            status_text = "ใช้งาน" if status == 'active' else "ไถ่ถอนแล้ว" if status == 'redeemed' else "สูญหาย"
+            self.contract_table.setItem(row, 13, QTableWidgetItem(status_text))
             
             # เก็บข้อมูล ID ไว้ใน item
             self.contract_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
@@ -1475,19 +1522,82 @@ class PawnShopUI(QMainWindow):
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
         if self.current_contract:
+            # โหลดข้อมูลสัญญา
             self.contract_number_edit.setText(self.current_contract.get('contract_number', ''))
+            
             # โหลดข้อมูลลูกค้า
             customer_name = "{} {}".format(self.current_contract.get('first_name', ''), self.current_contract.get('last_name', ''))
             self.customer_name_edit.setText(customer_name)
+            
             # โหลดข้อมูลสินค้า
             self.product_name_display_edit.setText(self.current_contract.get('product_name', ''))
             
+            # โหลดข้อมูลสัญญาเพิ่มเติม
+            self.pawn_amount_spin.setValue(self.current_contract.get('pawn_amount', 0))
+            self.interest_rate_spin.setValue(self.current_contract.get('interest_rate', 3.0))
+            
+            # อัปเดตค่าธรรมเนียมใน label
+            fee_amount = self.current_contract.get('fee_amount', 0)
+            self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
+            
+            # อัปเดตยอดจ่ายและยอดไถ่ถอนใน label
+            total_paid = self.current_contract.get('total_paid', 0)
+            self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
+            
+            total_redemption = self.current_contract.get('total_redemption', 0)
+            self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
+            
+            # โหลดวันที่
+            start_date = self.current_contract.get('start_date', '')
+            if start_date:
+                try:
+                    if isinstance(start_date, str):
+                        if '-' in start_date:
+                            date_obj = QDate.fromString(start_date, "yyyy-MM-dd")
+                        else:
+                            date_obj = QDate.fromString(start_date, "dd/MM/yyyy")
+                        if date_obj.isValid():
+                            self.start_date_edit.setDate(date_obj)
+                except:
+                    pass
+            
+            end_date = self.current_contract.get('end_date', '')
+            if end_date:
+                try:
+                    if isinstance(end_date, str):
+                        if '-' in end_date:
+                            date_obj = QDate.fromString(end_date, "yyyy-MM-dd")
+                        else:
+                            date_obj = QDate.fromString(end_date, "dd/MM/yyyy")
+                        if date_obj.isValid():
+                            self.end_date_edit.setDate(date_obj)
+                except:
+                    pass
+            
+            # โหลดจำนวนวัน
+            days_count = self.current_contract.get('days_count', 0)
+            if days_count > 0:
+                self.days_spin.setValue(days_count)
+            
             # โหลดข้อมูลหัก ณ ที่จ่าย
-            if 'withholding_tax_rate' in self.current_contract:
-                self.withholding_tax_rate_spin.setValue(self.current_contract.get('withholding_tax_rate', 3.0))
+            withholding_tax_rate = self.current_contract.get('withholding_tax_rate', 3.0)
+            self.withholding_tax_rate_spin.setValue(withholding_tax_rate)
+            
+            withholding_tax_amount = self.current_contract.get('withholding_tax_amount', 0)
+            if withholding_tax_amount > 0:
+                self.withholding_tax_amount_spin.setValue(withholding_tax_amount)
             
             # คำนวณยอดต่างๆ ใหม่
             self.calculate_amounts()
+            
+            # อัปเดตสถานะสัญญา
+            status = self.current_contract.get('status', 'active')
+            if status == 'redeemed':
+                self.redeemed_radio.setChecked(True)
+            elif status == 'lost':
+                self.lost_radio.setChecked(True)
+            else:
+                self.active_radio.setChecked(True)
 
     def clear_form(self):
         """ล้างฟอร์ม"""
@@ -2086,6 +2196,82 @@ class PawnShopUI(QMainWindow):
                 
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการแก้ไขข้อมูลซ้ำซ้อน: {str(e)}")
+
+    def load_additional_contract_data(self, contract: dict):
+        """โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม"""
+        try:
+            # โหลดข้อมูลลูกค้าเพิ่มเติม
+            customer_id = contract.get('customer_id')
+            if customer_id:
+                customer = self.db.get_customer_by_id(customer_id)
+                if customer:
+                    # โหลดข้อมูลที่อยู่
+                    self.customer_code_edit.setText(customer.get('customer_code', ''))
+                    self.customer_address_edit.setText(customer.get('address', ''))
+                    self.id_card_edit.setText(customer.get('id_card', ''))
+                    self.house_number_edit.setText(customer.get('house_number', ''))
+                    self.street_edit.setText(customer.get('street', ''))
+                    self.subdistrict_edit.setText(customer.get('subdistrict', ''))
+                    self.district_edit.setText(customer.get('district', ''))
+                    self.province_edit.setText(customer.get('province', ''))
+                    self.phone_edit.setText(customer.get('phone', ''))
+                    self.other_details_edit.setText(customer.get('other_details', ''))
+            
+            # โหลดข้อมูลสินค้าเพิ่มเติม
+            product_id = contract.get('product_id')
+            if product_id:
+                product = self.db.get_product_by_id(product_id)
+                if product:
+                    self.product_name_edit.setText(product.get('name', ''))
+                    self.product_brand_edit.setText(product.get('brand', ''))
+                    self.product_size_edit.setText(product.get('size', ''))
+                    self.serial_number_edit.setText(product.get('serial_number', ''))
+                    self.product_details_edit.setText(product.get('other_details', ''))
+                    
+                    # แสดงรูปภาพสินค้า
+                    image_path = product.get('image_path', '')
+                    if image_path and os.path.exists(image_path):
+                        pixmap = QPixmap(image_path)
+                        if not pixmap.isNull():
+                            scaled_pixmap = pixmap.scaled(
+                                self.product_image_display.size(), 
+                                Qt.KeepAspectRatio, 
+                                Qt.SmoothTransformation
+                            )
+                            self.product_image_display.setPixmap(scaled_pixmap)
+                        else:
+                            self.product_image_display.setText("ไม่สามารถโหลดรูปภาพได้")
+                    else:
+                        self.product_image_display.setText("ไม่มีรูปภาพ")
+                        
+        except Exception as e:
+            print(f"Error loading additional contract data: {e}")
+
+    def on_contract_table_clicked(self, item):
+        """เมื่อมีการคลิกในตาราง"""
+        try:
+            # หาแถวที่คลิก
+            row = item.row()
+            contract_id = self.contract_table.item(row, 0).data(Qt.UserRole)
+            
+            if contract_id:
+                # ค้นหาสัญญาตาม ID
+                contract = self.db.get_contract_by_id(contract_id)
+                if contract:
+                    # อัปเดตสัญญาปัจจุบัน
+                    self.current_contract = contract
+                    
+                    # โหลดข้อมูลในฟอร์ม
+                    self.load_contract_data()
+                    
+                    # โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม
+                    self.load_additional_contract_data(contract)
+                    
+                    # แสดงข้อความแจ้งเตือน
+                    QMessageBox.information(self, "โหลดข้อมูล", f"โหลดข้อมูลสัญญา {contract.get('contract_number', '')} เรียบร้อยแล้ว")
+                    
+        except Exception as e:
+            print(f"Error handling table click: {e}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

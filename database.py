@@ -1118,3 +1118,23 @@ class PawnShopDatabase:
             
             conn.commit()
             return fixed_count
+
+    def get_contract_by_id(self, contract_id: int) -> Optional[Dict]:
+        """ดึงข้อมูลสัญญาตาม ID"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT c.*, cu.first_name, cu.last_name, cu.id_card, p.name as product_name
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE c.id = ?
+            ''', (contract_id,))
+            
+            row = cursor.fetchone()
+            
+            if row:
+                columns = [description[0] for description in cursor.description]
+                return dict(zip(columns, row))
+            return None
