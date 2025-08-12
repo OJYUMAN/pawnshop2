@@ -1410,3 +1410,51 @@ class PawnShopDatabase:
         except Exception as e:
             print(f"Error updating contract status: {e}")
             return False
+
+    def get_contracts_by_date(self, date: str) -> List[Dict]:
+        """ดึงข้อมูลสัญญาตามวันที่สร้าง"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM contracts 
+                WHERE DATE(created_at) = ?
+                ORDER BY created_at DESC
+            ''', (date,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def get_renewals_by_date(self, date: str) -> List[Dict]:
+        """ดึงข้อมูลการต่อดอกตามวันที่ต่อดอก"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM renewals 
+                WHERE DATE(renewal_date) = ?
+                ORDER BY renewal_date DESC
+            ''', (date,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+
+    def get_redemptions_by_date(self, date: str) -> List[Dict]:
+        """ดึงข้อมูลการไถ่ถอนตามวันที่ไถ่ถอน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM redemptions 
+                WHERE DATE(redemption_date) = ?
+                ORDER BY redemption_date DESC
+            ''', (date,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []

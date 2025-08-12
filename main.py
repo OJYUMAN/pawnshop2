@@ -18,6 +18,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from PySide6.QtGui import QIcon, QAction, QPixmap
 from PySide6.QtCore import Qt, QSize, QDate
 from datetime import datetime, timedelta
+import requests
+import json
 from database import PawnShopDatabase
 from utils import PawnShopUtils
 from dialogs import CustomerDialog, ProductDialog, InterestPaymentDialog, RedemptionDialog, RenewalDialog
@@ -25,6 +27,7 @@ from data_viewer import DataViewerDialog
 from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
 from fee_management import FeeManagementDialog
+from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE
 
 class PawnShopUI(QMainWindow):
     def __init__(self):
@@ -266,6 +269,87 @@ class PawnShopUI(QMainWindow):
             self.days_spin.setValue(30)
             self.withholding_tax_rate_spin.setValue(3.0)
 
+    def send_contract_to_line(self, contract_data, customer_data, product_data):
+        """ส่งข้อมูลสัญญาเข้า Line"""
+        if not ENABLE_LINE_NOTIFICATION or not SEND_CONTRACT_NOTIFICATION:
+            return
+            
+        try:
+            # เตรียมข้อมูลสำหรับส่งเข้า Line
+            customer_name = f"{customer_data.get('first_name', '')} {customer_data.get('last_name', '')}".strip()
+            customer_phone = customer_data.get('phone', 'ไม่ระบุ')
+            customer_id_card = customer_data.get('id_card', 'ไม่ระบุ')
+            
+            product_name = product_data.get('name', 'ไม่ระบุ')
+            product_brand = product_data.get('brand', 'ไม่ระบุ')
+            product_size = product_data.get('size', 'ไม่ระบุ')
+            product_serial = product_data.get('serial_number', 'ไม่ระบุ')
+            
+            # ใช้ template จาก config
+            line_message = MESSAGE_TEMPLATE['contract_new'].format(
+                contract_number=contract_data['contract_number'],
+                customer_name=customer_name,
+                customer_phone=customer_phone,
+                customer_id_card=customer_id_card,
+                product_name=product_name,
+                product_brand=product_brand,
+                product_size=product_size,
+                product_serial=product_serial,
+                pawn_amount=contract_data['pawn_amount'],
+                start_date=contract_data['start_date'],
+                end_date=contract_data['end_date'],
+                days_count=contract_data['days_count'],
+                interest_rate=contract_data['interest_rate'],
+                fee_amount=contract_data['fee_amount'],
+                withholding_tax_amount=contract_data['withholding_tax_amount'],
+                total_paid=contract_data['total_paid'],
+                total_redemption=contract_data['total_redemption'],
+                timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            )
+
+            # ส่งข้อความเข้า Line
+            success = self.send_line_message(line_message)
+            
+            if success:
+                print("ส่งข้อมูลสัญญาเข้า Line สำเร็จ")
+            else:
+                print("ส่งข้อมูลสัญญาเข้า Line ไม่สำเร็จ")
+                
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {str(e)}")
+
+    def send_line_message(self, message):
+        """ส่งข้อความเข้า Line"""
+        try:
+            url = "https://api.line.me/v2/bot/message/push"
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {LINE_CHANNEL_ACCESS_TOKEN}'
+            }
+            
+            payload = {
+                "to": LINE_USER_ID,
+                "messages": [
+                    {
+                        "type": "text",
+                        "text": message
+                    }
+                ]
+            }
+            
+            response = requests.post(url, headers=headers, data=json.dumps(payload))
+            
+            if response.status_code == 200:
+                return True
+            else:
+                print(f"ส่งข้อความไม่สำเร็จ: {response.status_code}")
+                print(response.text)
+                return False
+                
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งข้อความ: {str(e)}")
+            return False
 
 
     def create_customer_tab(self):
@@ -1113,12 +1197,7 @@ class PawnShopUI(QMainWindow):
            # ("หลุดจำนำ", "edit-delete", self.lost_contract),
             ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
             ("ดูประวัติการไถ่ถอน", "document-properties", self.view_redemptions),
-            # ("สรุปขายฝาก", "document-properties", self.summary_report),
-            # ("รับ", "arrow-down", self.receive_payment),
-            # ("หัก ณ ที่จ่าย", "document-edit", self.calculate_withholding_tax),
-            # ("รายงานหัก ณ ที่จ่าย", "document-properties", self.show_withholding_tax_report),
-            # ("บัญชีรายวัน", "x-office-calendar", self.daily_account),
-            # ("ตารางดอก", "insert-object", self.interest_schedule),
+            ("สรุปรายได้รายวัน", "x-office-calendar", self.show_daily_income_summary),
             ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management)
         ]
 
@@ -1587,6 +1666,12 @@ class PawnShopUI(QMainWindow):
             }
             
             QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
+            
+            # ส่งข้อมูลสัญญาเข้า Line
+            try:
+                self.send_contract_to_line(contract_data, self.current_customer, self.current_product)
+            except Exception as e:
+                print(f"ไม่สามารถส่งข้อมูลเข้า Line ได้: {str(e)}")
             
             # โหลดประวัติการต่อดอก (ถ้ามี)
             contract_number = contract_data['contract_number']
@@ -3189,6 +3274,183 @@ class PawnShopUI(QMainWindow):
                     
         except Exception as e:
             print(f"Error handling table click: {e}")
+
+    def show_daily_income_summary(self):
+        """แสดงสรุปรายได้รายวันและส่งเข้า Line"""
+        try:
+            # รับวันที่ปัจจุบัน
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            
+            # คำนวณรายได้รายวัน
+            daily_income = self.calculate_daily_income(current_date)
+            
+            # แสดง dialog สรุปรายได้รายวัน
+            self.show_daily_income_dialog(daily_income, current_date)
+            
+            # ส่งสรุปรายได้รายวันเข้า Line
+            if ENABLE_LINE_NOTIFICATION:
+                self.send_daily_income_to_line(daily_income, current_date)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการคำนวณรายได้รายวัน: {str(e)}")
+
+    def calculate_daily_income(self, date):
+        """คำนวณรายได้รายวัน"""
+        try:
+            daily_income = {
+                'date': date,
+                'new_contracts': 0,
+                'renewals': 0,
+                'redemptions': 0,
+                'total_interest': 0.0,
+                'total_fees': 0.0,
+                'total_renewal_fees': 0.0,
+                'total_redemption_amount': 0.0,
+                'net_income': 0.0
+            }
+            
+            # นับสัญญาใหม่
+            new_contracts = self.db.get_contracts_by_date(date)
+            daily_income['new_contracts'] = len(new_contracts)
+            
+            # คำนวณดอกเบี้ยจากสัญญาใหม่
+            for contract in new_contracts:
+                daily_income['total_interest'] += contract.get('fee_amount', 0)
+                daily_income['total_fees'] += contract.get('fee_amount', 0)
+            
+            # นับการต่อดอก
+            renewals = self.db.get_renewals_by_date(date)
+            daily_income['renewals'] = len(renewals)
+            
+            # คำนวณค่าธรรมเนียมการต่อดอก
+            for renewal in renewals:
+                daily_income['total_renewal_fees'] += renewal.get('fee_amount', 0)
+                daily_income['total_fees'] += renewal.get('fee_amount', 0)
+            
+            # นับการไถ่ถอน
+            redemptions = self.db.get_redemptions_by_date(date)
+            daily_income['redemptions'] = len(redemptions)
+            
+            # คำนวณจำนวนเงินไถ่ถอน
+            for redemption in redemptions:
+                daily_income['total_redemption_amount'] += redemption.get('amount', 0)
+            
+            # คำนวณรายได้สุทธิ
+            daily_income['net_income'] = daily_income['total_fees'] - daily_income['total_redemption_amount']
+            
+            return daily_income
+            
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการคำนวณรายได้รายวัน: {str(e)}")
+            return None
+
+    def show_daily_income_dialog(self, daily_income, date):
+        """แสดง dialog สรุปรายได้รายวัน"""
+        if not daily_income:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถคำนวณรายได้รายวันได้")
+            return
+            
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"สรุปรายได้รายวัน - {date}")
+        dialog.setModal(True)
+        dialog.setFixedSize(500, 400)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # หัวข้อ
+        title_label = QLabel(f"📊 สรุปรายได้รายวัน - {date}")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #1976D2; margin: 10px;")
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # ตารางสรุป
+        summary_table = QTableWidget()
+        summary_table.setColumnCount(2)
+        summary_table.setRowCount(8)
+        summary_table.setHorizontalHeaderLabels(["รายการ", "จำนวน/จำนวนเงิน"])
+        
+        # ข้อมูลในตาราง
+        summary_data = [
+            ("📋 สัญญาใหม่", f"{daily_income['new_contracts']} สัญญา"),
+            ("🔄 การต่อดอก", f"{daily_income['renewals']} ครั้ง"),
+            ("💎 การไถ่ถอน", f"{daily_income['redemptions']} ครั้ง"),
+            ("💰 ดอกเบี้ยรวม", f"{daily_income['total_interest']:,.2f} บาท"),
+            ("💸 ค่าธรรมเนียมการต่อดอก", f"{daily_income['total_renewal_fees']:,.2f} บาท"),
+            ("💵 ค่าธรรมเนียมรวม", f"{daily_income['total_fees']:,.2f} บาท"),
+            ("💎 จำนวนเงินไถ่ถอน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
+            ("📈 รายได้สุทธิ", f"{daily_income['net_income']:,.2f} บาท")
+        ]
+        
+        for row, (label, value) in enumerate(summary_data):
+            summary_table.setItem(row, 0, QTableWidgetItem(label))
+            summary_table.setItem(row, 1, QTableWidgetItem(value))
+            
+            # ตั้งค่าสีสำหรับรายได้สุทธิ
+            if row == 7:  # รายได้สุทธิ
+                if daily_income['net_income'] > 0:
+                    summary_table.item(row, 1).setBackground(Qt.green)
+                    summary_table.item(row, 1).setForeground(Qt.white)
+                elif daily_income['net_income'] < 0:
+                    summary_table.item(row, 1).setBackground(Qt.red)
+                    summary_table.item(row, 1).setForeground(Qt.white)
+        
+        summary_table.resizeColumnsToContents()
+        summary_table.setAlternatingRowColors(True)
+        layout.addWidget(summary_table)
+        
+        # ปุ่มปิด
+        close_button = QPushButton("ปิด")
+        close_button.clicked.connect(dialog.accept)
+        close_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1976D2;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #1565C0;
+            }
+        """)
+        layout.addWidget(close_button)
+        
+        dialog.exec()
+
+    def send_daily_income_to_line(self, daily_income, date):
+        """ส่งสรุปรายได้รายวันเข้า Line"""
+        if not ENABLE_LINE_NOTIFICATION or not SEND_DAILY_INCOME_NOTIFICATION:
+            return
+            
+        try:
+            # ใช้ template จาก config
+            line_message = MESSAGE_TEMPLATE['daily_income'].format(
+                date=date,
+                new_contracts=daily_income['new_contracts'],
+                renewals=daily_income['renewals'],
+                redemptions=daily_income['redemptions'],
+                total_interest=daily_income['total_interest'],
+                total_renewal_fees=daily_income['total_renewal_fees'],
+                total_fees=daily_income['total_fees'],
+                total_redemption_amount=daily_income['total_redemption_amount'],
+                net_income=daily_income['net_income'],
+                timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            )
+
+            # ส่งข้อความเข้า Line
+            success = self.send_line_message(line_message)
+            
+            if success:
+                print("ส่งสรุปรายได้รายวันเข้า Line สำเร็จ")
+                QMessageBox.information(self, "สำเร็จ", "ส่งสรุปรายได้รายวันเข้า Line เรียบร้อยแล้ว")
+            else:
+                print("ส่งสรุปรายได้รายวันเข้า Line ไม่สำเร็จ")
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถส่งสรุปรายได้รายวันเข้า Line ได้")
+                
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งสรุปรายได้รายวันเข้า Line: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", f"เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {str(e)}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
