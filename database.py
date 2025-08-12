@@ -1395,3 +1395,18 @@ class PawnShopDatabase:
                 columns = [description[0] for description in cursor.description]
                 return [dict(zip(columns, row)) for row in rows]
             return []
+
+    def update_contract_status(self, contract_id: int, status: str) -> bool:
+        """อัปเดตสถานะสัญญา"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE contracts SET status = ? WHERE id = ?
+                ''', (status, contract_id))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error updating contract status: {e}")
+            return False

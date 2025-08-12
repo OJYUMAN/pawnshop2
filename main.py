@@ -785,6 +785,25 @@ class PawnShopUI(QMainWindow):
         self.start_date_edit.dateChanged.connect(self.calculate_end_date)
         self.days_spin.valueChanged.connect(self.calculate_end_date)
         
+        # สถานะสัญญา
+        layout.addWidget(QLabel("สถานะสัญญา:"), 4, 0)
+        status_layout = QHBoxLayout()
+        self.active_radio = QRadioButton("สัญญาเปิด")
+        self.redeemed_radio = QRadioButton("ไถ่ถอนแล้ว")
+        self.lost_radio = QRadioButton("สูญหาย")
+        self.active_radio.setChecked(True)
+        status_layout.addWidget(self.active_radio)
+        status_layout.addWidget(self.redeemed_radio)
+        status_layout.addWidget(self.lost_radio)
+        layout.addLayout(status_layout, 4, 1)
+        
+        # ปุ่มอัปเดตสถานะ
+        self.update_status_btn = QPushButton("อัปเดตสถานะ")
+        self.update_status_btn.clicked.connect(self.update_contract_status)
+        self.update_status_btn.setMaximumWidth(120)
+        self.update_status_btn.setIcon(QIcon.fromTheme("view-refresh"))
+        layout.addWidget(self.update_status_btn, 4, 2)
+        
         return group_box
 
     def create_results_section(self):
@@ -924,13 +943,13 @@ class PawnShopUI(QMainWindow):
         radio_layout = QHBoxLayout()
         radio_layout.setSpacing(15)  # เพิ่มระยะห่างระหว่าง radio button
         radio_layout.addWidget(QLabel("สถานะสัญญา:"))
-        self.active_radio = QRadioButton("สัญญาเปิด")
-        self.closed_radio = QRadioButton("สัญญาปิด")
-        self.all_radio = QRadioButton("ทั้งหมด")
-        self.all_radio.setChecked(True)
-        radio_layout.addWidget(self.active_radio)
-        radio_layout.addWidget(self.closed_radio)
-        radio_layout.addWidget(self.all_radio)
+        self.search_active_radio = QRadioButton("สัญญาเปิด")
+        self.search_closed_radio = QRadioButton("สัญญาปิด")
+        self.search_all_radio = QRadioButton("ทั้งหมด")
+        self.search_all_radio.setChecked(True)
+        radio_layout.addWidget(self.search_active_radio)
+        radio_layout.addWidget(self.search_closed_radio)
+        radio_layout.addWidget(self.search_all_radio)
         layout.addLayout(radio_layout)
         
         return group_box
@@ -1091,7 +1110,7 @@ class PawnShopUI(QMainWindow):
             ("สร้างใบขายฝาก", "document-export", self.generate_pawn_contract_pdf),
             ("ต่อดอก", "view-refresh", self.extend_interest),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
-            ("หลุดจำนำ", "edit-delete", self.lost_contract),
+           # ("หลุดจำนำ", "edit-delete", self.lost_contract),
             ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
             ("ดูประวัติการไถ่ถอน", "document-properties", self.view_redemptions),
             # ("สรุปขายฝาก", "document-properties", self.summary_report),
@@ -1450,6 +1469,10 @@ class PawnShopUI(QMainWindow):
                         self.current_contract = updated_contract
                         self.load_contract_data()
                         
+                        # อัปเดตสถานะสัญญาในฟอร์ม
+                        if hasattr(self, 'redeemed_radio') and updated_contract.get('status') == 'redeemed':
+                            self.redeemed_radio.setChecked(True)
+                        
                 except Exception as e:
                     QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่ถอน: {str(e)}")
                     
@@ -1458,9 +1481,62 @@ class PawnShopUI(QMainWindow):
 
     def lost_contract(self):
         """หลุดจำนำ"""
-        QMessageBox.information(self, "หลุดจำนำ", "ฟีเจอร์หลุดจำนำ")
+        if not self.current_contract:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
+            return
+        
+        try:
+            # อัปเดตสถานะสัญญาเป็น 'lost' ในฐานข้อมูล
+            contract_id = self.current_contract['id']
+            self.db.update_contract_status(contract_id, 'lost')
+            
+            # อัปเดตข้อมูลสัญญาปัจจุบัน
+            updated_contract = self.db.get_contract_by_id(contract_id)
+            if updated_contract:
+                self.current_contract = updated_contract
+                self.load_contract_data()
+                
+                # อัปเดตสถานะสัญญาในฟอร์ม
+                if hasattr(self, 'lost_radio'):
+                    self.lost_radio.setChecked(True)
+                
+            QMessageBox.information(self, "สำเร็จ", "อัปเดตสถานะสัญญาเป็น 'หลุดจำนำ' เรียบร้อย")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการอัปเดตสถานะสัญญา: {str(e)}")
         
         # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
+
+    def update_contract_status(self):
+        """อัปเดตสถานะสัญญาตามที่เลือกในฟอร์ม"""
+        if not self.current_contract:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
+            return
+        
+        try:
+            # กำหนดสถานะตามที่เลือก
+            if hasattr(self, 'redeemed_radio') and self.redeemed_radio.isChecked():
+                status = 'redeemed'
+            elif hasattr(self, 'lost_radio') and self.lost_radio.isChecked():
+                status = 'lost'
+            else:
+                status = 'active'
+            
+            # อัปเดตสถานะในฐานข้อมูล
+            contract_id = self.current_contract['id']
+            if self.db.update_contract_status(contract_id, status):
+                # อัปเดตข้อมูลสัญญาปัจจุบัน
+                updated_contract = self.db.get_contract_by_id(contract_id)
+                if updated_contract:
+                    self.current_contract = updated_contract
+                    self.load_contract_data()
+                
+                QMessageBox.information(self, "สำเร็จ", f"อัปเดตสถานะสัญญาเป็น '{status}' เรียบร้อย")
+            else:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตสถานะสัญญาได้")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการอัปเดตสถานะสัญญา: {str(e)}")
 
     def save_contract(self):
         """บันทึกสัญญา"""
@@ -1486,7 +1562,8 @@ class PawnShopUI(QMainWindow):
             'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
             'end_date': self.end_date_edit.text(),
-            'days_count': self.days_spin.value()
+            'days_count': self.days_spin.value(),
+            'status': 'redeemed' if hasattr(self, 'redeemed_radio') and self.redeemed_radio.isChecked() else 'lost' if hasattr(self, 'lost_radio') and self.lost_radio.isChecked() else 'active'
         }
         
         try:
@@ -1505,7 +1582,8 @@ class PawnShopUI(QMainWindow):
                 'withholding_tax_rate': contract_data['withholding_tax_rate'],
                 'withholding_tax_amount': contract_data['withholding_tax_amount'],
                 'total_paid': contract_data['total_paid'],
-                'total_redemption': contract_data['total_redemption']
+                'total_redemption': contract_data['total_redemption'],
+                'status': contract_data['status']
             }
             
             QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
@@ -1886,9 +1964,9 @@ class PawnShopUI(QMainWindow):
         
         # กำหนดสถานะการค้นหา
         status = 'all'
-        if self.active_radio.isChecked():
+        if self.search_active_radio.isChecked():
             status = 'active'
-        elif self.closed_radio.isChecked():
+        elif self.search_closed_radio.isChecked():
             status = 'redeemed'
         
         try:
@@ -2092,12 +2170,13 @@ class PawnShopUI(QMainWindow):
             
             # อัปเดตสถานะสัญญา
             status = self.current_contract.get('status', 'active')
-            if status == 'redeemed':
-                self.redeemed_radio.setChecked(True)
-            elif status == 'lost':
-                self.lost_radio.setChecked(True)
-            else:
-                self.active_radio.setChecked(True)
+            if hasattr(self, 'redeemed_radio') and hasattr(self, 'lost_radio') and hasattr(self, 'active_radio'):
+                if status == 'redeemed':
+                    self.redeemed_radio.setChecked(True)
+                elif status == 'lost':
+                    self.lost_radio.setChecked(True)
+                else:
+                    self.active_radio.setChecked(True)
             
             # โหลดประวัติการต่อดอก
             contract_number = self.current_contract.get('contract_number', '')
@@ -2163,6 +2242,10 @@ class PawnShopUI(QMainWindow):
         self.pawn_amount_spin.setValue(0)
         self.withholding_tax_rate_spin.setValue(3.0)
         self.calculate_amounts()
+        
+        # รีเซ็ตสถานะสัญญา
+        if hasattr(self, 'active_radio'):
+            self.active_radio.setChecked(True)
         
         # กลับไปแสดงฟอร์มข้อมูลปกติ
         if hasattr(self, 'customer_add_group'):
