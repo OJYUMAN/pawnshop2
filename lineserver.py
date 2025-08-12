@@ -1,37 +1,51 @@
-from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
 
-app = Flask(__name__)
 
-# ข้อมูลจาก LINE Developers
-CHANNEL_ACCESS_TOKEN = "2007909957"
-CHANNEL_SECRET = "d2a016119fa797e8c8d97c45c41a352a"
+import requests
+import json
 
-line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(CHANNEL_SECRET)
+def send_line_message(channel_access_token, user_id, message):
+    """
+    ส่งข้อความผ่าน LINE Messaging API
+    
+    Args:
+        channel_access_token (str): Channel Access Token
+        user_id (str): User ID ของผู้รับ
+        message (str): ข้อความที่ต้องการส่ง
+    
+    Returns:
+        bool: True ถ้าส่งสำเร็จ, False ถ้าส่งไม่สำเร็จ
+    """
+    url = "https://api.line.me/v2/bot/message/push"
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {channel_access_token}'
+    }
+    
+    payload = {
+        "to": user_id,
+        "messages": [
+            {
+                "type": "text",
+                "text": message
+            }
+        ]
+    }
+    
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    
+    if response.status_code == 200:
+        print("ส่งข้อความสำเร็จ")
+        return True
+    else:
+        print(f"ส่งข้อความไม่สำเร็จ: {response.status_code}")
+        print(response.text)
+        return False
 
-@app.route("/webhook", methods=['POST'])
-def webhook():
-    signature = request.headers['X-Line-Signature']
-    body = request.get_data(as_text=True)
-
-    try:
-        handler.handle(body, signature)
-    except InvalidSignatureError:
-        abort(400)
-
-    return 'OK'
-
-# ฟังก์ชันตอบกลับเมื่อมีคนส่งข้อความ
-@handler.add(MessageEvent, message=TextMessage)
-def handle_message(event):
-    reply_text = f"คุณพิมพ์ว่า: {event.message.text}"
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply_text)
-    )
-
+# ตัวอย่างการใช้งาน
 if __name__ == "__main__":
-    app.run(port=5000)
+    CHANNEL_ACCESS_TOKEN = "s4BtggEmX4IbMkVKOhk8PSlDyGoOxMA5m4eLpgYDOGIL1zqnVLjT92GaXk/S+7/DAxSlmRWNQDO7KT0+VvbOQDb1P/xGPxHLHFYcDsDFbaykVpLAAWTKPcaaLfAcTvEXXEGGaMAclwVBbkxM6OdyWQdB04t89/1O/w1cDnyilFU="
+    USER_ID = "U2b2ca0d3bbe61e7dadc5a393ec8d5e9c"
+    MESSAGE = "สวัสดีครับ! ทดสอบส่งข้อความจาก Python"
+    
+    send_line_message(CHANNEL_ACCESS_TOKEN, USER_ID, MESSAGE)
