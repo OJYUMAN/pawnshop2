@@ -1,17 +1,332 @@
 # -*- coding: utf-8 -*-
 import re
+import os
+import io
+import binascii
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QDateEdit, QSpinBox,
     QDoubleSpinBox, QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox,
-    QRadioButton, QCheckBox, QFileDialog, QScrollArea, QWidget
+    QRadioButton, QCheckBox, QFileDialog, QScrollArea, QWidget, QProgressBar
 )
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, QThread, Signal
 from PySide6.QtGui import QPixmap, QIcon
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 from database import PawnShopDatabase
 from utils import PawnShopUtils
+
+# เพิ่มคลาสสำหรับการสแกนบัตรประชาชน
+class ThaiIDCardScanner(QThread):
+    """คลาสสำหรับการสแกนบัตรประชาชนในเธรดแยก"""
+    card_data_ready = Signal(dict)  # สัญญาณเมื่อได้ข้อมูลบัตร
+    error_occurred = Signal(str)    # สัญญาณเมื่อเกิดข้อผิดพลาด
+    progress_updated = Signal(int)  # สัญญาณอัปเดตความคืบหน้า
+    
+    def __init__(self):
+        super().__init__()
+        self.card_data = {}
+        
+    def run(self):
+        """รันการสแกนบัตรในเธรดแยก"""
+        try:
+            # Import smartcard modules
+            from smartcard.System import readers
+            from smartcard.util import toHexString
+            from smartcard.Exceptions import NoCardException, CardConnectionException
+            from smartcard.pcsc.PCSCExceptions import EstablishContextException
+            
+            # ตรวจสอบว่ามี card reader หรือไม่
+            reader_list = readers()
+            if not reader_list:
+                self.error_occurred.emit("ไม่พบ card reader กรุณาตรวจสอบการเชื่อมต่อ")
+                return
+            
+            # เลือก reader แรก
+            reader = reader_list[0]
+            self.progress_updated.emit(20)
+            
+            # ลองเชื่อมต่อกับบัตรหลายครั้ง
+            connection = None
+            max_retries = 3
+            
+            for attempt in range(max_retries):
+                try:
+                    self.progress_updated.emit(30 + attempt * 10)
+                    
+                    # สร้างการเชื่อมต่อใหม่
+                    if connection:
+                        try:
+                            connection.disconnect()
+                        except:
+                            pass
+                    
+                    connection = reader.createConnection()
+                    
+                    # ลองใช้โปรโตคอลต่างๆ
+                    protocols = [None, 0, 1]  # Default, T0, T1
+                    protocol_names = ["Default", "T0", "T1"]
+                    
+                    connected = False
+                    for i, protocol in enumerate(protocols):
+                        try:
+                            if protocol is None:
+                                connection.connect()
+                            else:
+                                connection.connect(protocol)
+                            
+                            # ถ้าเชื่อมต่อสำเร็จ
+                            connected = True
+                            print(f"เชื่อมต่อสำเร็จด้วยโปรโตคอล: {protocol_names[i]}")
+                            break
+                            
+                        except CardConnectionException as e:
+                            print(f"โปรโตคอล {protocol_names[i]} ล้มเหลว: {e}")
+                            continue
+                        except Exception as e:
+                            print(f"ข้อผิดพลาดกับโปรโตคอล {protocol_names[i]}: {e}")
+                            continue
+                    
+                    if connected:
+                        break
+                    else:
+                        print(f"ความพยายาม {attempt + 1} ล้มเหลว")
+                        if attempt < max_retries - 1:
+                            import time
+                            time.sleep(2)  # รอ 2 วินาทีก่อนลองใหม่
+                        continue
+                
+                except Exception as e:
+                    print(f"ความพยายามเชื่อมต่อ {attempt + 1} ล้มเหลว: {e}")
+                    if attempt < max_retries - 1:
+                        import time
+                        time.sleep(2)
+                    continue
+            
+            if not connection or not connected:
+                self.error_occurred.emit("ไม่สามารถเชื่อมต่อกับบัตรได้หลังจากลองหลายครั้ง\nกรุณาตรวจสอบ:\n1. บัตรใส่ถูกต้องหรือไม่\n2. Card reader ทำงานปกติหรือไม่\n3. ลองใส่บัตรใหม่")
+                return
+            
+            self.progress_updated.emit(60)
+            
+            # อ่านข้อมูลบัตร
+            card_data = self.read_thai_id_card(connection)
+            self.progress_updated.emit(80)
+            
+            # ปิดการเชื่อมต่อ
+            try:
+                connection.disconnect()
+            except:
+                pass
+            
+            self.progress_updated.emit(100)
+            
+            # ส่งข้อมูลที่ได้
+            self.card_data_ready.emit(card_data)
+            
+        except NoCardException:
+            self.error_occurred.emit("ไม่พบบัตร กรุณาใส่บัตรประชาชนใน card reader")
+        except CardConnectionException as e:
+            error_msg = f"ไม่สามารถเชื่อมต่อกับบัตรได้: {str(e)}\n\nวิธีแก้ไข:\n"
+            error_msg += "1. ตรวจสอบว่าบัตรใส่ในทิศทางที่ถูกต้อง\n"
+            error_msg += "2. ลบและใส่บัตรใหม่\n"
+            error_msg += "3. ทำความสะอาดหน้าสัมผัสของบัตร\n"
+            error_msg += "4. ลองใช้ card reader อื่น\n"
+            error_msg += "5. ตรวจสอบว่า card reader รองรับ PC/SC"
+            self.error_occurred.emit(error_msg)
+        except EstablishContextException:
+            self.error_occurred.emit("ไม่สามารถสร้าง PC/SC context ได้\nกรุณาตรวจสอบว่า PC/SC service ทำงานอยู่")
+        except ImportError:
+            self.error_occurred.emit("ไม่พบโมดูล smartcard กรุณาติดตั้ง pyscard")
+        except Exception as e:
+            self.error_occurred.emit(f"เกิดข้อผิดพลาดที่ไม่คาดคิด: {str(e)}\nกรุณาลองใหม่อีกครั้ง")
+    
+    def read_thai_id_card(self, connection):
+        """อ่านข้อมูลจากบัตรประชาชนไทย"""
+        card_data = {}
+        
+        # ลองเลือก applet บัตรประชาชนหลายแบบ
+        applet_commands = [
+            # รุ่นเก่า
+            [0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01],
+            # รุ่นใหม่
+            [0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x00],
+            # รุ่นอื่นๆ
+            [0x00, 0xA4, 0x04, 0x00, 0x08, 0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x02],
+            # รุ่นใหม่แบบไม่ต้องเลือก applet
+            None
+        ]
+        
+        applet_selected = False
+        
+        # ลองเลือก applet
+        for i, cmd in enumerate(applet_commands):
+            if cmd is None:
+                # ไม่ต้องเลือก applet (สำหรับบัตรรุ่นใหม่บางรุ่น)
+                print("ลองอ่านข้อมูลโดยไม่เลือก applet...")
+                applet_selected = True
+                break
+            
+            try:
+                response, sw1, sw2 = connection.transmit(cmd)
+                if sw1 == 0x90 and sw2 == 0x00:
+                    print(f"เลือก applet สำเร็จ (รุ่น {i+1})")
+                    applet_selected = True
+                    break
+                elif sw1 == 0x61:  # More data available
+                    print(f"เลือก applet สำเร็จ (รุ่น {i+1}) - มีข้อมูลเพิ่มเติม")
+                    applet_selected = True
+                    break
+                else:
+                    print(f"เลือก applet รุ่น {i+1} ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
+            except Exception as e:
+                print(f"ข้อผิดพลาดกับ applet รุ่น {i+1}: {e}")
+                continue
+        
+        if not applet_selected:
+            print("ไม่สามารถเลือก applet ได้ แต่จะลองอ่านข้อมูลโดยตรง")
+        
+        # คำสั่งสำหรับอ่านข้อมูลต่างๆ
+        commands = {
+            "CID": [0x80, 0xb0, 0x00, 0x04, 0x02, 0x00, 0x0d],
+            "TH_Fullname": [0x80, 0xb0, 0x00, 0x11, 0x02, 0x00, 0x64],
+            "EN_Fullname": [0x80, 0xb0, 0x00, 0x75, 0x02, 0x00, 0x64],
+            "Date_of_birth": [0x80, 0xb0, 0x00, 0xD9, 0x02, 0x00, 0x08],
+            "Gender": [0x80, 0xb0, 0x00, 0xE1, 0x02, 0x00, 0x01],
+            "Card_Issuer": [0x80, 0xb0, 0x00, 0xF6, 0x02, 0x00, 0x64],
+            "Issue_Date": [0x80, 0xb0, 0x01, 0x67, 0x02, 0x00, 0x08],
+            "Expire_Date": [0x80, 0xb0, 0x01, 0x6F, 0x02, 0x00, 0x08],
+            "Address": [0x80, 0xb0, 0x15, 0x79, 0x02, 0x00, 0x64]
+        }
+        
+        # อ่านข้อมูลข้อความ
+        for field_name, cmd in commands.items():
+            try:
+                data, sw1, sw2 = connection.transmit(cmd)
+                
+                if sw1 == 0x90 and sw2 == 0x00 and data:
+                    # แปลงข้อมูลจาก TIS-620 เป็น Unicode
+                    value = self.thai2unicode(data)
+                    card_data[field_name] = value
+                    print(f"✅ {field_name}: {value}")
+                elif sw1 == 0x61:  # More data available
+                    # ใช้คำสั่ง GET RESPONSE เพื่ออ่านข้อมูลเพิ่มเติม
+                    print(f"📖 {field_name}: มีข้อมูลเพิ่มเติม (SW1=61, SW2={sw2:02X})")
+                    response_data = self.get_response_data(connection, sw2)
+                    if response_data:
+                        value = self.thai2unicode(response_data)
+                        card_data[field_name] = value
+                        print(f"✅ {field_name}: {value} (จาก GET RESPONSE)")
+                    else:
+                        print(f"❌ {field_name}: ไม่สามารถอ่านข้อมูลเพิ่มเติมได้")
+                        card_data[field_name] = ""
+                else:
+                    print(f"❌ {field_name}: อ่านไม่สำเร็จ (SW1={sw1:02X}, SW2={sw2:02X})")
+                    card_data[field_name] = ""
+                    
+            except Exception as e:
+                print(f"❌ {field_name}: เกิดข้อผิดพลาด - {e}")
+                card_data[field_name] = ""
+        
+        # ลองใช้คำสั่งแบบอื่นสำหรับบัตรรุ่นใหม่
+        if not any(card_data.values()):
+            print("ลองใช้คำสั่งแบบอื่นสำหรับบัตรรุ่นใหม่...")
+            self.try_alternative_commands(connection, card_data)
+        
+        # อ่านรูปภาพ (ถ้ามี)
+        try:
+            photo_data = self.read_photo_data(connection)
+            if photo_data:
+                card_data["photo"] = photo_data
+                print("✅ อ่านรูปภาพสำเร็จ")
+        except Exception as e:
+            print(f"❌ อ่านรูปภาพไม่สำเร็จ: {e}")
+        
+        return card_data
+    
+    def get_response_data(self, connection, sw2):
+        """ใช้คำสั่ง GET RESPONSE เพื่ออ่านข้อมูลเพิ่มเติม"""
+        try:
+            # คำสั่ง GET RESPONSE
+            get_response_cmd = [0x00, 0xC0, 0x00, 0x00, sw2]
+            response_data, sw1, sw2 = connection.transmit(get_response_cmd)
+            
+            if sw1 == 0x90 and sw2 == 0x00 and response_data:
+                return response_data
+            else:
+                print(f"GET RESPONSE ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
+                return None
+                
+        except Exception as e:
+            print(f"ข้อผิดพลาดในการใช้ GET RESPONSE: {e}")
+            return None
+    
+    def try_alternative_commands(self, connection, card_data):
+        """ลองใช้คำสั่งแบบอื่นสำหรับบัตรรุ่นใหม่"""
+        # คำสั่งแบบอื่นสำหรับบัตรรุ่นใหม่
+        alt_commands = {
+            "CID_Alt": [0x80, 0xb0, 0x00, 0x04, 0x01, 0x00, 0x0d],
+            "Name_Alt": [0x80, 0xb0, 0x00, 0x11, 0x01, 0x00, 0x64],
+            "CID_Direct": [0x80, 0xca, 0x00, 0x04, 0x00],
+            "Name_Direct": [0x80, 0xca, 0x00, 0x11, 0x00]
+        }
+        
+        for field_name, cmd in alt_commands.items():
+            try:
+                data, sw1, sw2 = connection.transmit(cmd)
+                
+                if sw1 == 0x90 and sw2 == 0x00 and data:
+                    value = self.thai2unicode(data)
+                    if value and value.strip():
+                        # กำหนดชื่อฟิลด์ที่เหมาะสม
+                        if "CID" in field_name:
+                            card_data["CID"] = value
+                            print(f"✅ CID (Alt): {value}")
+                        elif "Name" in field_name:
+                            card_data["TH_Fullname"] = value
+                            print(f"✅ ชื่อ (Alt): {value}")
+                        break
+                        
+            except Exception as e:
+                print(f"❌ {field_name}: เกิดข้อผิดพลาด - {e}")
+                continue
+    
+    def thai2unicode(self, data):
+        """แปลงข้อมูลจาก TIS-620 เป็น Unicode"""
+        try:
+            if not data:
+                return ""
+            result = bytes(data).decode('tis-620', errors='ignore').replace("#", " ")
+            return result.strip()
+        except:
+            return ""
+    
+    def read_photo_data(self, connection):
+        """อ่านข้อมูลรูปภาพจากบัตร"""
+        photo_parts = []
+        
+        # สร้างคำสั่งสำหรับอ่านรูปภาพ 20 ส่วน
+        for i in range(20):
+            if i < 10:
+                cmd = [0x80, 0xb0, 0x00, 0x7B + i, 0x02, 0x00, 0xFF]
+            else:
+                cmd = [0x80, 0xb0, 0x01, 0x7B - (i - 10), 0x02, 0x00, 0xFF]
+            
+            try:
+                data, sw1, sw2 = connection.transmit(cmd)
+                if sw1 == 0x90 and sw2 == 0x00 and data:
+                    photo_parts.append(data)
+            except:
+                continue
+        
+        # รวมข้อมูลรูปภาพ
+        if photo_parts:
+            photo_data = b''
+            for part in photo_parts:
+                photo_data += bytes(part)
+            return photo_data
+        
+        return None
 
 class CustomerDialog(QDialog):
     def __init__(self, parent=None, customer_data=None):
@@ -22,6 +337,7 @@ class CustomerDialog(QDialog):
         else:
             self.db = PawnShopDatabase()
         self.customer_data = customer_data
+        self.card_scanner = None
         self.setup_ui()
         if customer_data:
             self.load_customer_data()
@@ -32,7 +348,7 @@ class CustomerDialog(QDialog):
     def setup_ui(self):
         self.setWindowTitle("ข้อมูลลูกค้า")
         self.setModal(True)
-        self.resize(600, 500)
+        self.resize(700, 600)
         
         layout = QVBoxLayout(self)
         
@@ -50,6 +366,31 @@ class CustomerDialog(QDialog):
         generate_code_button = QPushButton("สร้างรหัสอัตโนมัติ")
         generate_code_button.clicked.connect(self.generate_customer_code)
         
+        # เพิ่มปุ่มสแกนบัตรประชาชน
+        scan_card_button = QPushButton("สแกนบัตรประชาชน")
+        scan_card_button.setStyleSheet("""
+            QPushButton {
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+            QPushButton:pressed {
+                background-color: #004085;
+            }
+        """)
+        scan_card_button.clicked.connect(self.scan_id_card)
+        
+        # เพิ่ม progress bar สำหรับการสแกน
+        self.scan_progress = QProgressBar()
+        self.scan_progress.setVisible(False)
+        self.scan_progress.setRange(0, 100)
+        
         basic_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
         basic_layout.addWidget(self.customer_code_edit, 0, 1)
         basic_layout.addWidget(generate_code_button, 0, 2)
@@ -59,8 +400,10 @@ class CustomerDialog(QDialog):
         basic_layout.addWidget(self.last_name_edit, 2, 1)
         basic_layout.addWidget(QLabel("เลขบัตรประชาชน:"), 3, 0)
         basic_layout.addWidget(self.id_card_edit, 3, 1)
-        basic_layout.addWidget(QLabel("เบอร์โทรศัพท์:"), 4, 0)
-        basic_layout.addWidget(self.phone_edit, 4, 1)
+        basic_layout.addWidget(scan_card_button, 3, 2)
+        basic_layout.addWidget(self.scan_progress, 4, 0, 1, 3)
+        basic_layout.addWidget(QLabel("เบอร์โทรศัพท์:"), 5, 0)
+        basic_layout.addWidget(self.phone_edit, 5, 1)
         
         layout.addWidget(basic_group)
         
@@ -102,6 +445,150 @@ class CustomerDialog(QDialog):
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
+    
+    def scan_id_card(self):
+        """เริ่มการสแกนบัตรประชาชน"""
+        try:
+            # ตรวจสอบสถานะ card reader ก่อน
+            if not self.check_card_reader_status():
+                return
+            
+            # แสดง progress bar
+            self.scan_progress.setVisible(True)
+            self.scan_progress.setValue(0)
+            
+            # สร้างและเริ่มการสแกนในเธรดแยก
+            self.card_scanner = ThaiIDCardScanner()
+            self.card_scanner.card_data_ready.connect(self.on_card_data_ready)
+            self.card_scanner.error_occurred.connect(self.on_scan_error)
+            self.card_scanner.progress_updated.connect(self.scan_progress.setValue)
+            
+            self.card_scanner.start()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเริ่มการสแกนได้: {str(e)}")
+            self.scan_progress.setVisible(False)
+    
+    def check_card_reader_status(self):
+        """ตรวจสอบสถานะ card reader"""
+        try:
+            from smartcard.System import readers
+            
+            reader_list = readers()
+            if not reader_list:
+                QMessageBox.warning(self, "แจ้งเตือน", 
+                    "ไม่พบ card reader\n\nกรุณาตรวจสอบ:\n"
+                    "1. Card reader เชื่อมต่อ USB หรือไม่\n"
+                    "2. Driver ติดตั้งแล้วหรือไม่\n"
+                    "3. PC/SC service ทำงานอยู่หรือไม่")
+                return False
+            
+            # ตรวจสอบว่ามีบัตรใน reader หรือไม่
+            try:
+                reader = reader_list[0]
+                connection = reader.createConnection()
+                connection.connect()
+                connection.disconnect()
+                return True
+            except Exception as e:
+                if "No card" in str(e) or "Card is unresponsive" in str(e):
+                    QMessageBox.information(self, "แจ้งเตือน", 
+                        "ไม่พบบัตรใน card reader\n\nกรุณาใส่บัตรประชาชนก่อนคลิกสแกน")
+                else:
+                    QMessageBox.warning(self, "แจ้งเตือน", 
+                        f"ไม่สามารถเชื่อมต่อกับ card reader ได้: {str(e)}\n\n"
+                        "กรุณาตรวจสอบการเชื่อมต่อและ driver")
+                return False
+                
+        except ImportError:
+            QMessageBox.critical(self, "ผิดพลาด", 
+                "ไม่พบโมดูล smartcard\n\nกรุณาติดตั้งด้วยคำสั่ง:\npip install pyscard")
+            return False
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการตรวจสอบ card reader: {str(e)}")
+            return False
+    
+    def on_card_data_ready(self, card_data):
+        """เมื่อได้ข้อมูลบัตรแล้ว"""
+        try:
+            # ซ่อน progress bar
+            self.scan_progress.setVisible(False)
+            
+            # แสดงข้อมูลที่ได้
+            info_text = "ข้อมูลที่ได้จากบัตร:\n"
+            for key, value in card_data.items():
+                if key != "photo" and value:  # ไม่แสดงรูปภาพ
+                    info_text += f"{key}: {value}\n"
+            
+            # ถามว่าต้องการใช้ข้อมูลนี้หรือไม่
+            reply = QMessageBox.question(
+                self, 
+                "ข้อมูลบัตรประชาชน", 
+                f"{info_text}\nต้องการใช้ข้อมูลนี้หรือไม่?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # กรอกข้อมูลลงในฟอร์ม
+                self.fill_form_with_card_data(card_data)
+                
+                # บันทึกรูปภาพถ้ามี
+                if "photo" in card_data and card_data["photo"]:
+                    self.save_card_photo(card_data["photo"], card_data.get("CID", "unknown"))
+            
+            QMessageBox.information(self, "สำเร็จ", "อ่านข้อมูลบัตรประชาชนเรียบร้อย")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการประมวลผลข้อมูล: {str(e)}")
+        finally:
+            self.scan_progress.setVisible(False)
+    
+    def on_scan_error(self, error_message):
+        """เมื่อเกิดข้อผิดพลาดในการสแกน"""
+        self.scan_progress.setVisible(False)
+        QMessageBox.warning(self, "แจ้งเตือน", error_message)
+    
+    def fill_form_with_card_data(self, card_data):
+        """กรอกข้อมูลจากบัตรลงในฟอร์ม"""
+        try:
+            # กรอกข้อมูลพื้นฐาน
+            if card_data.get("CID"):
+                self.id_card_edit.setText(card_data["CID"])
+            
+            if card_data.get("TH_Fullname"):
+                # แยกชื่อและนามสกุล
+                full_name = card_data["TH_Fullname"].strip()
+                name_parts = full_name.split()
+                if len(name_parts) >= 2:
+                    self.first_name_edit.setText(name_parts[0])
+                    self.last_name_edit.setText(" ".join(name_parts[1:]))
+                else:
+                    self.first_name_edit.setText(full_name)
+            
+            # กรอกข้อมูลที่อยู่ถ้ามี
+            if card_data.get("Address"):
+                address = card_data["Address"]
+                # พยายามแยกที่อยู่เป็นส่วนๆ (อาจต้องปรับตามรูปแบบข้อมูลจริง)
+                # สำหรับตอนนี้ให้ใส่ในรายละเอียดอื่นๆ
+                self.other_details_edit.setPlainText(f"ที่อยู่จากบัตร: {address}")
+            
+        except Exception as e:
+            print(f"Error filling form: {e}")
+    
+    def save_card_photo(self, photo_data, cid):
+        """บันทึกรูปภาพจากบัตร"""
+        try:
+            if not os.path.exists("product_images"):
+                os.makedirs("product_images")
+            
+            photo_filename = f"product_images/{cid}.jpg"
+            with open(photo_filename, "wb") as f:
+                f.write(photo_data)
+            
+            print(f"บันทึกรูปภาพเรียบร้อย: {photo_filename}")
+            
+        except Exception as e:
+            print(f"Error saving photo: {e}")
     
     def load_customer_data(self):
         """โหลดข้อมูลลูกค้า"""
