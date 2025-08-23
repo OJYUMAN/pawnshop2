@@ -1685,6 +1685,9 @@ class PawnShopUI(QMainWindow):
             if contract_number:
                 self.load_renewal_history(contract_number)
             
+            # แสดงปุ่มสร้าง PDF
+            self.show_pdf_generation_dialog(contract_data)
+            
             self.generate_new_contract_number()
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
@@ -2773,7 +2776,55 @@ class PawnShopUI(QMainWindow):
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
 
     def _create_pawn_contract_pdf(self, file_path):
-        """สร้างไฟล์ PDF ใบขายฝาก"""
+        """สร้างไฟล์ PDF ใบขายฝากโดยใช้ฟังก์ชันจาก pdf.py"""
+        try:
+            # นำเข้าฟังก์ชันจาก pdf.py
+            from pdf import generate_pawn_ticket_from_data
+            
+            # สร้างข้อมูลสัญญาจาก UI
+            contract_data = {
+                'contract_number': self.contract_number_edit.text(),
+                'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
+                'end_date': self.end_date_edit.text(),
+                'days_count': self.days_spin.value(),
+                'pawn_amount': self.pawn_amount_spin.value(),
+                'interest_rate': self.interest_rate_spin.value(),
+                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
+                'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
+                'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', ''))
+            }
+            
+            # สร้างข้อมูลร้านค้า
+            shop_data = {
+                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
+                'branch': 'สาขาหล่มสัก',
+                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
+            }
+            
+            # เรียกใช้ฟังก์ชันสร้าง PDF จาก pdf.py
+            result = generate_pawn_ticket_from_data(
+                contract_data=contract_data,
+                customer_data=self.current_customer,
+                product_data=self.current_product,
+                shop_data=shop_data,
+                output_file=file_path
+            )
+            
+            if not result:
+                raise Exception("ไม่สามารถสร้าง PDF ได้")
+                
+        except ImportError:
+            # Fallback ไปใช้วิธีเดิมถ้าไม่สามารถ import pdf.py ได้
+            self._create_pawn_contract_pdf_fallback(file_path)
+        except Exception as e:
+            # Fallback ไปใช้วิธีเดิมถ้าเกิดข้อผิดพลาด
+            print(f"Error using pdf.py: {e}")
+            self._create_pawn_contract_pdf_fallback(file_path)
+    
+    def _create_pawn_contract_pdf_fallback(self, file_path):
+        """สร้างไฟล์ PDF ใบขายฝากแบบเดิม (fallback)"""
         doc = SimpleDocTemplate(file_path, pagesize=A4)
         story = []
         
@@ -3619,6 +3670,24 @@ class PawnShopUI(QMainWindow):
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าจอเพิ่มข้อมูลลูกค้าได้: {str(e)}")
+
+    def show_pdf_generation_dialog(self, contract_data):
+        """แสดง dialog ให้เลือกสร้าง PDF หลังจากบันทึกสัญญา"""
+        try:
+            reply = QMessageBox.question(
+                self,
+                "สร้าง PDF ใบขายฝาก",
+                "บันทึกสัญญาเรียบร้อยแล้ว\n\nต้องการสร้าง PDF ใบขายฝากหรือไม่?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # เรียกใช้ฟังก์ชันสร้าง PDF
+                self.generate_pawn_contract_pdf()
+                
+        except Exception as e:
+            print(f"Error showing PDF dialog: {e}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
