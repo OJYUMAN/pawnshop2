@@ -556,24 +556,151 @@ class CustomerDialog(QDialog):
                 self.id_card_edit.setText(card_data["CID"])
             
             if card_data.get("TH_Fullname"):
-                # แยกชื่อและนามสกุล
+                # แยกชื่อและนามสกุลอย่างถูกต้อง
                 full_name = card_data["TH_Fullname"].strip()
-                name_parts = full_name.split()
-                if len(name_parts) >= 2:
-                    self.first_name_edit.setText(name_parts[0])
-                    self.last_name_edit.setText(" ".join(name_parts[1:]))
+                
+                # ตรวจสอบรูปแบบชื่อไทย
+                if "นางสาว" in full_name:
+                    # กรณีมีคำนำหน้า "นางสาว"
+                    prefix = "นางสาว"
+                    name_without_prefix = full_name.replace("นางสาว", "").strip()
+                elif "นาง" in full_name:
+                    # กรณีมีคำนำหน้า "นาง"
+                    prefix = "นาง"
+                    name_without_prefix = full_name.replace("นาง", "").strip()
+                elif "นาย" in full_name:
+                    # กรณีมีคำนำหน้า "นาย"
+                    prefix = "นาย"
+                    name_without_prefix = full_name.replace("นาย", "").strip()
                 else:
-                    self.first_name_edit.setText(full_name)
+                    # กรณีไม่มีคำนำหน้า
+                    prefix = ""
+                    name_without_prefix = full_name
+                
+                # แยกชื่อและนามสกุล
+                name_parts = name_without_prefix.split()
+                if len(name_parts) >= 2:
+                    first_name = name_parts[0]
+                    last_name = " ".join(name_parts[1:])
+                    # รวมคำนำหน้าเข้ากับชื่อ
+                    if prefix:
+                        self.first_name_edit.setText(f"{prefix} {first_name}")
+                    else:
+                        self.first_name_edit.setText(first_name)
+                    self.last_name_edit.setText(last_name)
+                else:
+                    if prefix:
+                        self.first_name_edit.setText(f"{prefix} {full_name}")
+                    else:
+                        self.first_name_edit.setText(full_name)
+                    self.last_name_edit.setText("")
             
-            # กรอกข้อมูลที่อยู่ถ้ามี
+            # กรอกข้อมูลที่อยู่อย่างถูกต้อง
             if card_data.get("Address"):
-                address = card_data["Address"]
-                # พยายามแยกที่อยู่เป็นส่วนๆ (อาจต้องปรับตามรูปแบบข้อมูลจริง)
-                # สำหรับตอนนี้ให้ใส่ในรายละเอียดอื่นๆ
-                self.other_details_edit.setPlainText(f"ที่อยู่จากบัตร: {address}")
+                address = card_data["Address"].strip()
+                print(f"ที่อยู่จากบัตร: {address}")
+                
+                # แยกที่อยู่เป็นส่วนๆ
+                address_parts = self.parse_thai_address(address)
+                
+                # กรอกข้อมูลที่อยู่ในฟอร์ม
+                if address_parts.get("house_number"):
+                    self.house_number_edit.setText(address_parts["house_number"])
+                
+                if address_parts.get("street"):
+                    self.street_edit.setText(address_parts["street"])
+                
+                if address_parts.get("subdistrict"):
+                    self.subdistrict_edit.setText(address_parts["subdistrict"])
+                
+                if address_parts.get("district"):
+                    self.district_edit.setText(address_parts["district"])
+                
+                if address_parts.get("province"):
+                    self.province_edit.setText(address_parts["province"])
+                
+                # เก็บที่อยู่ที่แยกไม่ได้ในรายละเอียดอื่นๆ
+                remaining_address = address_parts.get("remaining", "")
+                if remaining_address:
+                    self.other_details_edit.setPlainText(f"ที่อยู่เพิ่มเติม: {remaining_address}")
             
         except Exception as e:
             print(f"Error filling form: {e}")
+    
+    def parse_thai_address(self, address):
+        """แยกที่อยู่ไทยเป็นส่วนๆ"""
+        address_parts = {}
+        
+        try:
+            # ลบช่องว่างที่ไม่จำเป็น
+            address = " ".join(address.split())
+            
+            # แยกบ้านเลขที่ (มักอยู่ต้นข้อความ)
+            house_match = re.match(r'^(\d+)\s*', address)
+            if house_match:
+                address_parts["house_number"] = house_match.group(1)
+                address = address[house_match.end():].strip()
+            
+            # แยกจังหวัด (มักอยู่ท้ายข้อความ)
+            provinces = [
+                "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร", "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา",
+                "ชลบุรี", "ชัยนาท", "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง", "ตราด", "ตาก", "นครนายก",
+                "นครปฐม", "นครพนม", "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส", "น่าน",
+                "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์", "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา",
+                "พังงา", "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์", "แพร่", "พะเยา", "ภูเก็ต",
+                "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน", "ยะลา", "ยโสธร", "ร้อยเอ็ด", "ระนอง", "ระยอง", "ราชบุรี",
+                "ลพบุรี", "ลำปาง", "ลำพูน", "เลย", "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ",
+                "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี", "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี",
+                "สุรินทร์", "หนองคาย", "หนองบัวลำภู", "อ่างทอง", "อุดรธานี", "อุทัยธานี", "อุตรดิตถ์", "อุบลราชธานี",
+                "อำนาจเจริญ"
+            ]
+            
+            for province in provinces:
+                if province in address:
+                    address_parts["province"] = province
+                    # ตัดจังหวัดออกจากที่อยู่
+                    address = address.replace(province, "").strip()
+                    break
+            
+            # แยกเขต/อำเภอ (มักมีคำว่า "เขต" หรือ "อำเภอ")
+            district_match = re.search(r'(เขต|อำเภอ)\s*([^\s]+)', address)
+            if district_match:
+                district_type = district_match.group(1)
+                district_name = district_match.group(2)
+                address_parts["district"] = f"{district_type}{district_name}"
+                # ตัดเขต/อำเภอออกจากที่อยู่
+                address = address.replace(district_match.group(0), "").strip()
+            
+            # แยกแขวง/ตำบล (มักมีคำว่า "แขวง" หรือ "ตำบล")
+            subdistrict_match = re.search(r'(แขวง|ตำบล)\s*([^\s]+)', address)
+            if subdistrict_match:
+                subdistrict_type = subdistrict_match.group(1)
+                subdistrict_name = subdistrict_match.group(2)
+                address_parts["subdistrict"] = f"{subdistrict_type}{subdistrict_name}"
+                # ตัดแขวง/ตำบลออกจากที่อยู่
+                address = address.replace(subdistrict_match.group(0), "").strip()
+            
+            # แยกถนน/ซอย
+            street_match = re.search(r'(ถนน|ซอย)\s*([^\s]+)', address)
+            if street_match:
+                street_type = street_match.group(1)
+                street_name = street_match.group(2)
+                address_parts["street"] = f"{street_type}{street_name}"
+                # ตัดถนน/ซอยออกจากที่อยู่
+                address = address.replace(street_match.group(0), "").strip()
+            
+            # ที่เหลือเก็บใน remaining
+            if address.strip():
+                address_parts["remaining"] = address.strip()
+            
+            print(f"แยกที่อยู่: {address_parts}")
+            
+        except Exception as e:
+            print(f"Error parsing address: {e}")
+            # หากแยกไม่ได้ ให้เก็บทั้งหมดใน remaining
+            address_parts["remaining"] = address
+        
+        return address_parts
     
     def save_card_photo(self, photo_data, cid):
         """บันทึกรูปภาพจากบัตร"""

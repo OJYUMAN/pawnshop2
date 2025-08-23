@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
-    QScrollArea, QFrame, QFileDialog, QDialog
+    QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -1095,6 +1095,11 @@ class PawnShopUI(QMainWindow):
         add_customer_action.triggered.connect(self.toggle_customer_mode)
         customer_menu.addAction(add_customer_action)
         
+        # เพิ่มปุ่มสแกนบัตรประชาชน
+        scan_id_card_action = QAction("สแกนบัตรประชาชน", self)
+        scan_id_card_action.triggered.connect(self.scan_id_card)
+        customer_menu.addAction(scan_id_card_action)
+        
         # เมนูรายงาน
         report_menu = menu_bar.addMenu("รายงาน")
         daily_report_action = QAction("รายงานประจำวัน", self)
@@ -1197,7 +1202,8 @@ class PawnShopUI(QMainWindow):
             ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
             ("ดูประวัติการไถ่ถอน", "document-properties", self.view_redemptions),
             ("สรุปรายได้รายวัน", "x-office-calendar", self.show_daily_income_summary),
-            ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management)
+            ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management),
+            ("สแกนบัตรประชาชน", "smartcard", self.scan_id_card)
         ]
 
         for i, (text, icon_name, slot) in enumerate(actions):
@@ -1215,7 +1221,7 @@ class PawnShopUI(QMainWindow):
             toolbar.addAction(action)
             
             # เพิ่ม separator หลังปุ่มที่ 3 และ 7 เพื่อแบ่งกลุ่ม
-            if i == 3 or i == 7:
+            if i == 3 or i == 7 or i == 11:  # เพิ่ม separator หลังปุ่มสแกนบัตร
                 toolbar.addSeparator()
 
     def create_icon_for_action(self, icon_name, text):
@@ -1254,9 +1260,11 @@ class PawnShopUI(QMainWindow):
                 icon = QIcon.fromTheme("insert-object", QIcon.fromTheme("table", QIcon.fromTheme("grid")))
             elif "ค่าธรรมเนียม" in text:
                 icon = QIcon.fromTheme("preferences-system", QIcon.fromTheme("settings", QIcon.fromTheme("configure")))
+            elif "สแกนบัตร" in text or "smartcard" in text:
+                icon = QIcon.fromTheme("smartcard", QIcon.fromTheme("contact-new", QIcon.fromTheme("user-identity")))
             else:
                 # fallback ไปใช้ icon ทั่วไป
-                icon = QIcon.fromTheme("applications-other", QIcon.fromTheme("help", QIcon.fromTheme("info")))
+                icon = QIcon.fromTheme("applications-other", QIcon.fromTheme("help-about", QIcon.fromTheme("info")))
         
         # ถ้ายังไม่มี icon ให้สร้าง icon ง่ายๆ จาก text
         if icon.isNull():
@@ -3450,6 +3458,167 @@ class PawnShopUI(QMainWindow):
         except Exception as e:
             print(f"เกิดข้อผิดพลาดในการส่งสรุปรายได้รายวันเข้า Line: {str(e)}")
             QMessageBox.warning(self, "แจ้งเตือน", f"เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {str(e)}")
+
+    def scan_id_card(self):
+        """สแกนบัตรประชาชนและเพิ่มข้อมูลลูกค้า"""
+        try:
+            # ตรวจสอบสถานะ card reader ก่อน
+            if not self.check_card_reader_status():
+                return
+            
+            # แสดงข้อความแนะนำ
+            QMessageBox.information(self, "คำแนะนำ", 
+                "กรุณาใส่บัตรประชาชนใน card reader ก่อนคลิกตกลง\n\n"
+                "หากยังไม่ใส่บัตร ระบบจะแสดงข้อความแจ้งเตือน")
+            
+            # สร้างและเริ่มการสแกนในเธรดแยก
+            from dialogs import ThaiIDCardScanner
+            self.card_scanner = ThaiIDCardScanner()
+            self.card_scanner.card_data_ready.connect(self.on_card_data_ready)
+            self.card_scanner.error_occurred.connect(self.on_scan_error)
+            
+            # แสดง progress dialog
+            from PySide6.QtWidgets import QProgressDialog
+            self.progress_dialog = QProgressDialog("กำลังสแกนบัตรประชาชน...", "ยกเลิก", 0, 100, self)
+            self.progress_dialog.setWindowTitle("สแกนบัตรประชาชน")
+            self.progress_dialog.setModal(True)
+            self.progress_dialog.setAutoClose(False)
+            self.progress_dialog.setAutoReset(False)
+            
+            # เชื่อมต่อ progress
+            self.card_scanner.progress_updated.connect(self.progress_dialog.setValue)
+            self.card_scanner.progress_updated.connect(lambda: self.progress_dialog.setLabelText("กำลังสแกนบัตรประชาชน..."))
+            
+            # เริ่มการสแกน
+            self.card_scanner.start()
+            self.progress_dialog.show()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเริ่มการสแกนได้: {str(e)}")
+    
+    def check_card_reader_status(self):
+        """ตรวจสอบสถานะ card reader"""
+        try:
+            from smartcard.System import readers
+            
+            reader_list = readers()
+            if not reader_list:
+                QMessageBox.warning(self, "แจ้งเตือน", 
+                    "ไม่พบ card reader\n\nกรุณาตรวจสอบ:\n"
+                    "1. Card reader เชื่อมต่อ USB หรือไม่\n"
+                    "2. Driver ติดตั้งแล้วหรือไม่\n"
+                    "3. PC/SC service ทำงานอยู่หรือไม่")
+                return False
+            
+            # แสดงข้อมูล card reader ที่พบ
+            reader_info = f"พบ card reader: {len(reader_list)} ตัว\n"
+            for i, reader in enumerate(reader_list):
+                reader_info += f"  {i}: {reader}\n"
+            
+            # ตรวจสอบการเชื่อมต่อแบบเบา (ไม่ต้องมีบัตร)
+            try:
+                reader = reader_list[0]
+                # ไม่ต้องเชื่อมต่อกับบัตร เพียงแค่ตรวจสอบว่า reader พร้อมใช้งาน
+                print(f"Card reader พร้อมใช้งาน: {reader}")
+                return True
+                
+            except Exception as e:
+                print(f"ข้อผิดพลาดในการตรวจสอบ card reader: {e}")
+                # แม้จะตรวจสอบไม่สำเร็จ แต่ให้ลองสแกนต่อไป
+                return True
+                
+        except ImportError:
+            QMessageBox.critical(self, "ผิดพลาด", 
+                "ไม่พบโมดูล smartcard\n\nกรุณาติดตั้งด้วยคำสั่ง:\npip install pyscard")
+            return False
+        except Exception as e:
+            print(f"ข้อผิดพลาดในการตรวจสอบ card reader: {e}")
+            # แม้จะตรวจสอบไม่สำเร็จ แต่ให้ลองสแกนต่อไป
+            return True
+    
+    def on_card_data_ready(self, card_data):
+        """เมื่อได้ข้อมูลบัตรแล้ว"""
+        try:
+            # ปิด progress dialog
+            if hasattr(self, 'progress_dialog'):
+                self.progress_dialog.close()
+            
+            # แสดงข้อมูลที่ได้
+            info_text = "ข้อมูลที่ได้จากบัตร:\n"
+            for key, value in card_data.items():
+                if key != "photo" and value:  # ไม่แสดงรูปภาพ
+                    info_text += f"{key}: {value}\n"
+            
+            # ถามว่าต้องการใช้ข้อมูลนี้หรือไม่
+            reply = QMessageBox.question(
+                self, 
+                "ข้อมูลบัตรประชาชน", 
+                f"{info_text}\nต้องการใช้ข้อมูลนี้เพื่อเพิ่มลูกค้าใหม่หรือไม่?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                # เปิดหน้าจอเพิ่มข้อมูลลูกค้าและกรอกข้อมูลจากบัตร
+                self.open_customer_dialog_with_card_data(card_data)
+            
+            QMessageBox.information(self, "สำเร็จ", "อ่านข้อมูลบัตรประชาชนเรียบร้อย")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการประมวลผลข้อมูล: {str(e)}")
+        finally:
+            if hasattr(self, 'progress_dialog'):
+                self.progress_dialog.close()
+    
+    def on_scan_error(self, error_message):
+        """เมื่อเกิดข้อผิดพลาดในการสแกน"""
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+        
+        # แสดงข้อความแจ้งเตือนที่เหมาะสม
+        if "No card" in error_message or "No smart card inserted" in error_message:
+            QMessageBox.information(self, "แจ้งเตือน", 
+                "ไม่พบบัตรประชาชนใน card reader\n\n"
+                "กรุณาใส่บัตรประชาชนใน card reader แล้วลองใหม่อีกครั้ง")
+        elif "Card is unresponsive" in error_message:
+            QMessageBox.warning(self, "แจ้งเตือน", 
+                "บัตรประชาชนไม่ตอบสนอง\n\n"
+                "กรุณาลอง:\n"
+                "1. ลบและใส่บัตรใหม่\n"
+                "2. ทำความสะอาดหน้าสัมผัสของบัตร\n"
+                "3. ตรวจสอบว่าบัตรเสียหายหรือไม่")
+        elif "Unable to connect" in error_message:
+            QMessageBox.warning(self, "แจ้งเตือน", 
+                "ไม่สามารถเชื่อมต่อกับ card reader ได้\n\n"
+                "กรุณาตรวจสอบ:\n"
+                "1. การเชื่อมต่อ USB\n"
+                "2. Driver ของ card reader\n"
+                "3. PC/SC service ทำงานอยู่หรือไม่")
+        else:
+            QMessageBox.warning(self, "แจ้งเตือน", error_message)
+    
+    def open_customer_dialog_with_card_data(self, card_data):
+        """เปิดหน้าจอเพิ่มข้อมูลลูกค้าพร้อมข้อมูลจากบัตร"""
+        try:
+            # สร้างหน้าจอเพิ่มข้อมูลลูกค้า
+            customer_dialog = CustomerDialog(self)
+            
+            # กรอกข้อมูลจากบัตรลงในฟอร์ม
+            customer_dialog.fill_form_with_card_data(card_data)
+            
+            # บันทึกรูปภาพถ้ามี
+            if "photo" in card_data and card_data["photo"]:
+                customer_dialog.save_card_photo(card_data["photo"], card_data.get("CID", "unknown"))
+            
+            # แสดงหน้าจอ
+            if customer_dialog.exec():
+                # หากบันทึกสำเร็จ ให้อัปเดตข้อมูลลูกค้าปัจจุบัน
+                if customer_dialog.customer_data:
+                    self.current_customer = customer_dialog.customer_data
+                    self.load_customer_data()
+                    QMessageBox.information(self, "สำเร็จ", "เพิ่มข้อมูลลูกค้าจากบัตรประชาชนเรียบร้อย")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าจอเพิ่มข้อมูลลูกค้าได้: {str(e)}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
