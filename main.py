@@ -2742,7 +2742,13 @@ class PawnShopUI(QMainWindow):
             missing_data.append("สินค้า")
         
         if missing_data:
-            QMessageBox.warning(self, "แจ้งเตือน", f"กรุณาเลือก{', '.join(missing_data)}ก่อนสร้างใบขายฝาก")
+            if hasattr(self, 'current_contract') and self.current_contract:
+                # ถ้ามีสัญญาแต่ไม่มีข้อมูลลูกค้าหรือสินค้า แสดงข้อความที่ชัดเจนขึ้น
+                QMessageBox.warning(self, "แจ้งเตือน", 
+                    f"ไม่พบข้อมูล{', '.join(missing_data)}ในสัญญา\n"
+                    "กรุณาโหลดข้อมูลสัญญาใหม่อีกครั้ง หรือตรวจสอบฐานข้อมูล")
+            else:
+                QMessageBox.warning(self, "แจ้งเตือน", f"กรุณาเลือก{', '.join(missing_data)}ก่อนสร้างใบขายฝาก")
             return
         
         # ตรวจสอบว่ามีข้อมูลสัญญาพื้นฐานหรือไม่
@@ -2778,6 +2784,10 @@ class PawnShopUI(QMainWindow):
     def _create_pawn_contract_pdf(self, file_path):
         """สร้างไฟล์ PDF ใบขายฝากโดยใช้ฟังก์ชันจาก pdf.py"""
         try:
+            # ตรวจสอบข้อมูลลูกค้าและสินค้าอีกครั้ง
+            if not self.current_customer or not self.current_product:
+                raise Exception("ข้อมูลลูกค้าหรือสินค้าไม่ครบถ้วน")
+            
             # นำเข้าฟังก์ชันจาก pdf.py
             from pdf import generate_pawn_ticket_from_data
             
@@ -2803,13 +2813,21 @@ class PawnShopUI(QMainWindow):
                 'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
             }
             
+            # ดึงข้อมูลการต่อดอกจากฐานข้อมูล
+            renewal_data = []
+            if hasattr(self, 'current_contract') and self.current_contract:
+                contract_id = self.current_contract.get('id')
+                if contract_id:
+                    renewal_data = self.db.get_renewals_by_contract(contract_id)
+            
             # เรียกใช้ฟังก์ชันสร้าง PDF จาก pdf.py
             result = generate_pawn_ticket_from_data(
                 contract_data=contract_data,
                 customer_data=self.current_customer,
                 product_data=self.current_product,
                 shop_data=shop_data,
-                output_file=file_path
+                output_file=file_path,
+                renewal_data=renewal_data
             )
             
             if not result:
@@ -3260,6 +3278,9 @@ class PawnShopUI(QMainWindow):
             if customer_id:
                 customer = self.db.get_customer_by_id(customer_id)
                 if customer:
+                    # ตั้งค่า current_customer เพื่อใช้ในการสร้าง PDF
+                    self.current_customer = customer
+                    
                     # โหลดข้อมูลที่อยู่
                     self.customer_code_edit.setText(customer.get('customer_code', ''))
                     self.customer_address_edit.setText(customer.get('address', ''))
@@ -3277,6 +3298,9 @@ class PawnShopUI(QMainWindow):
             if product_id:
                 product = self.db.get_product_by_id(product_id)
                 if product:
+                    # ตั้งค่า current_product เพื่อใช้ในการสร้าง PDF
+                    self.current_product = product
+                    
                     self.product_name_edit.setText(product.get('name', ''))
                     self.product_brand_edit.setText(product.get('brand', ''))
                     self.product_size_edit.setText(product.get('size', ''))
@@ -3328,7 +3352,13 @@ class PawnShopUI(QMainWindow):
                         self.load_renewal_history(contract_number)
                     
                     # แสดงข้อความแจ้งเตือน
-                    QMessageBox.information(self, "โหลดข้อมูล", f"โหลดข้อมูลสัญญา {contract.get('contract_number', '')} เรียบร้อยแล้ว")
+                    customer_name = f"{self.current_customer.get('first_name', '')} {self.current_customer.get('last_name', '')}" if self.current_customer else "ไม่พบข้อมูล"
+                    product_name = self.current_product.get('name', 'ไม่พบข้อมูล') if self.current_product else "ไม่พบข้อมูล"
+                    
+                    QMessageBox.information(self, "โหลดข้อมูล", 
+                        f"โหลดข้อมูลสัญญา {contract.get('contract_number', '')} เรียบร้อยแล้ว\n"
+                        f"ลูกค้า: {customer_name}\n"
+                        f"สินค้า: {product_name}")
                     
         except Exception as e:
             print(f"Error handling table click: {e}")

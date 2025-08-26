@@ -355,6 +355,37 @@ class PawnShopDatabase:
             conn.commit()
             return contract_id
     
+    def update_contract(self, contract_data: Dict) -> int:
+        """อัพเดทสัญญา"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                UPDATE contracts SET
+                    customer_id = ?, product_id = ?, pawn_amount = ?,
+                    interest_rate = ?, fee_amount = ?, withholding_tax_rate = ?, 
+                    withholding_tax_amount = ?, total_paid = ?, total_redemption = ?, 
+                    start_date = ?, end_date = ?, days_count = ?
+                WHERE id = ?
+            ''', (
+                contract_data['customer_id'],
+                contract_data['product_id'],
+                contract_data['pawn_amount'],
+                contract_data['interest_rate'],
+                contract_data['fee_amount'],
+                contract_data.get('withholding_tax_rate', 0.0),
+                contract_data.get('withholding_tax_amount', 0.0),
+                contract_data['total_paid'],
+                contract_data['total_redemption'],
+                contract_data['start_date'],
+                contract_data['end_date'],
+                contract_data['days_count'],
+                contract_data['id']
+            ))
+            
+            conn.commit()
+            return contract_data['id']
+    
     def get_customer_by_id(self, customer_id: int) -> Optional[Dict]:
         """ดึงข้อมูลลูกค้าตาม ID"""
         with self.get_connection() as conn:

@@ -49,18 +49,35 @@ class NewContractDialog(QDialog):
         product_tab = self.create_product_tab()
         tab_widget.addTab(product_tab, "ข้อมูลสินค้า")
         
-
+        # Tab 4: ข้อมูลการต่อดอก
+        renewal_tab = self.create_renewal_tab()
+        tab_widget.addTab(renewal_tab, "ข้อมูลการต่อดอก")
         
         layout.addWidget(tab_widget)
         
         # ปุ่ม
         button_layout = QHBoxLayout()
+        
+        # ปุ่มโหลดสัญญาเดิม
+        self.load_existing_contract_btn = QPushButton("โหลดสัญญาเดิม")
+        self.load_existing_contract_btn.clicked.connect(self.load_existing_contract)
+        
+        # ปุ่มบันทึก
         self.save_button = QPushButton("บันทึกสัญญา")
         self.save_button.clicked.connect(self.save_contract)
+        
+        # ปุ่มยกเลิก
         self.cancel_button = QPushButton("ยกเลิก")
         self.cancel_button.clicked.connect(self.reject)
         
+        button_layout.addWidget(self.load_existing_contract_btn)
         button_layout.addWidget(self.save_button)
+        
+        # ปุ่มล้างฟอร์ม
+        self.clear_form_btn = QPushButton("ล้างฟอร์ม")
+        self.clear_form_btn.clicked.connect(self.clear_form)
+        button_layout.addWidget(self.clear_form_btn)
+        
         button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
     
@@ -270,7 +287,262 @@ class NewContractDialog(QDialog):
         
         return widget
     
-
+    def create_renewal_tab(self):
+        """สร้าง Tab ข้อมูลการต่อดอก"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # ข้อมูลการต่อดอก
+        renewal_group = QGroupBox("ข้อมูลการต่อดอก")
+        renewal_layout = QGridLayout(renewal_group)
+        
+        # จำนวนวันฝากนับถึงปัจจุบัน
+        renewal_layout.addWidget(QLabel("จำนวนวันฝากนับถึงปัจจุบัน:"), 0, 0)
+        self.days_deposit_label = QLabel("0 วัน")
+        renewal_layout.addWidget(self.days_deposit_label, 0, 1)
+        
+        # ต่อดอกครั้งที่
+        renewal_layout.addWidget(QLabel("ต่อดอกครั้งที่:"), 1, 0)
+        self.renewal_count_spin = QSpinBox()
+        self.renewal_count_spin.setRange(1, 99)
+        self.renewal_count_spin.setValue(1)
+        self.renewal_count_spin.valueChanged.connect(self.calculate_renewal_amounts)
+        renewal_layout.addWidget(self.renewal_count_spin, 1, 1)
+        
+        # ค่าธรรมเนียมต่อดอก
+        renewal_layout.addWidget(QLabel("ค่าธรรมเนียมต่อดอก:"), 2, 0)
+        self.renewal_fee_amount_spin = QDoubleSpinBox()
+        self.renewal_fee_amount_spin.setRange(0, 999999)
+        self.renewal_fee_amount_spin.setSuffix(" บาท")
+        self.renewal_fee_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
+        renewal_layout.addWidget(self.renewal_fee_amount_spin, 2, 1)
+        
+        # ค่าปรับ
+        renewal_layout.addWidget(QLabel("ค่าปรับ:"), 3, 0)
+        self.renewal_penalty_amount_spin = QDoubleSpinBox()
+        self.renewal_penalty_amount_spin.setRange(0, 999999)
+        self.renewal_penalty_amount_spin.setSuffix(" บาท")
+        self.renewal_penalty_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
+        renewal_layout.addWidget(self.renewal_penalty_amount_spin, 3, 1)
+        
+        # ส่วนลด
+        renewal_layout.addWidget(QLabel("ส่วนลด:"), 4, 0)
+        self.renewal_discount_amount_spin = QDoubleSpinBox()
+        self.renewal_discount_amount_spin.setRange(0, 999999)
+        self.renewal_discount_amount_spin.setSuffix(" บาท")
+        self.renewal_discount_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
+        renewal_layout.addWidget(self.renewal_discount_amount_spin, 4, 1)
+        
+        # รวม
+        renewal_layout.addWidget(QLabel("รวม:"), 5, 0)
+        self.renewal_total_amount_label = QLabel("0.00 บาท")
+        renewal_layout.addWidget(self.renewal_total_amount_label, 5, 1)
+        
+        # วันที่ต่อดอก
+        renewal_layout.addWidget(QLabel("วันต่อดอก:"), 6, 0)
+        self.renewal_date_edit = QDateEdit()
+        self.renewal_date_edit.setDate(QDate.currentDate())
+        renewal_layout.addWidget(self.renewal_date_edit, 6, 1)
+        
+        # วันครบกำหนดปัจจุบัน
+        renewal_layout.addWidget(QLabel("วันครบกำหนดปัจจุบัน:"), 7, 0)
+        self.current_due_date_edit = QDateEdit()
+        self.current_due_date_edit.setDate(QDate.currentDate())
+        renewal_layout.addWidget(self.current_due_date_edit, 7, 1)
+        
+        # วันครบกำหนดใหม่
+        renewal_layout.addWidget(QLabel("วันครบกำหนดใหม่:"), 8, 0)
+        self.new_due_date_edit = QDateEdit()
+        self.new_due_date_edit.setDate(QDate.currentDate())
+        renewal_layout.addWidget(self.new_due_date_edit, 8, 1)
+        
+        # จำนวนวันต่อดอก
+        renewal_layout.addWidget(QLabel("จำนวนวันต่อดอก:"), 9, 0)
+        self.extension_days_spin = QSpinBox()
+        self.extension_days_spin.setRange(1, 365)
+        self.extension_days_spin.setValue(30)
+        self.extension_days_spin.valueChanged.connect(self.calculate_extension_dates)
+        renewal_layout.addWidget(self.extension_days_spin, 9, 1)
+        
+        layout.addWidget(renewal_group)
+        
+        # ปุ่มบันทึกการต่อดอก
+        button_layout = QHBoxLayout()
+        self.save_renewal_btn = QPushButton("บันทึกการต่อดอก")
+        self.save_renewal_btn.clicked.connect(self.save_renewal)
+        button_layout.addWidget(self.save_renewal_btn)
+        layout.addLayout(button_layout)
+        
+        return widget
+    
+    def calculate_renewal_amounts(self):
+        """คำนวณยอดการต่อดอก"""
+        fee_amount = self.renewal_fee_amount_spin.value()
+        penalty_amount = self.renewal_penalty_amount_spin.value()
+        discount_amount = self.renewal_discount_amount_spin.value()
+        
+        total_amount = fee_amount + penalty_amount - discount_amount
+        self.renewal_total_amount_label.setText(f"{total_amount:,.2f} บาท")
+    
+    def calculate_extension_dates(self):
+        """คำนวณวันที่ต่อดอก"""
+        current_due_date = self.current_due_date_edit.date()
+        extension_days = self.extension_days_spin.value()
+        new_due_date = current_due_date.addDays(extension_days)
+        self.new_due_date_edit.setDate(new_due_date)
+    
+    def save_renewal(self):
+        """บันทึกการต่อดอก"""
+        if not hasattr(self, 'current_contract') or not self.current_contract:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาสร้างสัญญาก่อนบันทึกการต่อดอก")
+            return
+        
+        try:
+            renewal_data = {
+                'contract_id': self.current_contract['id'],
+                'contract_number': self.current_contract['contract_number'],
+                'renewal_count': self.renewal_count_spin.value(),
+                'fee_amount': self.renewal_fee_amount_spin.value(),
+                'penalty_amount': self.renewal_penalty_amount_spin.value(),
+                'discount_amount': self.renewal_discount_amount_spin.value(),
+                'total_amount': float(self.renewal_total_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'renewal_date': self.renewal_date_edit.date().toString("yyyy-MM-dd"),
+                'current_due_date': self.current_due_date_edit.date().toString("yyyy-MM-dd"),
+                'new_due_date': self.new_due_date_edit.date().toString("yyyy-MM-dd"),
+                'extension_days': self.extension_days_spin.value()
+            }
+            
+            renewal_id = self.db.add_renewal(renewal_data)
+            QMessageBox.information(self, "สำเร็จ", "บันทึกการต่อดอกเรียบร้อย")
+            
+            # อัพเดทข้อมูลสัญญา
+            self.current_contract = self.db.get_contract_by_id(self.current_contract['id'])
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+    
+    def load_existing_contract(self):
+        """โหลดสัญญาเดิมมาแก้ไข"""
+        try:
+            # สร้าง dialog สำหรับค้นหาสัญญา
+            from PySide6.QtWidgets import QInputDialog
+            
+            contract_number, ok = QInputDialog.getText(
+                self, 
+                "โหลดสัญญาเดิม", 
+                "กรุณากรอกเลขที่สัญญาที่ต้องการแก้ไข:"
+            )
+            
+            if ok and contract_number.strip():
+                # ค้นหาสัญญาในฐานข้อมูล
+                contract = self.db.get_contract_by_number(contract_number.strip())
+                
+                if contract:
+                    # ตั้งค่า current_contract
+                    self.current_contract = contract
+                    
+                    # โหลดข้อมูลสัญญา
+                    self.load_contract_data(contract)
+                    
+                    # โหลดข้อมูลลูกค้า
+                    customer = self.db.get_customer_by_id(contract['customer_id'])
+                    if customer:
+                        self.current_customer = customer
+                        self.load_customer_data()
+                    
+                    # โหลดข้อมูลสินค้า
+                    product = self.db.get_product_by_id(contract['product_id'])
+                    if product:
+                        self.current_product = product
+                        self.load_product_data()
+                    
+                    QMessageBox.information(self, "สำเร็จ", f"โหลดสัญญา {contract_number} เรียบร้อยแล้ว")
+                else:
+                    QMessageBox.warning(self, "ไม่พบข้อมูล", f"ไม่พบสัญญาเลขที่ {contract_number}")
+            else:
+                QMessageBox.information(self, "ยกเลิก", "ยกเลิกการโหลดสัญญา")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+    
+    def load_contract_data(self, contract_data):
+        """โหลดข้อมูลสัญญา"""
+        if contract_data:
+            # โหลดข้อมูลสัญญา
+            self.contract_number_edit.setText(contract_data.get('contract_number', ''))
+            self.pawn_amount_spin.setValue(contract_data.get('pawn_amount', 0))
+            self.interest_rate_spin.setValue(contract_data.get('interest_rate', 0))
+            
+            # โหลดวันที่
+            start_date = contract_data.get('start_date', '')
+            if start_date:
+                try:
+                    if isinstance(start_date, str):
+                        if '-' in start_date:
+                            from PySide6.QtCore import QDate
+                            date_obj = QDate.fromString(start_date, "yyyy-MM-dd")
+                            if date_obj.isValid():
+                                self.start_date_edit.setDate(date_obj)
+                except:
+                    pass
+            
+            # โหลดจำนวนวัน
+            days_count = contract_data.get('days_count', 0)
+            if days_count > 0:
+                self.days_spin.setValue(days_count)
+            
+            # คำนวณวันที่สิ้นสุด
+            self.calculate_end_date()
+            
+            # คำนวณยอดต่างๆ
+            self.calculate_amounts()
+    
+    def clear_form(self):
+        """ล้างฟอร์ม"""
+        self.current_customer = None
+        self.current_product = None
+        self.current_contract = None
+        
+        # ล้างข้อมูลสัญญา
+        self.contract_number_edit.clear()
+        self.pawn_amount_spin.setValue(0)
+        self.interest_rate_spin.setValue(0)
+        self.days_spin.setValue(30)
+        self.start_date_edit.setDate(QDate.currentDate())
+        self.end_date_edit.clear()
+        
+        # ล้างข้อมูลลูกค้า
+        self.customer_code_edit.clear()
+        self.customer_name_edit.clear()
+        self.address_edit.clear()
+        self.id_card_edit.clear()
+        self.phone_edit.clear()
+        
+        # ล้างข้อมูลสินค้า
+        self.product_name_edit.clear()
+        self.product_brand_edit.clear()
+        self.product_size_edit.clear()
+        self.product_weight_edit.clear()
+        self.serial_number_edit.clear()
+        self.product_details_edit.clear()
+        
+        # ล้างข้อมูลการต่อดอก
+        if hasattr(self, 'renewal_fee_amount_spin'):
+            self.renewal_fee_amount_spin.setValue(0)
+            self.renewal_penalty_amount_spin.setValue(0)
+            self.renewal_discount_amount_spin.setValue(0)
+            self.renewal_total_amount_label.setText("0.00 บาท")
+            self.renewal_date_edit.setDate(QDate.currentDate())
+            self.extension_days_spin.setValue(30)
+        
+        # สร้างเลขที่สัญญาใหม่
+        self.generate_new_contract_number()
+        
+        # คำนวณวันที่สิ้นสุด
+        self.calculate_end_date()
+        
+        # คำนวณยอดต่างๆ
+        self.calculate_amounts()
     
     def load_settings(self):
         """โหลดการตั้งค่า"""
@@ -282,8 +554,17 @@ class NewContractDialog(QDialog):
         self.days_spin.setValue(default_days)
         self.withholding_tax_rate_spin.setValue(default_withholding_tax_rate)
         
+        # ตั้งค่าเริ่มต้นสำหรับข้อมูลการต่อดอก
+        if hasattr(self, 'extension_days_spin'):
+            self.extension_days_spin.setValue(default_days)
+            self.calculate_extension_dates()
+        
         # สร้างเลขที่สัญญาใหม่
         self.generate_new_contract_number()
+        
+        # เพิ่มปุ่มโหลดสัญญาเดิม
+        if hasattr(self, 'load_existing_contract_btn'):
+            self.load_existing_contract_btn.clicked.connect(self.load_existing_contract)
     
     def generate_new_contract_number(self):
         """สร้างเลขที่สัญญาใหม่"""
@@ -299,6 +580,11 @@ class NewContractDialog(QDialog):
         days = self.days_spin.value()
         end_date = start_date.addDays(days)
         self.end_date_edit.setText(end_date.toString("dd/MM/yyyy"))
+        
+        # อัพเดทวันที่ครบกำหนดปัจจุบันในการต่อดอก
+        if hasattr(self, 'current_due_date_edit'):
+            self.current_due_date_edit.setDate(end_date)
+            self.calculate_extension_dates()
     
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
@@ -423,8 +709,36 @@ class NewContractDialog(QDialog):
         }
         
         try:
-            contract_id = self.db.create_contract(contract_data)
-            QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาเรียบร้อย")
+            # ตรวจสอบว่ามีสัญญาอยู่แล้วหรือไม่
+            if hasattr(self, 'current_contract') and self.current_contract:
+                # อัพเดทสัญญาเดิม
+                contract_data['id'] = self.current_contract['id']
+                contract_id = self.db.update_contract(contract_data)
+                action_message = "อัพเดทสัญญาเรียบร้อย"
+            else:
+                # สร้างสัญญาใหม่
+                contract_id = self.db.create_contract(contract_data)
+                action_message = "บันทึกสัญญาเรียบร้อย"
+            
+            # บันทึกข้อมูลการต่อดอกถ้ามี
+            if hasattr(self, 'renewal_fee_amount_spin') and self.renewal_fee_amount_spin.value() > 0:
+                renewal_data = {
+                    'contract_id': contract_id,
+                    'contract_number': contract_data['contract_number'],
+                    'renewal_count': self.renewal_count_spin.value(),
+                    'fee_amount': self.renewal_fee_amount_spin.value(),
+                    'penalty_amount': self.renewal_penalty_amount_spin.value(),
+                    'discount_amount': self.renewal_discount_amount_spin.value(),
+                    'total_amount': float(self.renewal_total_amount_label.text().replace(' บาท', '').replace(',', '')),
+                    'renewal_date': self.renewal_date_edit.date().toString("yyyy-MM-dd"),
+                    'current_due_date': self.current_due_date_edit.date().toString("yyyy-MM-dd"),
+                    'new_due_date': self.new_due_date_edit.date().toString("yyyy-MM-dd"),
+                    'extension_days': self.extension_days_spin.value()
+                }
+                
+                self.db.add_renewal(renewal_data)
+            
+            QMessageBox.information(self, "สำเร็จ", action_message)
             self.accept()
             
         except Exception as e:
