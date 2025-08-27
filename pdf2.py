@@ -6,11 +6,44 @@ from reportlab.pdfbase.ttfonts import TTFont
 import os
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
+from PySide6.QtWidgets import QFileDialog, QMessageBox, QApplication
+import sys
+
+
+def select_output_folder(title="เลือกโฟลเดอร์สำหรับจัดเก็บไฟล์ PDF") -> Optional[str]:
+    """
+    ฟังก์ชันสำหรับเลือกโฟลเดอร์ในการจัดเก็บไฟล์ PDF
+    
+    Args:
+        title (str): หัวข้อของ dialog
+        
+    Returns:
+        str: เส้นทางโฟลเดอร์ที่เลือก หรือ None ถ้ายกเลิก
+    """
+    try:
+        # สร้าง QApplication ถ้ายังไม่มี
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        
+        folder = QFileDialog.getExistingDirectory(
+            None,
+            title,
+            "",
+            QFileDialog.Option.ShowDirsOnly
+        )
+        
+        return folder if folder else None
+        
+    except Exception as e:
+        print(f"เกิดข้อผิดพลาดในการเลือกโฟลเดอร์: {e}")
+        return None
 
 
 def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: Dict, product_data: Dict,
                                  renewal_data: Dict, shop_data: Optional[Dict] = None, 
-                                 output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
+                                 output_file: Optional[str] = None, output_folder: Optional[str] = None,
+                                 ask_folder: bool = False) -> str:
     """
     สร้าง PDF ใบฝากต่อจากข้อมูลการต่อดอก
     
@@ -21,6 +54,8 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         renewal_data (Dict): ข้อมูลการต่อดอก
         shop_data (Dict, optional): ข้อมูลร้านค้า
         output_file (str, optional): ชื่อไฟล์ PDF ที่จะสร้าง
+        output_folder (str, optional): โฟลเดอร์ที่จะบันทึกไฟล์
+        ask_folder (bool): ถ้าเป็น True จะแสดง dialog เลือกโฟลเดอร์
     
     Returns:
         str: ชื่อไฟล์ PDF ที่สร้าง
@@ -47,6 +82,14 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         contract_number = original_contract_data.get('contract_number', 'unknown')
         renewal_date = renewal_data.get('renewal_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
+    
+    # จัดการโฟลเดอร์ปลายทาง
+    if ask_folder and not output_folder:
+        # ถ้าต้องการให้เลือกโฟลเดอร์และยังไม่ได้เลือก
+        output_folder = select_output_folder()
+        if not output_folder:
+            print("ยกเลิกการสร้าง PDF")
+            return ""
     
     # กำหนดโฟลเดอร์ปลายทาง
     if output_folder:
@@ -390,7 +433,8 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
 
 def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict, 
                                  original_contract_data: Dict, shop_data: Optional[Dict] = None,
-                                 output_file: Optional[str] = None) -> str:
+                                 output_file: Optional[str] = None, output_folder: Optional[str] = None,
+                                 ask_folder: bool = False) -> str:
     """
     สร้าง PDF ใบเสร็จการต่อดอก
     
@@ -426,6 +470,21 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
         contract_number = original_contract_data.get('contract_number', 'unknown')
         renewal_date = renewal_data.get('renewal_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"renewal_receipt_{contract_number}_{renewal_date}.pdf"
+    
+    # จัดการโฟลเดอร์ปลายทาง
+    if ask_folder and not output_folder:
+        # ถ้าต้องการให้เลือกโฟลเดอร์และยังไม่ได้เลือก
+        output_folder = select_output_folder("เลือกโฟลเดอร์สำหรับจัดเก็บใบเสร็จการต่อดอก")
+        if not output_folder:
+            print("ยกเลิกการสร้าง PDF")
+            return ""
+    
+    # กำหนดโฟลเดอร์ปลายทาง
+    if output_folder:
+        # สร้างโฟลเดอร์ถ้ายังไม่มี
+        os.makedirs(output_folder, exist_ok=True)
+        # รวมเส้นทางโฟลเดอร์กับชื่อไฟล์
+        output_file = os.path.join(output_folder, output_file)
 
     c = canvas.Canvas(output_file, pagesize=A4)
     width, height = A4
@@ -538,6 +597,11 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
 if __name__ == "__main__":
     # ตัวอย่างการใช้งาน
     print("PDF2.py - ระบบสร้างใบฝากต่อ")
+    print("ฟีเจอร์ใหม่: สามารถเลือกโฟลเดอร์ในการจัดเก็บไฟล์ PDF ได้")
     print("ฟังก์ชันที่ใช้งานได้:")
     print("1. generate_renewal_contract_pdf() - สร้างใบฝากต่อ")
     print("2. generate_renewal_receipt_pdf() - สร้างใบเสร็จการต่อดอก")
+    print("3. select_output_folder() - เลือกโฟลเดอร์สำหรับจัดเก็บไฟล์")
+    print("\nตัวอย่างการใช้งาน:")
+    print("- ใช้ ask_folder=True เพื่อให้เลือกโฟลเดอร์อัตโนมัติ")
+    print("- ใช้ output_folder='path/to/folder' เพื่อระบุโฟลเดอร์โดยตรง")

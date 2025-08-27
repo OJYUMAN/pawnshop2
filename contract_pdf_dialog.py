@@ -12,6 +12,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 from database import PawnShopDatabase
 from contract_pdf_generator import ContractPDFGenerator
+from datetime import datetime
+import os
 import os
 import subprocess
 import platform

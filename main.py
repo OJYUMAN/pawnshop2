@@ -2758,24 +2758,28 @@ class PawnShopUI(QMainWindow):
             return
         
         try:
-            # เลือกตำแหน่งที่จะบันทึกไฟล์ PDF
-            options = QFileDialog.Options()
-            contract_number = self.contract_number_edit.text() or "ใหม่"
-            file_name, _ = QFileDialog.getSaveFileName(
-                self,
-                "บันทึกใบขายฝาก",
-                f"ใบขายฝาก_{contract_number}.pdf",
-                "PDF Files (*.pdf)",
-                options=options
-            )
+            # เลือกโฟลเดอร์ที่จะบันทึกไฟล์ PDF
+            folder_dialog = QFileDialog()
+            folder_dialog.setFileMode(QFileDialog.FileMode.Directory)
+            folder_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+            folder_dialog.setWindowTitle("เลือกโฟลเดอร์สำหรับจัดเก็บใบขายฝาก")
             
-            if not file_name:
+            if folder_dialog.exec() != QFileDialog.DialogCode.Accepted:
                 return
             
-            # สร้าง PDF
-            self._create_pawn_contract_pdf(file_name)
+            selected_folder = folder_dialog.selectedFiles()[0] if folder_dialog.selectedFiles() else None
+            if not selected_folder:
+                return
             
-            QMessageBox.information(self, "สำเร็จ", f"สร้างใบขายฝากเรียบร้อยแล้ว\nบันทึกที่: {file_name}")
+            # สร้างชื่อไฟล์
+            contract_number = self.contract_number_edit.text() or "ใหม่"
+            file_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            output_path = os.path.join(selected_folder, file_name)
+            
+            # สร้าง PDF
+            self._create_pawn_contract_pdf(output_path)
+            
+            QMessageBox.information(self, "สำเร็จ", f"สร้างใบขายฝากเรียบร้อยแล้ว\nบันทึกที่: {output_path}")
             
             # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
@@ -3021,6 +3025,19 @@ class PawnShopUI(QMainWindow):
             return
         
         try:
+            # เลือกโฟลเดอร์ที่จะบันทึกไฟล์ PDF
+            folder_dialog = QFileDialog()
+            folder_dialog.setFileMode(QFileDialog.FileMode.Directory)
+            folder_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+            folder_dialog.setWindowTitle("เลือกโฟลเดอร์สำหรับจัดเก็บใบฝากต่อ")
+            
+            if folder_dialog.exec() != QFileDialog.DialogCode.Accepted:
+                return
+            
+            selected_folder = folder_dialog.selectedFiles()[0] if folder_dialog.selectedFiles() else None
+            if not selected_folder:
+                return
+            
             # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
             contract_id = self.current_contract['id']
             customer = self.db.get_customer_by_id(self.current_contract.get('customer_id'))
@@ -3107,29 +3124,30 @@ class PawnShopUI(QMainWindow):
                 renewal_date = renewal_data['renewal_date'].replace('-', '') if renewal_data['renewal_date'] else datetime.now().strftime('%Y%m%d')
                 output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
                 
-                # สร้าง PDF
+                # สร้าง PDF พร้อมโฟลเดอร์ที่เลือก
                 result = generate_renewal_contract_pdf(
                     original_contract_data=original_contract_data,
                     customer_data=customer_data,
                     product_data=product_data,
                     renewal_data=renewal_data,
                     shop_data=shop_data,
-                    output_file=output_file
+                    output_file=output_file,
+                    output_folder=selected_folder
                 )
                 
                 if result:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {output_file}")
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {result}")
                     
                     # เปิดไฟล์ PDF
                     import subprocess
                     import platform
                     
                     if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", output_file])
+                        subprocess.run(["open", result])
                     elif platform.system() == "Windows":
-                        subprocess.run(["start", output_file], shell=True)
+                        subprocess.run(["start", result], shell=True)
                     else:  # Linux
-                        subprocess.run(["xdg-open", output_file])
+                        subprocess.run(["xdg-open", result])
                 else:
                     QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
                     

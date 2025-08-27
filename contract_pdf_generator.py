@@ -41,13 +41,14 @@ class ContractPDFGenerator(QObject):
             print(f"เกิดข้อผิดพลาดในการโหลดฟอนต์: {e}")
             raise
     
-    def generate_contract_pdf(self, contract_id: int, output_path: str = None) -> Optional[str]:
+    def generate_contract_pdf(self, contract_id: int, output_path: str = None, ask_folder: bool = False) -> Optional[str]:
         """
         สร้างใบขายฝาก PDF จากข้อมูลสัญญา
         
         Args:
             contract_id: ID ของสัญญา
             output_path: เส้นทางไฟล์ที่จะบันทึก (ถ้าไม่ระบุจะให้เลือกเอง)
+            ask_folder: ถ้าเป็น True จะแสดง dialog เลือกโฟลเดอร์
         
         Returns:
             เส้นทางไฟล์ที่บันทึก หรือ None ถ้าเกิดข้อผิดพลาด
@@ -68,7 +69,16 @@ class ContractPDFGenerator(QObject):
             # กำหนดชื่อไฟล์
             if not output_path:
                 filename = f"ใบขายฝาก_{contract_data['contract_number']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                output_path = os.path.join(os.getcwd(), filename)
+                
+                if ask_folder:
+                    # ให้ผู้ใช้เลือกโฟลเดอร์
+                    selected_folder = self.select_save_folder("เลือกโฟลเดอร์สำหรับจัดเก็บใบขายฝาก")
+                    if not selected_folder:
+                        print("ยกเลิกการสร้าง PDF")
+                        return None
+                    output_path = os.path.join(selected_folder, filename)
+                else:
+                    output_path = os.path.join(os.getcwd(), filename)
             
             # สร้าง PDF
             self._create_pdf(contract_data, customer_data, product_data, output_path)
@@ -369,22 +379,32 @@ class ContractPDFGenerator(QObject):
         
         return file_path if file_path else None
 
+    def select_save_folder(self, title: str) -> Optional[str]:
+        """ให้ผู้ใช้เลือกโฟลเดอร์"""
+        folder_path = QFileDialog.getExistingDirectory(
+            None,
+            title,
+            os.path.expanduser("~") # เริ่มจากโฟลเดอร์ที่ผู้ใช้ตั้งไว้
+        )
+        return folder_path if folder_path else None
+
 
 # ฟังก์ชันสำหรับใช้งานจากภายนอก
-def generate_contract_pdf(contract_id: int, output_path: str = None) -> Optional[str]:
+def generate_contract_pdf(contract_id: int, output_path: str = None, ask_folder: bool = False) -> Optional[str]:
     """
     ฟังก์ชันสำหรับสร้างใบขายฝาก PDF
     
     Args:
         contract_id: ID ของสัญญา
         output_path: เส้นทางไฟล์ที่จะบันทึก (ถ้าไม่ระบุจะให้เลือกเอง)
+        ask_folder: ถ้าเป็น True จะแสดง dialog เลือกโฟลเดอร์
     
     Returns:
         เส้นทางไฟล์ที่บันทึก หรือ None ถ้าเกิดข้อผิดพลาด
     """
     try:
         generator = ContractPDFGenerator()
-        return generator.generate_contract_pdf(contract_id, output_path)
+        return generator.generate_contract_pdf(contract_id, output_path, ask_folder)
     except Exception as e:
         print(f"เกิดข้อผิดพลาด: {e}")
         return None
