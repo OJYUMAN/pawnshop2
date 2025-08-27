@@ -1451,6 +1451,16 @@ class RedemptionDialog(QDialog):
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
         """สร้างสัญญาไถ่ถอนเป็น PDF"""
         try:
+            # แสดง dialog เลือกโฟลเดอร์
+            folder_dialog = FolderSelectionDialog(self, "เลือกโฟลเดอร์สำหรับจัดเก็บสัญญาไถ่ถอน")
+            if folder_dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            
+            selected_folder = folder_dialog.get_selected_folder()
+            if not selected_folder:
+                QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกโฟลเดอร์")
+                return
+            
             # นำเข้า pdf3.py
             from pdf3 import generate_redemption_contract_pdf
             
@@ -1514,7 +1524,7 @@ class RedemptionDialog(QDialog):
             
             # ข้อมูลร้านค้า
             shop_data = {
-                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
+                'name': 'ร้าน ไอโปรโมบายเซอร์วิス',
                 'branch': 'สาขาหล่มสัก',
                 'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
             }
@@ -1524,47 +1534,48 @@ class RedemptionDialog(QDialog):
             redemption_date = redemption_data['redemption_date'].replace('-', '')
             output_file = f"redemption_contract_{contract_number}_{redemption_date}.pdf"
             
-            # สร้าง PDF สัญญาไถ่ถอน
+            # สร้าง PDF สัญญาไถ่ถอนพร้อมโฟลเดอร์ที่เลือก
             result = generate_redemption_contract_pdf(
                 redemption_data=redemption_pdf_data,
                 customer_data=customer_data,
                 product_data=product_data,
                 original_contract_data=original_contract_data,
                 shop_data=shop_data,
-                output_file=output_file
+                output_file=output_file,
+                output_folder=selected_folder
             )
             
             if result:
                 # ตรวจสอบว่าเป็นการสร้างเฉพาะสัญญาหรือการไถ่ถอนจริง
                 if redemption_id is not None:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {output_file}")
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {result}")
                     
                     # เปิดไฟล์ PDF
                     import subprocess
                     import platform
                     
                     if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", output_file])
+                        subprocess.run(["open", result])
                     elif platform.system() == "Windows":
-                        subprocess.run(["start", output_file], shell=True)
+                        subprocess.run(["start", result], shell=True)
                     else:  # Linux
-                        subprocess.run(["xdg-open", output_file])
+                        subprocess.run(["xdg-open", result])
                         
                     # พิมพ์สัญญาไถ่ถอน
-                    self.print_redemption_contract(output_file)
+                    self.print_redemption_contract(result)
                 else:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {output_file}")
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {result}")
                     
                     # เปิดไฟล์ PDF
                     import subprocess
                     import platform
                     
                     if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", output_file])
+                        subprocess.run(["open", result])
                     elif platform.system() == "Windows":
-                        subprocess.run(["start", output_file], shell=True)
+                        subprocess.run(["start", result], shell=True)
                     else:  # Linux
-                        subprocess.run(["xdg-open", output_file])
+                        subprocess.run(["xdg-open", result])
             else:
                 QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่ถอนไม่สำเร็จ")
                 
@@ -1639,6 +1650,78 @@ class RedemptionDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+
+class FolderSelectionDialog(QDialog):
+    """Dialog สำหรับเลือกโฟลเดอร์ในการจัดเก็บไฟล์ PDF"""
+    
+    def __init__(self, parent=None, title="เลือกโฟลเดอร์สำหรับจัดเก็บไฟล์ PDF"):
+        super().__init__(parent)
+        self.selected_folder = ""
+        self.setup_ui(title)
+    
+    def setup_ui(self, title):
+        self.setWindowTitle(title)
+        self.setModal(True)
+        self.resize(500, 150)
+        
+        layout = QVBoxLayout(self)
+        
+        # หัวข้อ
+        title_label = QLabel(title)
+        title_label.setStyleSheet("font-size: 16px; font-weight: bold; margin: 10px;")
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # เลือกโฟลเดอร์
+        folder_layout = QHBoxLayout()
+        
+        self.folder_path_edit = QLineEdit()
+        self.folder_path_edit.setPlaceholderText("เลือกโฟลเดอร์สำหรับจัดเก็บไฟล์ PDF...")
+        self.folder_path_edit.setReadOnly(True)
+        
+        browse_button = QPushButton("เลือกโฟลเดอร์")
+        browse_button.clicked.connect(self.browse_folder)
+        
+        folder_layout.addWidget(self.folder_path_edit)
+        folder_layout.addWidget(browse_button)
+        
+        layout.addLayout(folder_layout)
+        
+        # ปุ่ม
+        button_layout = QHBoxLayout()
+        
+        ok_button = QPushButton("ตกลง")
+        ok_button.clicked.connect(self.accept)
+        ok_button.setEnabled(False)
+        
+        cancel_button = QPushButton("ยกเลิก")
+        cancel_button.clicked.connect(self.reject)
+        
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        
+        layout.addLayout(button_layout)
+        
+        # เชื่อมต่อสัญญาณ
+        self.folder_path_edit.textChanged.connect(lambda: ok_button.setEnabled(bool(self.folder_path_edit.text().strip())))
+    
+    def browse_folder(self):
+        """เปิด dialog เลือกโฟลเดอร์"""
+        folder = QFileDialog.getExistingDirectory(
+            self, 
+            "เลือกโฟลเดอร์สำหรับจัดเก็บไฟล์ PDF",
+            "",
+            QFileDialog.Option.ShowDirsOnly
+        )
+        
+        if folder:
+            self.folder_path_edit.setText(folder)
+            self.selected_folder = folder
+    
+    def get_selected_folder(self):
+        """ส่งคืนโฟลเดอร์ที่เลือก"""
+        return self.selected_folder
+
 
 class RenewalDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):
@@ -1897,6 +1980,16 @@ class RenewalDialog(QDialog):
             return
         
         try:
+            # แสดง dialog เลือกโฟลเดอร์
+            folder_dialog = FolderSelectionDialog(self, "เลือกโฟลเดอร์สำหรับจัดเก็บใบฝากต่อ")
+            if folder_dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+            
+            selected_folder = folder_dialog.get_selected_folder()
+            if not selected_folder:
+                QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกโฟลเดอร์")
+                return
+            
             # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
             contract_id = self.contract_data['id']
             customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
@@ -1967,29 +2060,30 @@ class RenewalDialog(QDialog):
                 renewal_date = renewal_data['renewal_date'].replace('-', '')
                 output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
                 
-                # สร้าง PDF
+                # สร้าง PDF พร้อมโฟลเดอร์ที่เลือก
                 result = generate_renewal_contract_pdf(
                     original_contract_data=original_contract_data,
                     customer_data=customer_data,
                     product_data=product_data,
                     renewal_data=renewal_data,
                     shop_data=shop_data,
-                    output_file=output_file
+                    output_file=output_file,
+                    output_folder=selected_folder
                 )
                 
                 if result:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {output_file}")
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {result}")
                     
                     # เปิดไฟล์ PDF
                     import subprocess
                     import platform
                     
                     if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", output_file])
+                        subprocess.run(["open", result])
                     elif platform.system() == "Windows":
-                        subprocess.run(["start", output_file], shell=True)
+                        subprocess.run(["start", result], shell=True)
                     else:  # Linux
-                        subprocess.run(["xdg-open", output_file])
+                        subprocess.run(["xdg-open", result])
                 else:
                     QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
                     

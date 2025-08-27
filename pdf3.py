@@ -16,7 +16,7 @@ from typing import Dict, Optional, List
 def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict, 
                                     product_data: Dict, original_contract_data: Dict,
                                     shop_data: Optional[Dict] = None, 
-                                    output_file: Optional[str] = None) -> str:
+                                    output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
     """
     สร้าง PDF สัญญาไถ่ถอน
     
@@ -53,6 +53,13 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         contract_number = original_contract_data.get('contract_number', 'unknown')
         redemption_date = redemption_data.get('redemption_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"redemption_contract_{contract_number}_{redemption_date}.pdf"
+    
+    # กำหนดโฟลเดอร์ปลายทาง
+    if output_folder:
+        # สร้างโฟลเดอร์ถ้ายังไม่มี
+        os.makedirs(output_folder, exist_ok=True)
+        # รวมเส้นทางโฟลเดอร์กับชื่อไฟล์
+        output_file = os.path.join(output_folder, output_file)
 
     c = canvas.Canvas(output_file, pagesize=A4)
     width, height = A4

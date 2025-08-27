@@ -10,7 +10,7 @@ from typing import Dict, Optional, List
 
 def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: Dict, product_data: Dict,
                                  renewal_data: Dict, shop_data: Optional[Dict] = None, 
-                                 output_file: Optional[str] = None) -> str:
+                                 output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
     """
     สร้าง PDF ใบฝากต่อจากข้อมูลการต่อดอก
     
@@ -47,6 +47,13 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         contract_number = original_contract_data.get('contract_number', 'unknown')
         renewal_date = renewal_data.get('renewal_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
+    
+    # กำหนดโฟลเดอร์ปลายทาง
+    if output_folder:
+        # สร้างโฟลเดอร์ถ้ายังไม่มี
+        os.makedirs(output_folder, exist_ok=True)
+        # รวมเส้นทางโฟลเดอร์กับชื่อไฟล์
+        output_file = os.path.join(output_folder, output_file)
 
     c = canvas.Canvas(output_file, pagesize=A4)
     width, height = A4
