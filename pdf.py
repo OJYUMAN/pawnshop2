@@ -257,77 +257,7 @@ def generate_pawn_ticket_from_data(contract_data: Dict, customer_data: Dict, pro
     if fee_amount > 0:
         c.drawString(LEFT_MARGIN + 20, y_pos, f"ค่าธรรมเนียม: {fee_amount:,.2f} บาท")
         y_pos -= LINE_HEIGHT
-    
-    # ต่อดอกเมื่อครบกำหนด
-    if renewal_data:
-        c.setFont("THSarabun-Bold", 14)
-        c.drawString(LEFT_MARGIN + 20, y_pos, "ประวัติการต่อดอก:")
-        y_pos -= LINE_HEIGHT
-        
-        # สรุปข้อมูลการต่อดอก
-        total_renewal_fees = 0
-        total_renewal_days = 0
-        renewal_count = len(renewal_data)
-        
-        for renewal in renewal_data:
-            total_renewal_fees += renewal.get('total_amount', 0)
-            total_renewal_days += renewal.get('extension_days', 0)
-        
-        c.setFont("THSarabun", 12)
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"จำนวนครั้งที่ต่อดอก: {renewal_count} ครั้ง")
-        c.drawString(LEFT_MARGIN + 280, y_pos, f"รวมค่าธรรมเนียม: {total_renewal_fees:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-        
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"จำนวนวันรวมที่ต่อดอก: {total_renewal_days} วัน")
-        y_pos -= LINE_HEIGHT
-        
-        # แสดงรายละเอียดแต่ละครั้ง
-        c.setFont("THSarabun-Bold", 12)
-        c.drawString(LEFT_MARGIN + 20, y_pos, "รายละเอียดการต่อดอก:")
-        y_pos -= LINE_HEIGHT
-        
-        for i, renewal in enumerate(renewal_data, 1):
-            c.setFont("THSarabun", 11)
-            renewal_date = convert_to_thai_date(renewal.get('renewal_date', 'N/A'))
-            renewal_count_num = renewal.get('renewal_count', i)
-            extension_days = renewal.get('extension_days', 0)
-            fee_amount = renewal.get('fee_amount', 0)
-            penalty_amount = renewal.get('penalty_amount', 0)
-            discount_amount = renewal.get('discount_amount', 0)
-            total_amount = renewal.get('total_amount', 0)
-            current_due_date = convert_to_thai_date(renewal.get('current_due_date', 'N/A'))
-            new_due_date = convert_to_thai_date(renewal.get('new_due_date', 'N/A'))
-            
-            # หัวข้อการต่อดอก
-            c.setFont("THSarabun-Bold", 11)
-            c.drawString(LEFT_MARGIN + 20, y_pos, f"ครั้งที่ {renewal_count_num}:")
-            y_pos -= LINE_HEIGHT
-            
-            # รายละเอียดการต่อดอก
-            c.setFont("THSarabun", 10)
-            c.drawString(LEFT_MARGIN + 40, y_pos, f"วันที่ต่อดอก: {renewal_date}")
-            c.drawString(LEFT_MARGIN + 280, y_pos, f"ต่อดอก: {extension_days} วัน")
-            y_pos -= LINE_HEIGHT
-            
-            c.drawString(LEFT_MARGIN + 40, y_pos, f"วันครบกำหนดเดิม: {current_due_date}")
-            c.drawString(LEFT_MARGIN + 280, y_pos, f"วันครบกำหนดใหม่: {new_due_date}")
-            y_pos -= LINE_HEIGHT
-            
-            # รายละเอียดค่าใช้จ่าย
-            if fee_amount > 0 or penalty_amount > 0 or discount_amount > 0:
-                c.drawString(LEFT_MARGIN + 40, y_pos, f"ค่าธรรมเนียม: {fee_amount:,.2f} บาท")
-                c.drawString(LEFT_MARGIN + 280, y_pos, f"ค่าปรับ: {penalty_amount:,.2f} บาท")
-                y_pos -= LINE_HEIGHT
-                
-                if discount_amount > 0:
-                    c.drawString(LEFT_MARGIN + 40, y_pos, f"ส่วนลด: {discount_amount:,.2f} บาท")
-                    y_pos -= LINE_HEIGHT
-                
-                c.setFont("THSarabun-Bold", 10)
-                c.drawString(LEFT_MARGIN + 40, y_pos, f"รวม: {total_amount:,.2f} บาท")
-                y_pos -= LINE_HEIGHT
-            
-            y_pos -= 5  # เพิ่มระยะห่างระหว่างการต่อดอกแต่ละครั้ง
+  
     
     # หัก ณ ที่จ่าย
     withholding_tax_rate = contract_data.get('withholding_tax_rate', 0)

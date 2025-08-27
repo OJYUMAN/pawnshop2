@@ -1197,6 +1197,7 @@ class PawnShopUI(QMainWindow):
             ("บันทึกสัญญา", "document-save", self.save_contract),
             ("สร้างใบขายฝาก", "document-export", self.generate_pawn_contract_pdf),
             ("ต่อดอก", "view-refresh", self.extend_interest),
+            ("สร้างใบฝากต่อ", "document-export", self.generate_renewal_contract_pdf),
             ("ไถ่ถอน", "go-previous", self.redeem_contract),
            # ("หลุดจำนำ", "edit-delete", self.lost_contract),
             ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
@@ -3012,6 +3013,133 @@ class PawnShopUI(QMainWindow):
         
         # สร้าง PDF
         doc.build(story)
+
+    def generate_renewal_contract_pdf(self):
+        """สร้างใบฝากต่อ PDF"""
+        if not self.current_contract:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
+            return
+        
+        try:
+            # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
+            contract_id = self.current_contract['id']
+            customer = self.db.get_customer_by_id(self.current_contract.get('customer_id'))
+            product = self.db.get_product_by_id(self.current_contract.get('product_id'))
+            
+            if not customer or not product:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลลูกค้าหรือสินค้า")
+                return
+            
+            # ดึงข้อมูลการต่อดอกล่าสุด
+            renewals = []
+            try:
+                contract_number = self.current_contract.get('contract_number', '')
+                if contract_number:
+                    renewals = self.db.get_renewals_by_contract(contract_number)
+            except:
+                pass
+            
+            if not renewals:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลการต่อดอกของสัญญานี้\nกรุณาต่อดอกก่อนสร้างใบฝากต่อ")
+                return
+            
+            # ใช้ข้อมูลการต่อดอกล่าสุด
+            latest_renewal = renewals[-1]
+            
+            # สร้างข้อมูลการต่อดอกสำหรับ PDF
+            renewal_data = {
+                'renewal_date': latest_renewal.get('renewal_date', ''),
+                'extension_days': latest_renewal.get('deposit_days', 0),
+                'interest_amount': latest_renewal.get('fee_amount', 0),
+                'fee_amount': latest_renewal.get('penalty_amount', 0),
+                'total_amount': latest_renewal.get('total_amount', 0)
+            }
+            
+            # สร้างข้อมูลสัญญาที่ครบถ้วน
+            original_contract_data = {
+                'contract_number': self.current_contract.get('contract_number', ''),
+                'start_date': self.current_contract.get('start_date', ''),
+                'end_date': self.current_contract.get('end_date', ''),
+                'days_count': self.current_contract.get('days_count', 0),
+                'pawn_amount': self.current_contract.get('pawn_amount', 0),
+                'interest_rate': self.current_contract.get('interest_rate', 0),
+                'estimated_value': self.current_contract.get('estimated_value', 0)
+            }
+            
+            # สร้างข้อมูลลูกค้าที่ครบถ้วน
+            customer_data = {
+                'customer_code': customer.get('customer_code', ''),
+                'first_name': customer.get('first_name', ''),
+                'last_name': customer.get('last_name', ''),
+                'phone': customer.get('phone', ''),
+                'id_card': customer.get('id_card', ''),
+                'house_number': customer.get('house_number', ''),
+                'street': customer.get('street', ''),
+                'subdistrict': customer.get('subdistrict', ''),
+                'district': customer.get('district', ''),
+                'province': customer.get('province', '')
+            }
+            
+            # สร้างข้อมูลสินค้าที่ครบถ้วน
+            product_data = {
+                'name': product.get('name', ''),
+                'brand': product.get('brand', ''),
+                'size': product.get('size', ''),
+                'weight': product.get('weight', ''),
+                'weight_unit': product.get('weight_unit', ''),
+                'serial_number': product.get('serial_number', ''),
+                'other_details': product.get('other_details', '')
+            }
+            
+            # ข้อมูลร้านค้า
+            shop_data = {
+                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
+                'branch': 'สาขาหล่มสัก',
+                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
+            }
+            
+            # นำเข้า pdf2.py
+            try:
+                from pdf2 import generate_renewal_contract_pdf
+                
+                # สร้างชื่อไฟล์
+                contract_number = self.current_contract.get('contract_number', 'unknown')
+                renewal_date = renewal_data['renewal_date'].replace('-', '') if renewal_data['renewal_date'] else datetime.now().strftime('%Y%m%d')
+                output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
+                
+                # สร้าง PDF
+                result = generate_renewal_contract_pdf(
+                    original_contract_data=original_contract_data,
+                    customer_data=customer_data,
+                    product_data=product_data,
+                    renewal_data=renewal_data,
+                    shop_data=shop_data,
+                    output_file=output_file
+                )
+                
+                if result:
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {output_file}")
+                    
+                    # เปิดไฟล์ PDF
+                    import subprocess
+                    import platform
+                    
+                    if platform.system() == "Darwin":  # macOS
+                        subprocess.run(["open", output_file])
+                    elif platform.system() == "Windows":
+                        subprocess.run(["start", output_file], shell=True)
+                    else:  # Linux
+                        subprocess.run(["xdg-open", output_file])
+                else:
+                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
+                    
+            except ImportError:
+                QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
+            except Exception as e:
+                QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
 
     def fix_database_duplicates(self):
         """แก้ไขปัญหาข้อมูลซ้ำซ้อนในฐานข้อมูล"""
