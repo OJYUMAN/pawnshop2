@@ -1280,6 +1280,25 @@ class RedemptionDialog(QDialog):
         # ปุ่มยืนยัน
         button_layout = QHBoxLayout()
         
+        # ปุ่มสร้างสัญญาไถ่ถอน
+        generate_contract_button = QPushButton("สร้างสัญญาไถ่ถอน")
+        generate_contract_button.setIcon(self.create_document_icon())
+        generate_contract_button.setStyleSheet("""
+            QPushButton {
+                background-color: #17A2B8;
+                color: white;
+                font-weight: bold;
+                padding: 10px 20px;
+                border-radius: 5px;
+                min-width: 150px;
+                min-height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #138496;
+            }
+        """)
+        generate_contract_button.clicked.connect(self.generate_redemption_contract_only)
+        
         # ปุ่มใช่ (มีไอคอนไฟ)
         yes_button = QPushButton("ใช่")
         yes_button.setIcon(self.create_fire_icon())
@@ -1290,6 +1309,7 @@ class RedemptionDialog(QDialog):
         no_button.setIcon(self.create_trash_icon())
         no_button.clicked.connect(self.reject)
         
+        button_layout.addWidget(generate_contract_button)
         button_layout.addWidget(yes_button)
         button_layout.addWidget(no_button)
         layout.addLayout(button_layout)
@@ -1301,6 +1321,11 @@ class RedemptionDialog(QDialog):
     
     def create_fire_icon(self):
         """สร้างไอคอนไฟสำหรับปุ่มใช่"""
+        # สร้างไอคอนแบบง่ายๆ ด้วยข้อความ
+        return QIcon()
+    
+    def create_document_icon(self):
+        """สร้างไอคอนเอกสารสำหรับปุ่มสร้างสัญญา"""
         # สร้างไอคอนแบบง่ายๆ ด้วยข้อความ
         return QIcon()
     
@@ -1414,153 +1439,206 @@ class RedemptionDialog(QDialog):
             # บันทึกการไถ่ถอน
             redemption_id = self.db.redeem_contract(redemption_data)
             
-            # สร้างใบเสร็จ PDF
-            self.generate_redemption_receipt_pdf(redemption_data, redemption_id)
+            # สร้างสัญญาไถ่ถอน PDF
+            self.generate_redemption_contract_pdf(redemption_data, redemption_id)
             
-            QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างใบเสร็จเรียบร้อยแล้ว")
+            QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างสัญญาไถ่ถอนเรียบร้อยแล้ว")
             self.accept()
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
     
-    def generate_redemption_receipt_pdf(self, redemption_data, redemption_id):
-        """สร้างใบเสร็จการไถ่ถอนเป็น PDF"""
+    def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
+        """สร้างสัญญาไถ่ถอนเป็น PDF"""
         try:
-            from reportlab.lib.pagesizes import A4
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib.units import cm
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-            from reportlab.lib import colors
-            from PySide6.QtWidgets import QFileDialog
-            import os
+            # นำเข้า pdf3.py
+            from pdf3 import generate_redemption_contract_pdf
             
-            # เลือกตำแหน่งที่จะบันทึกไฟล์ PDF
-            options = QFileDialog.Options()
-            contract_number = self.contract_data.get('contract_number', 'ไม่ระบุ')
-            file_name, _ = QFileDialog.getSaveFileName(
-                self,
-                "บันทึกใบเสร็จการไถ่ถอน",
-                f"ใบเสร็จการไถ่ถอน_{contract_number}.pdf",
-                "PDF Files (*.pdf)",
-                options=options
-            )
+            # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
+            contract_id = self.contract_data['id']
+            customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
+            product = self.db.get_product_by_id(self.contract_data.get('product_id'))
             
-            if not file_name:
+            if not customer or not product:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลลูกค้าหรือสินค้า")
                 return
             
-            # สร้าง PDF
-            doc = SimpleDocTemplate(file_name, pagesize=A4)
-            story = []
+            # สร้างข้อมูลการไถ่ถอนสำหรับ PDF
+            redemption_pdf_data = {
+                'redemption_date': redemption_data['redemption_date'],
+                'deposit_date': redemption_data['deposit_date'],
+                'due_date': redemption_data['due_date'],
+                'total_days': redemption_data['total_days'],
+                'principal_amount': redemption_data['principal_amount'],
+                'fee_amount': redemption_data['fee_amount'],
+                'penalty_amount': redemption_data['penalty_amount'],
+                'discount_amount': redemption_data['discount_amount'],
+                'redemption_amount': redemption_data['redemption_amount']
+            }
             
-            # สร้าง styles
-            styles = getSampleStyleSheet()
-            title_style = ParagraphStyle(
-                'CustomTitle',
-                parent=styles['Heading1'],
-                fontSize=20,
-                spaceAfter=20,
-                alignment=1,  # center
-                textColor=colors.darkblue
+            # สร้างข้อมูลสัญญาเดิมที่ครบถ้วน
+            original_contract_data = {
+                'contract_number': self.contract_data.get('contract_number', ''),
+                'start_date': self.contract_data.get('start_date', ''),
+                'end_date': self.contract_data.get('end_date', ''),
+                'days_count': self.contract_data.get('days_count', 0),
+                'pawn_amount': self.contract_data.get('pawn_amount', 0),
+                'interest_rate': self.contract_data.get('interest_rate', 0),
+                'estimated_value': self.contract_data.get('estimated_value', 0)
+            }
+            
+            # สร้างข้อมูลลูกค้าที่ครบถ้วน
+            customer_data = {
+                'customer_code': customer.get('customer_code', ''),
+                'first_name': customer.get('first_name', ''),
+                'last_name': customer.get('last_name', ''),
+                'phone': customer.get('phone', ''),
+                'id_card': customer.get('id_card', ''),
+                'house_number': customer.get('house_number', ''),
+                'street': customer.get('street', ''),
+                'subdistrict': customer.get('subdistrict', ''),
+                'district': customer.get('district', ''),
+                'province': customer.get('province', '')
+            }
+            
+            # สร้างข้อมูลสินค้าที่ครบถ้วน
+            product_data = {
+                'name': product.get('name', ''),
+                'brand': product.get('brand', ''),
+                'size': product.get('size', ''),
+                'weight': product.get('weight', ''),
+                'weight_unit': product.get('weight_unit', ''),
+                'serial_number': product.get('serial_number', ''),
+                'other_details': product.get('other_details', '')
+            }
+            
+            # ข้อมูลร้านค้า
+            shop_data = {
+                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
+                'branch': 'สาขาหล่มสัก',
+                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
+            }
+            
+            # สร้างชื่อไฟล์
+            contract_number = self.contract_data.get('contract_number', 'unknown')
+            redemption_date = redemption_data['redemption_date'].replace('-', '')
+            output_file = f"redemption_contract_{contract_number}_{redemption_date}.pdf"
+            
+            # สร้าง PDF สัญญาไถ่ถอน
+            result = generate_redemption_contract_pdf(
+                redemption_data=redemption_pdf_data,
+                customer_data=customer_data,
+                product_data=product_data,
+                original_contract_data=original_contract_data,
+                shop_data=shop_data,
+                output_file=output_file
             )
             
-            heading_style = ParagraphStyle(
-                'CustomHeading',
-                parent=styles['Heading2'],
-                fontSize=14,
-                spaceAfter=10,
-                textColor=colors.darkblue
-            )
-            
-            normal_style = styles['Normal']
-            
-            # หัวเอกสาร
-            story.append(Paragraph("ใบเสร็จการไถ่ถอน", title_style))
-            story.append(Spacer(1, 20))
-            
-            # ข้อมูลสัญญา
-            story.append(Paragraph("ข้อมูลสัญญา", heading_style))
-            contract_data = [
-                ["เลขที่สัญญา:", contract_number],
-                ["วันที่รับฝาก:", redemption_data['deposit_date']],
-                ["วันที่ครบกำหนด:", redemption_data['due_date']],
-                ["วันที่ไถ่ถอน:", redemption_data['redemption_date']],
-                ["จำนวนวันที่ฝาก:", f"{redemption_data['total_days']} วัน"]
-            ]
-            
-            contract_table = Table(contract_data, colWidths=[4*cm, 8*cm])
-            contract_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
-                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            story.append(contract_table)
-            story.append(Spacer(1, 15))
-            
-            # ข้อมูลลูกค้า
-            if hasattr(self, 'db') and self.contract_data:
-                customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
-                if customer:
-                    story.append(Paragraph("ข้อมูลลูกค้า", heading_style))
-                    customer_data = [
-                        ["รหัสลูกค้า:", customer.get('customer_code', '')],
-                        ["ชื่อ-นามสกุล:", f"{customer.get('first_name', '')} {customer.get('last_name', '')}"],
-                        ["เลขบัตรประชาชน:", customer.get('id_card', '')],
-                        ["เบอร์โทรศัพท์:", customer.get('phone', '')]
-                    ]
+            if result:
+                # ตรวจสอบว่าเป็นการสร้างเฉพาะสัญญาหรือการไถ่ถอนจริง
+                if redemption_id is not None:
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {output_file}")
                     
-                    customer_table = Table(customer_data, colWidths=[4*cm, 8*cm])
-                    customer_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-                        ('TEXTCOLOR', (0, 0), (0, -1), colors.black),
-                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                        ('FONTSIZE', (0, 0), (-1, -1), 10),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                    ]))
-                    story.append(customer_table)
-                    story.append(Spacer(1, 15))
-            
-            # รายละเอียดการชำระ
-            story.append(Paragraph("รายละเอียดการชำระ", heading_style))
-            payment_data = [
-                ["รายการ", "จำนวนเงิน (บาท)"],
-                ["เงินต้น", f"{redemption_data['principal_amount']:,.2f}"],
-                ["ค่าธรรมเนียม", f"{redemption_data['fee_amount']:,.2f}"],
-                ["ค่าปรับ", f"{redemption_data['penalty_amount']:,.2f}"],
-                ["ส่วนลด", f"{redemption_data['discount_amount']:,.2f}"],
-                ["รวมทั้งสิ้น", f"{redemption_data['redemption_amount']:,.2f}"]
-            ]
-            
-            payment_table = Table(payment_data, colWidths=[8*cm, 4*cm])
-            payment_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.yellow)
-            ]))
-            story.append(payment_table)
-            story.append(Spacer(1, 20))
-            
-            # ข้อความท้าย
-            story.append(Paragraph("ขอบคุณที่ใช้บริการ", normal_style))
-            story.append(Paragraph(f"ออกใบเสร็จเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", normal_style))
-            
-            # สร้าง PDF
-            doc.build(story)
-            
-            QMessageBox.information(self, "สำเร็จ", f"สร้างใบเสร็จเรียบร้อยแล้ว\nบันทึกที่: {file_name}")
-            
+                    # เปิดไฟล์ PDF
+                    import subprocess
+                    import platform
+                    
+                    if platform.system() == "Darwin":  # macOS
+                        subprocess.run(["open", output_file])
+                    elif platform.system() == "Windows":
+                        subprocess.run(["start", output_file], shell=True)
+                    else:  # Linux
+                        subprocess.run(["xdg-open", output_file])
+                        
+                    # พิมพ์สัญญาไถ่ถอน
+                    self.print_redemption_contract(output_file)
+                else:
+                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {output_file}")
+                    
+                    # เปิดไฟล์ PDF
+                    import subprocess
+                    import platform
+                    
+                    if platform.system() == "Darwin":  # macOS
+                        subprocess.run(["open", output_file])
+                    elif platform.system() == "Windows":
+                        subprocess.run(["start", output_file], shell=True)
+                    else:  # Linux
+                        subprocess.run(["xdg-open", output_file])
+            else:
+                QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่ถอนไม่สำเร็จ")
+                
+        except ImportError:
+            QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+    
+    def print_redemption_contract(self, pdf_file_path):
+        """พิมพ์สัญญาไถ่ถอน"""
+        try:
+            import subprocess
+            import platform
+            
+            # ตรวจสอบว่าไฟล์ PDF มีอยู่จริง
+            if not os.path.exists(pdf_file_path):
+                QMessageBox.warning(self, "แจ้งเตือน", f"ไม่พบไฟล์ PDF: {pdf_file_path}")
+                return
+            
+            # พิมพ์ไฟล์ PDF ตามระบบปฏิบัติการ
+            if platform.system() == "Darwin":  # macOS
+                # ใช้ lpr สำหรับ macOS
+                try:
+                    subprocess.run(["lpr", pdf_file_path], check=True)
+                    QMessageBox.information(self, "สำเร็จ", "ส่งงานพิมพ์เรียบร้อยแล้ว")
+                except subprocess.CalledProcessError:
+                    # หาก lpr ไม่ทำงาน ให้เปิด Preview และให้ผู้ใช้พิมพ์เอง
+                    subprocess.run(["open", "-a", "Preview", pdf_file_path])
+                    QMessageBox.information(self, "แจ้งเตือน", 
+                        "เปิดไฟล์ใน Preview แล้ว\nกรุณาเลือกพิมพ์จากเมนู File > Print")
+            elif platform.system() == "Windows":
+                # ใช้ start สำหรับ Windows
+                subprocess.run(["start", "/print", pdf_file_path], shell=True)
+                QMessageBox.information(self, "สำเร็จ", "ส่งงานพิมพ์เรียบร้อยแล้ว")
+            else:  # Linux
+                # ใช้ lpr สำหรับ Linux
+                try:
+                    subprocess.run(["lpr", pdf_file_path], check=True)
+                    QMessageBox.information(self, "สำเร็จ", "ส่งงานพิมพ์เรียบร้อยแล้ว")
+                except subprocess.CalledProcessError:
+                    # หาก lpr ไม่ทำงาน ให้เปิดไฟล์และให้ผู้ใช้พิมพ์เอง
+                    subprocess.run(["xdg-open", pdf_file_path])
+                    QMessageBox.information(self, "แจ้งเตือน", 
+                        "เปิดไฟล์แล้ว\nกรุณาเลือกพิมพ์จากเมนู File > Print")
+                        
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการพิมพ์: {str(e)}")
+    
+    def generate_redemption_contract_only(self):
+        """สร้างเฉพาะสัญญาไถ่ถอนโดยไม่บันทึกการไถ่ถอน"""
+        try:
+            if not self.contract_data:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
+                return
+            
+            # สร้างข้อมูลการไถ่ถอนสำหรับ PDF
+            redemption_data = {
+                'contract_id': self.contract_data['id'],
+                'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
+                'redemption_amount': float(self.total_amount_label.text().replace(',', '')),
+                'deposit_date': self.deposit_date_edit.date().toString("yyyy-MM-dd"),
+                'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
+                'total_days': int(self.total_days_label.text()),
+                'principal_amount': float(self.principal_amount_label.text().replace(',', '')),
+                'fee_amount': float(self.fee_amount_label.text().replace(',', '')),
+                'penalty_amount': float(self.penalty_amount_label.text().replace(',', '')),
+                'discount_amount': float(self.discount_amount_label.text().replace(',', ''))
+            }
+            
+            # สร้างสัญญาไถ่ถอน PDF
+            self.generate_redemption_contract_pdf(redemption_data, None)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
 
 class RenewalDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):
