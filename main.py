@@ -28,6 +28,21 @@ from product_search import ProductSearchDialog
 from fee_management import FeeManagementDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE
 
+# Icon mapping for toolbar buttons
+ICON_MAP = {
+    "document-new":        "icons/file-plus.svg",             # แผ่นกระดาษ + +
+    "edit-clear":          "icons/eraser.svg",                # ยางลบ / ถังขยะเล็ก
+    "document-save":       "icons/content-save-all.svg",      # แฟล๊ปปี้ดิสก์
+    "document-export":     "icons/file-pdf-box.svg",          # เอกสาร + โลโก้ PDF/ลูกศรออก
+    "view-refresh":        "icons/refresh.svg",               # ปฏิทิน + ลูกศรหมุน/รีเฟรช
+    "go-previous":         "icons/cash-refund.svg",           # มือรับเหรียญ/เช็คถูก
+    "folder-open":         "icons/folder-open.svg",           # โฟลเดอร์ + แว่นขยาย
+    "document-properties": "icons/history.svg",               # เอกสาร + นาฬิกา/ไทม์ไลน์
+    "x-office-calendar":   "icons/calendar-today.svg",        # ปฏิทิน + กราฟแท่ง
+    "preferences-system":  "icons/cog.svg",                   # เหรียญ + เฟือง
+    "smartcard":           "icons/card-account-details.svg",  # บัตรประชาชนมีรูปคน
+}
+
 class PawnShopUI(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -1227,7 +1242,13 @@ class PawnShopUI(QMainWindow):
 
     def create_icon_for_action(self, icon_name, text):
         """สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม"""
-        # ลองใช้ system theme icons ก่อน
+        # ใช้ ICON_MAP ที่กำหนดไว้ก่อน
+        if icon_name in ICON_MAP:
+            icon = QIcon(ICON_MAP[icon_name])
+            if not icon.isNull():
+                return icon
+        
+        # ถ้าไม่มีใน ICON_MAP ให้ลองใช้ system theme icons
         icon = QIcon.fromTheme(icon_name)
         
         # ถ้าไม่มี icon ใน system theme ให้ใช้ fallback icons
