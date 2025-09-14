@@ -1,382 +1,389 @@
-# generate_pawn_ticket_v2_fixed.py
-from reportlab.pdfgen import canvas
+# generate_pawn_ticket_v6_2_halfA4_compact_clean.py
+# -*- coding: utf-8 -*-
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import os
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib import colors
+from reportlab.platypus import (
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
+    HRFlowable
+)
+from reportlab.lib.units import mm
 from datetime import datetime
+import os
 from typing import Dict, Optional, List
 
 
+# -------- utils --------
+def ensure_fonts():
+    font_path = 'THSarabun.ttf'
+    bold_font_path = 'THSarabun Bold.ttf'
+    if not (os.path.exists(font_path) and os.path.exists(bold_font_path)):
+        raise FileNotFoundError("กรุณาวาง THSarabun.ttf และ THSarabun Bold.ttf ไว้โฟลเดอร์เดียวกับสคริปต์")
+    pdfmetrics.registerFont(TTFont('THSarabun', font_path))
+    pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
 
-def generate_pawn_ticket_from_data(contract_data: Dict, customer_data: Dict, product_data: Dict, 
-                                  shop_data: Optional[Dict] = None, output_file: Optional[str] = None,
-                                  renewal_data: Optional[List[Dict]] = None) -> str:
-    """
-    สร้าง PDF ใบฝากขายจากข้อมูลจริงในระบบ พร้อม layout ที่ปรับปรุงแล้ว
-    
-    Args:
-        contract_data (Dict): ข้อมูลสัญญา
-        customer_data (Dict): ข้อมูลลูกค้า
-        product_data (Dict): ข้อมูลสินค้า
-        shop_data (Dict, optional): ข้อมูลร้านค้า ถ้าไม่ระบุจะใช้ข้อมูลเริ่มต้น
-        output_file (str, optional): ชื่อไฟล์ PDF ที่จะสร้าง ถ้าไม่ระบุจะสร้างชื่ออัตโนมัติ
-        renewal_data (List[Dict], optional): ข้อมูลการต่อดอก
-    
-    Returns:
-        str: ชื่อไฟล์ PDF ที่สร้าง
-    """
+
+def thai_date(date_str: str) -> str:
+    month_map = {
+        'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
+        'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
+        'July': 'กรกฎาคม', 'August': 'สิงหาคม', 'September': 'กันยายน',
+        'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
+    }
+    from datetime import datetime
     try:
-        # ตรวจสอบฟอนต์
-        font_path = 'THSarabun.ttf'
-        bold_font_path = 'THSarabun Bold.ttf'
-
-        if not os.path.exists(font_path) or not os.path.exists(bold_font_path):
-            print(f"Error: Font file not found.")
-            print("Please make sure 'THSarabun.ttf' and 'THSarabun Bold.ttf' are in the same folder as the script.")
-            return ""
-
-        pdfmetrics.registerFont(TTFont('THSarabun', font_path))
-        pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
-
-    except Exception as e:
-        print(f"An error occurred while loading the font: {e}")
-        return ""
-
-    # สร้างชื่อไฟล์อัตโนมัติถ้าไม่ระบุ
-    if not output_file:
-        contract_number = contract_data.get('contract_number', 'unknown')
-        output_file = f"pawn_ticket_{contract_number}.pdf"
-
-    c = canvas.Canvas(output_file, pagesize=A4)
-    width, height = A4
-    
-    # กำหนดค่าคงที่สำหรับ layout
-    LEFT_MARGIN = 50
-    RIGHT_MARGIN = width - 50
-    TOP_MARGIN = height - 40
-    BOTTOM_MARGIN = 80
-    LINE_HEIGHT = 18
-    SECTION_SPACING = 25
-    
-    # ฟังก์ชันช่วยในการตรวจสอบและเพิ่มหน้าใหม่
-    def check_page_break(current_y, required_lines=3):
-        if current_y - (required_lines * LINE_HEIGHT) < BOTTOM_MARGIN:
-            c.showPage()
-            return TOP_MARGIN
-        return current_y
-    
-    # ฟังก์ชันแปลงวันที่เป็นภาษาไทย
-    def convert_to_thai_date(date_str):
-        month_map = {
-            'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
-            'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
-            'July': 'กรกฎาคม', 'August': 'สิงหาคม', 'September': 'กันยายน',
-            'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
-        }
-        
-        try:
-            if date_str and date_str != 'N/A':
-                if isinstance(date_str, str):
-                    if '-' in date_str:
-                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    else:
-                        date_obj = datetime.strptime(date_str, '%d/%m/%Y')
-                    thai_date = date_obj.strftime('%d %B %Y')
-                    for eng, thai in month_map.items():
-                        thai_date = thai_date.replace(eng, thai)
-                    return thai_date
-                else:
-                    return str(date_str)
+        if date_str and date_str != 'N/A':
+            if '-' in date_str:
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
             else:
-                return 'N/A'
-        except:
-            return date_str if date_str else 'N/A'
-    
-    # เริ่มต้น y_position
-    y_pos = TOP_MARGIN
+                dt = datetime.strptime(date_str, '%d/%m/%Y')
+            s = dt.strftime('%d %B %Y')
+            for eng, th in month_map.items():
+                s = s.replace(eng, th)
+            return s
+        return 'N/A'
+    except Exception:
+        return date_str or 'N/A'
 
-    # --- Header ---
-    c.setFont("THSarabun-Bold", 24)
-    c.drawCentredString(width / 2.0, y_pos, "ใบขายฝาก")
-    y_pos -= 35
 
-    c.setFont("THSarabun-Bold", 16)
-    shop_name = shop_data.get('name', 'ร้าน ไอโปรโมบายเซอร์วิส') if shop_data else 'ร้าน ไอโปรโมบายเซอร์วิส'
-    shop_branch = shop_data.get('branch', 'สาขาหล่มสัก') if shop_data else 'สาขาหล่มสัก'
-    shop_full_name = f"{shop_name} ({shop_branch})"
-    c.drawCentredString(width / 2.0, y_pos, shop_full_name)
-    y_pos -= 25
+# -------- main --------
+def generate_pawn_ticket_from_data(
+    contract_data: Dict,
+    customer_data: Dict,
+    product_data: Dict,
+    shop_data: Optional[Dict] = None,
+    output_file: Optional[str] = None,
+    renewal_data: Optional[List[Dict]] = None,
+) -> str:
+    """
+    คอมแพ็กต์ครึ่งบน A4 หน้าเดียว (2 คอลัมน์) – เวอร์ชันไม่มีเลข/บูลเล็ทหลุดมา
+    """
+    ensure_fonts()
 
-    c.setFont("THSarabun", 12)
-    shop_address = shop_data.get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110') if shop_data else '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-    c.drawCentredString(width / 2.0, y_pos, shop_address)
-    y_pos -= SECTION_SPACING
+    width, height = A4
+    margin_lr = 8 * mm
+    margin_top = 6 * mm
+    frame_y = height / 2
+    frame_h = height / 2 - margin_top
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 5)
+    if not output_file:
+        output_file = f"pawn_ticket_{contract_data.get('contract_number','unknown')}.pdf"
 
-    # --- Contract Info Section ---
-    c.setFont("THSarabun", 14)
+    # ---- styles ----
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="TH-base", fontName="THSarabun", fontSize=11.2, leading=13))
+    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=11.2, leading=13))
+    styles.add(ParagraphStyle(name="TH-small", fontName="THSarabun", fontSize=10.5, leading=12))
+    styles.add(ParagraphStyle(name="TH-header", fontName="THSarabun-Bold", fontSize=20, leading=24, alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name="TH-sub", fontName="THSarabun-Bold", fontSize=13, leading=16, alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=11.2, leading=13, alignment=TA_RIGHT))
+    styles.add(ParagraphStyle(name="TH-right-bold", fontName="THSarabun-Bold", fontSize=11.2, leading=13, alignment=TA_RIGHT))
+    styles.add(ParagraphStyle(name="TH-term", fontName="THSarabun", fontSize=10.2, leading=12))
+
+    # ---- data ----
+    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส')
+    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
+    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+
     contract_number = contract_data.get('contract_number', 'N/A')
-    start_date = contract_data.get('start_date', 'N/A')
-    end_date = contract_data.get('end_date', 'N/A')
+    start_date = thai_date(contract_data.get('start_date', 'N/A'))
+    end_date = thai_date(contract_data.get('end_date', 'N/A'))
     days_count = contract_data.get('days_count', 0)
-    
-    thai_start_date = convert_to_thai_date(start_date)
-    thai_end_date = convert_to_thai_date(end_date)
 
-    # แสดงข้อมูลสัญญาในบรรทัดเดียว
-    c.drawString(LEFT_MARGIN, y_pos, f"สัญญาเลขที่: {contract_number}")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"วันที่: {thai_start_date}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN, y_pos, f"ระยะเวลาฝาก: {days_count} วัน")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ครบกำหนด: {thai_end_date}")
-    y_pos -= SECTION_SPACING
+    pawn_amount = float(contract_data.get('pawn_amount', 0))
+    interest_rate = float(contract_data.get('interest_rate', 0))
+    fee_amount = float(contract_data.get('fee_amount', 0))
+    total_redemption = float(contract_data.get('total_redemption', pawn_amount))
+    withholding_tax_rate = float(contract_data.get('withholding_tax_rate', 0))
+    withholding_tax_amount = float(contract_data.get('withholding_tax_amount', 0))
+    total_paid = float(contract_data.get('total_paid', pawn_amount))
+    interest_amt = (pawn_amount * interest_rate * days_count) / 36500.0 if interest_rate > 0 else 0.0
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 6)
+    full_name = f"{customer_data.get('first_name','')} {customer_data.get('last_name','')}".strip() or "-"
+    customer_code = customer_data.get('customer_code', '-') or '-'
+    phone = customer_data.get('phone', '-') or '-'
+    id_card = customer_data.get('id_card', '-') or '-'
+    addr_parts = [p for p in [
+        customer_data.get('house_number',''),
+        customer_data.get('street',''),
+        f"ต.{customer_data.get('subdistrict','')}" if customer_data.get('subdistrict') else "",
+        f"อ.{customer_data.get('district','')}" if customer_data.get('district') else "",
+        f"จ.{customer_data.get('province','')}" if customer_data.get('province') else "",
+    ] if p]
+    address = " ".join(addr_parts) if addr_parts else "-"
 
-    # --- Customer Info Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลผู้ขายฝาก:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    first_name = customer_data.get('first_name', '')
-    last_name = customer_data.get('last_name', '')
-    customer_name = f"{first_name} {last_name}".strip()
-    customer_code = customer_data.get('customer_code', '')
-    phone = customer_data.get('phone', 'N/A')
-    id_card = customer_data.get('id_card', 'N/A')
-    
-    # แสดงข้อมูลลูกค้าแบบ 2 คอลัมน์
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"รหัสลูกค้า: {customer_code}")
-    c.drawString(LEFT_MARGIN + 280, y_pos, f"โทรศัพท์: {phone}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ชื่อ-นามสกุล: {customer_name}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"บัตรประชาชน: {id_card}")
-    y_pos -= LINE_HEIGHT
-    
-    # สร้างที่อยู่แบบย่อ
-    house_number = customer_data.get('house_number', '')
-    street = customer_data.get('street', '')
-    subdistrict = customer_data.get('subdistrict', '')
-    district = customer_data.get('district', '')
-    province = customer_data.get('province', '')
-    
-    address_parts = []
-    if house_number: address_parts.append(house_number)
-    if street: address_parts.append(street)
-    if subdistrict: address_parts.append(f"ต.{subdistrict}")
-    if district: address_parts.append(f"อ.{district}")
-    if province: address_parts.append(f"จ.{province}")
-    
-    address = " ".join(address_parts) if address_parts else "N/A"
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ที่อยู่: {address}")
-    y_pos -= SECTION_SPACING
+    prod_name = product_data.get('name','-') or '-'
+    brand = product_data.get('brand','')
+    prod_display = f"{brand} {prod_name}".strip() if brand else prod_name
+    size = product_data.get('size','-') or '-'
+    weight = product_data.get('weight','')
+    weight_unit = product_data.get('weight_unit','')
+    weight_txt = f"{weight} {weight_unit}".strip() if weight else "-"
+    sn = product_data.get('serial_number','-') or '-'
+    other = product_data.get('other_details','-') or '-'
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 6)
+    renewal_lines = []
+    if renewal_data:
+        total_renewal_fees = sum(r.get('total_amount', 0) for r in renewal_data)
+        total_renewal_days = sum(r.get('extension_days', 0) for r in renewal_data)
+        renewal_lines = [
+            f"ต่อดอกแล้ว {len(renewal_data)} ครั้ง รวม {int(total_renewal_days)} วัน",
+            f"ค่าธรรมเนียมต่อดอกรวม: {total_renewal_fees:,.2f} บาท",
+        ]
 
-    # --- Product Info Section ---
-    c.line(LEFT_MARGIN, y_pos + 5, RIGHT_MARGIN, y_pos + 5)
-    y_pos -= 15
-    
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "รายการทรัพย์สินที่ขายฝาก:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    product_name = product_data.get('name', 'N/A')
-    brand = product_data.get('brand', '')
-    product_display = f"{brand} {product_name}" if brand else product_name
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ทรัพย์สิน: {product_display}")
-    y_pos -= LINE_HEIGHT
-    
-    # แสดงรายละเอียดสินค้าแบบ compact
-    details = []
-    size = product_data.get('size', '')
-    weight = product_data.get('weight', '')
-    weight_unit = product_data.get('weight_unit', '')
-    serial_number = product_data.get('serial_number', '')
-    
-    if size: details.append(f"ขนาด: {size}")
-    if weight: 
-        weight_text = f"{weight} {weight_unit}" if weight_unit else str(weight)
-        details.append(f"น้ำหนัก: {weight_text}")
-    if serial_number: details.append(f"S/N: {serial_number}")
-    
-    if details:
-        details_text = " | ".join(details)
-        c.drawString(LEFT_MARGIN + 20, y_pos, details_text)
-        y_pos -= LINE_HEIGHT
-    
-    other_details = product_data.get('other_details', '')
-    if other_details:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"รายละเอียดอื่นๆ: {other_details}")
-        y_pos -= LINE_HEIGHT
-    
-    estimated_value = contract_data.get('estimated_value', 0)
-    if estimated_value > 0:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"มูลค่าประเมิน: {estimated_value:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-    
-    y_pos -= 10
+    # ---------- story ----------
+    story = []
+    story.append(Paragraph("ใบขายฝาก", styles["TH-header"]))
+    story.append(Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]))
+    story.append(Paragraph(shop_address, styles["TH-base"]))
+    story.append(Spacer(1, 2))
+    story.append(HRFlowable(width="100%", thickness=0.8, color=colors.grey))
+    story.append(Spacer(1, 2))
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 8)
+    # สรุปสัญญา
+    summary = Table([
+        [
+            Paragraph(f"สัญญาเลขที่: <b>{contract_number}</b>", styles["TH-base"]),
+            Paragraph(f"วันที่ทำสัญญา: <b>{start_date}</b>", styles["TH-right"])
+        ],
+        [
+            Paragraph(f"ระยะเวลาฝาก: <b>{days_count} วัน</b>", styles["TH-base"]),
+            Paragraph(f"ครบกำหนด: <b>{end_date}</b>", styles["TH-right"])
+        ],
+    ], colWidths=[(width-2*margin_lr)/2, (width-2*margin_lr)/2])
+    summary.setStyle(TableStyle([("VALIGN",(0,0),(-1,-1),"MIDDLE")]))
+    story.append(summary)
+    story.append(Spacer(1, 3))
 
-    # --- Financial Info Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลการเงิน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    pawn_amount = contract_data.get('pawn_amount', 0)
-    interest_rate = contract_data.get('interest_rate', 0)
-    fee_amount = contract_data.get('fee_amount', 0)
-    total_redemption = contract_data.get('total_redemption', pawn_amount)
-    
-    # แสดงข้อมูลการเงินแบบ 2 คอลัมน์
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดฝาก: {pawn_amount:,.2f} บาท")
-    c.drawString(LEFT_MARGIN + 280, y_pos, f"ระยะเวลา: {days_count} วัน")
-    y_pos -= LINE_HEIGHT
-    
-    if interest_rate > 0:
-        interest_amount = (pawn_amount * interest_rate * days_count) / 36500
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"อัตราดอกเบี้ย: {interest_rate:.2f}% ต่อปี")
-        c.drawString(LEFT_MARGIN + 280, y_pos, f"ดอกเบี้ย: {interest_amount:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-    
-    if fee_amount > 0:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"ค่าธรรมเนียม: {fee_amount:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-  
-    
-    # หัก ณ ที่จ่าย
-    withholding_tax_rate = contract_data.get('withholding_tax_rate', 0)
-    withholding_tax_amount = contract_data.get('withholding_tax_amount', 0)
-    if withholding_tax_rate > 0 and withholding_tax_amount > 0:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"หัก ณ ที่จ่าย ({withholding_tax_rate:.2f}%): {withholding_tax_amount:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-    
-    # ยอดจ่าย
-    total_paid = contract_data.get('total_paid', pawn_amount)
-    if total_paid != pawn_amount:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดจ่าย: {total_paid:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-    
-    # ไฮไลท์ยอดไถ่ถอน
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท")
-    y_pos -= SECTION_SPACING
+    # --- 2 คอลัมน์ ---
+    col_w = (width - 2*margin_lr)
+    left_w = col_w * 0.53
+    right_w = col_w * 0.47
 
-    # ตรวจสอบหน้าใหม่สำหรับเงื่อนไข
-    y_pos = check_page_break(y_pos, 10)
+    # Left column: สร้างเป็นตารางคอลัมน์เดียวเพื่อวาง flowables ทีละบล็อก (ไม่มี bullets/เลข)
+    cust_tbl_inner = Table([
+        [Paragraph(f"รหัสลูกค้า: <b>{customer_code}</b>", styles["TH-base"]),
+         Paragraph(f"โทรศัพท์: <b>{phone}</b>", styles["TH-base"])],
+        [Paragraph(f"ชื่อ-นามสกุล: <b>{full_name}</b>", styles["TH-base"]), ""],
+        [Paragraph(f"บัตรประชาชน: <b>{id_card}</b>", styles["TH-base"]), ""],
+        [Paragraph(f"ที่อยู่: <b>{address}</b>", styles["TH-base"]), ""],
+    ], colWidths=[left_w*0.62, left_w*0.38])
+    cust_tbl_inner.setStyle(TableStyle([
+        ("BOX",(0,0),(-1,-1),0.7,colors.black),
+        ("INNERGRID",(0,0),(-1,-1),0.25,colors.Color(0.85,0.85,0.85)),
+        ("LEFTPADDING",(0,0),(-1,-1),4), ("RIGHTPADDING",(0,0),(-1,-1),4),
+        ("TOPPADDING",(0,0),(-1,-1),3), ("BOTTOMPADDING",(0,0),(-1,-1),3),
+    ]))
 
-    # --- Terms and Conditions (แบบย่อ) ---
-    c.line(LEFT_MARGIN, y_pos + 5, RIGHT_MARGIN, y_pos + 5)
-    y_pos -= 15
-    
-    c.setFont("THSarabun-Bold", 12)
-    c.drawString(LEFT_MARGIN, y_pos, "เงื่อนไขสำคัญ:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 10)
-    important_terms = [
-        f"• สินค้าต้องไถ่ถอนภายในวันที่ {thai_end_date} หากเกินกำหนดจะตกเป็นของทางร้าน",
-        f"• ยอดไถ่ถอนรวม {total_redemption:,.2f} บาท (รวมดอกเบี้ย {interest_rate:.2f}% ต่อปี)"
+    prod_tbl_inner = Table([
+        [Paragraph(f"ทรัพย์สิน: <b>{prod_display}</b>", styles["TH-base"])],
+        [Paragraph(f"ขนาด: <b>{size}</b>   |   น้ำหนัก: <b>{weight_txt}</b>   |   S/N: <b>{sn}</b>", styles["TH-base"])],
+        [Paragraph(f"รายละเอียดอื่นๆ: <b>{other}</b>", styles["TH-base"])],
+    ], colWidths=[left_w-2])
+    prod_tbl_inner.setStyle(TableStyle([
+        ("BOX",(0,0),(-1,-1),0.7,colors.black),
+        ("LEFTPADDING",(0,0),(-1,-1),4), ("RIGHTPADDING",(0,0),(-1,-1),4),
+        ("TOPPADDING",(0,0),(-1,-1),3), ("BOTTOMPADDING",(0,0),(-1,-1),3),
+    ]))
+
+    left_stack = Table([
+        [Paragraph("<b>ข้อมูลผู้ขายฝาก</b>", styles["TH-bold"])],
+        [cust_tbl_inner],
+        [Spacer(1, 3)],
+        [Paragraph("<b>รายการทรัพย์สินที่ขายฝาก</b>", styles["TH-bold"])],
+        [prod_tbl_inner],
+    ], colWidths=[left_w])
+    left_stack.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0),
+        ("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
+
+    # Right column: finance + highlight + terms (วางเป็นคอลัมน์เดียวเช่นกัน)
+    finance_tbl_inner = Table(
+        [
+            [Paragraph(f"ยอดฝาก: <b>{pawn_amount:,.2f} บาท</b>", styles["TH-base"]),
+             Paragraph(f"ระยะเวลา: <b>{days_count} วัน</b>", styles["TH-base"])],
+        ] + (
+            [[Paragraph(f"อัตราดอกเบี้ย: <b>{interest_rate:.2f}% ต่อปี</b>", styles["TH-base"]),
+              Paragraph(f"ดอกเบี้ยประมาณ: <b>{interest_amt:,.2f} บาท</b>", styles["TH-base"])]]
+            if interest_rate > 0 else []
+        ) + (
+            [[Paragraph(f"ค่าธรรมเนียม: <b>{fee_amount:,.2f} บาท</b>", styles["TH-base"]), ""]]
+            if fee_amount > 0 else []
+        ) + (
+            [[Paragraph(f"หัก ณ ที่จ่าย ({withholding_tax_rate:.2f}%): <b>{withholding_tax_amount:,.2f} บาท</b>", styles["TH-base"]), ""]]
+            if (withholding_tax_rate > 0 and withholding_tax_amount > 0) else []
+        ) + (
+            [[Paragraph(f"ยอดจ่าย: <b>{total_paid:,.2f} บาท</b>", styles["TH-base"]), ""]]
+            if abs(total_paid - pawn_amount) > 1e-6 else []
+        ),
+        colWidths=[right_w*0.58, right_w*0.42]
+    )
+    finance_tbl_inner.setStyle(TableStyle([
+        ("BOX",(0,0),(-1,-1),0.7,colors.black),
+        ("INNERGRID",(0,0),(-1,-1),0.25,colors.Color(0.85,0.85,0.85)),
+        ("LEFTPADDING",(0,0),(-1,-1),4), ("RIGHTPADDING",(0,0),(-1,-1),4),
+        ("TOPPADDING",(0,0),(-1,-1),3), ("BOTTOMPADDING",(0,0),(-1,-1),3),
+    ]))
+
+    highlight = Table([[Paragraph(
+        f"<b>ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท</b>  |  <b>กำหนดไถ่ถอน: {end_date}</b>",
+        styles["TH-bold"]
+    )]], colWidths=[right_w])
+    highlight.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,-1),colors.Color(0.96,0.96,0.96)),
+        ("BOX",(0,0),(-1,-1),0.7,colors.black),
+        ("LEFTPADDING",(0,0),(-1,-1),5), ("RIGHTPADDING",(0,0),(-1,-1),5),
+        ("TOPPADDING",(0,0),(-1,-1),3), ("BOTTOMPADDING",(0,0),(-1,-1),3),
+    ]))
+
+    terms = [
+        f"• ไถ่ถอนภายใน <b>{end_date}</b> มิฉะนั้นทรัพย์จะตกเป็นของร้าน",
+        f"• ยอดไถ่ถอนรวม <b>{total_redemption:,.2f} บาท</b> (อัตราดอกเบี้ย <b>{interest_rate:.2f}% ต่อปี</b>)",
     ]
-    
-    # เพิ่มเงื่อนไขการต่อดอก
     if renewal_data:
-        total_renewal_fees = sum(renewal.get('total_amount', 0) for renewal in renewal_data)
-        total_renewal_days = sum(renewal.get('extension_days', 0) for renewal in renewal_data)
-        
-        important_terms.append(f"• ได้ทำการต่อดอกแล้ว {len(renewal_data)} ครั้ง รวม {total_renewal_days} วัน")
-        important_terms.append(f"• ค่าธรรมเนียมการต่อดอกรวม: {total_renewal_fees:,.2f} บาท")
-        important_terms.append("• การต่อดอกจะขยายระยะเวลาการฝากตามจำนวนวันที่ต่อดอก")
-        important_terms.append("• ยอดไถ่ถอนรวมจะรวมค่าธรรมเนียมการต่อดอกทั้งหมด")
+        terms += renewal_lines
     else:
-        important_terms.append("• สามารถต่อดอกได้เมื่อครบกำหนด โดยชำระดอกเบี้ยและค่าธรรมเนียมตามที่กำหนด")
-        important_terms.append("• การต่อดอกจะขยายระยะเวลาการฝากตามจำนวนวันที่ต่อดอก")
-    
-    important_terms.extend([
-        "• ผู้ขายฝากรับรองว่าสินค้าเป็นกรรมสิทธิ์ของตนและไม่เกี่ยวข้องกับการกระทำผิดกฎหมาย",
-        "• หากมีบุคคลใดมาก่อกวนสิทธิ์ ผู้ขายฝากต้องรับผิดชดใช้ความเสียหาย",
-        "• กรณีสินค้าสูญหายจากภัยธรรมชาติหรือโจรกรรม ทางร้านไม่รับผิดชอบ"
-    ])
-    
-    for term in important_terms:
-        y_pos = check_page_break(y_pos, 1)
-        c.drawString(LEFT_MARGIN + 15, y_pos, term)
-        y_pos -= 14
-    
-    y_pos -= 10
+        terms += ["• ต่อดอกได้เมื่อครบกำหนด โดยชำระดอกเบี้ยและค่าธรรมเนียมตามที่กำหนด"]
+    terms += [
+        "• ผู้ขายฝากยืนยันกรรมสิทธิ์ถูกต้องและไม่เกี่ยวข้องกับการกระทำผิดกฎหมาย",
+        "• กรณีมีผู้ก่อกวนสิทธิ์ ผู้ขายฝากต้องชดใช้ความเสียหาย",
+        "• ความเสียหายจากภัยธรรมชาติ/โจรกรรม ร้านไม่รับผิดชอบ",
+    ]
 
-    # ตรวจสอบหน้าใหม่สำหรับลายเซ็น
-    y_pos = check_page_break(y_pos, 8)
+    right_stack = Table([
+        [Paragraph("<b>ข้อมูลการเงิน</b>", styles["TH-bold"])],
+        [finance_tbl_inner],
+        [Spacer(1, 3)],
+        [highlight],
+        [Spacer(1, 3)],
+        [Paragraph("<b>เงื่อนไขสำคัญ (ย่อ)</b>", styles["TH-bold"])],
+        [Paragraph("<br/>".join(terms), styles["TH-term"])],
+    ], colWidths=[right_w])
+    right_stack.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0),
+        ("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
 
-    # --- Summary Box ---
-    c.setFont("THSarabun-Bold", 14)
-    
-    # คำนวณขนาดของ Summary Box ตามข้อมูลการต่อดอก
-    box_height = 35
-    if renewal_data:
-        box_height = 60  # เพิ่มความสูงถ้ามีข้อมูลการต่อดอก
-    
-    summary_box_y = y_pos - 20
-    c.rect(LEFT_MARGIN, summary_box_y - box_height, RIGHT_MARGIN - LEFT_MARGIN, box_height, stroke=1, fill=0)
-    
-    # ข้อมูลพื้นฐาน
-    c.drawCentredString(width / 2.0, summary_box_y - 15, f"ยอดไถ่ถอน: {total_redemption:,.2f} บาท")
-    c.drawCentredString(width / 2.0, summary_box_y - 30, f"กำหนดไถ่ถอนภายในวันที่: {thai_end_date}")
-    
-    # ข้อมูลการต่อดอก (ถ้ามี)
-    if renewal_data:
-        total_renewal_fees = sum(renewal.get('total_amount', 0) for renewal in renewal_data)
-        total_renewal_days = sum(renewal.get('extension_days', 0) for renewal in renewal_data)
-        
-        c.setFont("THSarabun", 12)
-        c.drawCentredString(width / 2.0, summary_box_y - 45, f"ต่อดอกแล้ว {len(renewal_data)} ครั้ง รวม {total_renewal_days} วัน")
-        c.drawCentredString(width / 2.0, summary_box_y - 55, f"ค่าธรรมเนียมการต่อดอก: {total_renewal_fees:,.2f} บาท")
-    
-    y_pos = summary_box_y - (box_height + 20)
+    # Two-column wrapper (ไม่มี boundary/debug)
+    two_col = Table([[left_stack, right_stack]], colWidths=[left_w, right_w])
+    two_col.setStyle(TableStyle([
+        ("VALIGN",(0,0),(-1,-1),"TOP"),
+        ("LEFTPADDING",(0,0),(-1,-1),0),
+        ("RIGHTPADDING",(0,0),(-1,-1),0),
+        ("TOPPADDING",(0,0),(-1,-1),0),
+        ("BOTTOMPADDING",(0,0),(-1,-1),0),
+    ]))
+    two_col.hAlign = "LEFT"
+    story.append(two_col)
+    story.append(Spacer(1, 3))
 
-    # ตรวจสอบหน้าใหม่สำหรับลายเซ็น
-    y_pos = check_page_break(y_pos, 6)
+    # signatures
+    sig = Table([
+        [
+            Paragraph("ลงชื่อ ________________________ ผู้รับฝาก", styles["TH-base"]),
+            Paragraph("ลงชื่อ ________________________ ผู้ขายฝาก", styles["TH-right-bold"])
+        ],
+        [
+            Paragraph("( นาย/นาง/นางสาว __________________ )", styles["TH-base"]),
+            Paragraph(f"( {full_name} )", styles["TH-right-bold"])
+        ],
+        [
+            Paragraph("วันที่: ____________", styles["TH-base"]),
+            Paragraph(f"วันที่: {start_date}", styles["TH-right-bold"])
+        ]
+    ], colWidths=[(width-2*margin_lr)/2, (width-2*margin_lr)/2])
+    sig.setStyle(TableStyle([
+        ("TOPPADDING",(0,0),(-1,-1),1),
+        ("BOTTOMPADDING",(0,0),(-1,-1),1),
+    ]))
+    story.append(sig)
 
-    # --- Signatures ---
-    c.setFont("THSarabun", 12)
-    signature_y = y_pos - 20
-    
-    # ลายเซ็นผู้รับฝาก
-    c.drawString(LEFT_MARGIN + 30, signature_y, "ลงชื่อ _________________________ ผู้รับฝาก")
-    c.drawString(LEFT_MARGIN + 30, signature_y - 20, "( นาย/นาง/นางสาว _________________ )")
-    c.drawString(LEFT_MARGIN + 30, signature_y - 35, "วันที่: _________________")
-    
-    # ลายเซ็นผู้ขายฝาก
-    c.drawString(width - 280, signature_y, "ลงชื่อ _________________________ ผู้ขายฝาก")
-    c.drawString(width - 280, signature_y - 20, f"( {customer_name} )")
-    c.drawString(width - 280, signature_y - 35, f"วันที่: {thai_start_date}")
-    
-    # Footer info
-    signature_y -= 60
-    c.setFont("THSarabun", 10)
-    c.drawString(LEFT_MARGIN, signature_y, f"เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    # footer
+    story.append(Paragraph(
+        f"<font name='THSarabun' size='9.8'>เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | "
+        f"สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</font>",
+        styles["TH-base"]
+    ))
 
-    # Save the PDF file
-    c.save()
-    print(f"Successfully created '{output_file}' with improved layout")
+    # ------- DocTemplate with top-half frame (no boundary) -------
+    class TopHalfDoc(BaseDocTemplate):
+        def __init__(self, filename, **kw):
+            kw.setdefault("allowSplitting", 1)
+            super().__init__(filename, **kw)
+            self.allowSplitting = 1
+            self.splitLongTables = 1
+            frame = Frame(
+                margin_lr, frame_y, width-2*margin_lr, frame_h,
+                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+                showBoundary=0  # สำคัญ: ไม่มีกรอบ debug
+            )
+            self.addPageTemplates(PageTemplate(id='TopHalf', frames=[frame]))
+
+    doc = TopHalfDoc(output_file, pagesize=A4,
+                     leftMargin=margin_lr, rightMargin=margin_lr, topMargin=margin_top, bottomMargin=0)
+
+    doc.build(story)
     return output_file
 
-# --- Main execution ---
+
+# ----- quick demo -----
 if __name__ == "__main__":
-    # This will create the PDF file in the same directory where you run the script.
-    generate_pawn_ticket("pawn_ticket_fixed.pdf")
+    contract = {
+        "contract_number": "LS-2025-0001",
+        "start_date": "2025-09-10",
+        "end_date": "2025-10-10",
+        "days_count": 30,
+        "estimated_value": 15000,
+        "pawn_amount": 10000,
+        "interest_rate": 15.0,
+        "fee_amount": 200,
+        "withholding_tax_rate": 0.0,
+        "withholding_tax_amount": 0.0,
+        "total_paid": 10000,
+        "total_redemption": 10350
+    }
+    customer = {
+        "customer_code": "CUST-001",
+        "first_name": "สมชาย",
+        "last_name": "ใจดี",
+        "phone": "081-234-5678",
+        "id_card": "1234567890123",
+        "house_number": "99/9",
+        "street": "ถ.พินิจ",
+        "subdistrict": "หล่มสัก",
+        "district": "หล่มสัก",
+        "province": "เพชรบูรณ์"
+    }
+    product = {
+        "name": "iPhone 13 Pro Max",
+        "brand": "Apple",
+        "size": "6.7 นิ้ว",
+        "weight": "240",
+        "weight_unit": "กรัม",
+        "serial_number": "SN1234567890",
+        "other_details": "สภาพดี มีเคสและฟิล์ม"
+    }
+    shop = {
+        "name": "ร้าน ไอโปรโมบายเซอร์วิส",
+        "branch": "สาขาหล่มสัก",
+        "address": "14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110"
+    }
+    renewals = [
+        {"extension_days": 15, "total_amount": 150.0},
+        {"extension_days": 10, "total_amount": 120.0},
+    ]
+    out = generate_pawn_ticket_from_data(
+        contract, customer, product, shop, "pawn_ticket_halfA4_compact_clean.pdf", renewals
+    )
+    print("Created:", out)
