@@ -27,6 +27,9 @@ from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
 from fee_management import FeeManagementDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE
+from pdf_preview_dialog import PDFPreviewDialog
+import tempfile
+import shutil
 
 # Icon mapping for toolbar buttons
 ICON_MAP = {
@@ -2779,33 +2782,32 @@ class PawnShopUI(QMainWindow):
             return
         
         try:
-            # เลือกโฟลเดอร์ที่จะบันทึกไฟล์ PDF
-            folder_dialog = QFileDialog()
-            folder_dialog.setFileMode(QFileDialog.FileMode.Directory)
-            folder_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
-            folder_dialog.setWindowTitle("เลือกโฟลเดอร์สำหรับจัดเก็บใบขายฝาก")
-            
-            if folder_dialog.exec() != QFileDialog.DialogCode.Accepted:
-                return
-            
-            selected_folder = folder_dialog.selectedFiles()[0] if folder_dialog.selectedFiles() else None
-            if not selected_folder:
-                return
-            
-            # สร้างชื่อไฟล์
-            contract_number = self.contract_number_edit.text() or "ใหม่"
-            file_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            output_path = os.path.join(selected_folder, file_name)
-            
-            # สร้าง PDF
-            self._create_pawn_contract_pdf(output_path)
-            
-            QMessageBox.information(self, "สำเร็จ", f"สร้างใบขายฝากเรียบร้อยแล้ว\nบันทึกที่: {output_path}")
-            
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
-            
+            # สร้างไฟล์ชั่วคราวสำหรับพรีวิว
+            with tempfile.TemporaryDirectory() as tmpdir:
+                contract_number = self.contract_number_edit.text() or "ใหม่"
+                temp_file = os.path.join(tmpdir, f"pawn_preview_{contract_number}.pdf")
+
+                # สร้าง PDF ลงไฟล์ชั่วคราว
+                self._create_pawn_contract_pdf(temp_file)
+
+                # แสดงหน้าต่างพรีวิว
+                dlg = PDFPreviewDialog(temp_file, self, window_title="ตัวอย่างใบขายฝาก")
+                if dlg.exec() == QDialog.DialogCode.Accepted:
+                    suggested_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    save_path, _ = QFileDialog.getSaveFileName(
+                        self,
+                        "บันทึก PDF",
+                        suggested_name,
+                        "PDF Files (*.pdf)"
+                    )
+                    if save_path:
+                        shutil.copyfile(temp_file, save_path)
+                        QMessageBox.information(self, "สำเร็จ", f"บันทึกใบขายฝากแล้วที่:\n{save_path}")
+                else:
+                    return
+
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง/พรีวิว PDF: {str(e)}")
 
     def _create_pawn_contract_pdf(self, file_path):
         """สร้างไฟล์ PDF ใบขายฝากโดยใช้ฟังก์ชันจาก pdf.py"""
@@ -3046,19 +3048,6 @@ class PawnShopUI(QMainWindow):
             return
         
         try:
-            # เลือกโฟลเดอร์ที่จะบันทึกไฟล์ PDF
-            folder_dialog = QFileDialog()
-            folder_dialog.setFileMode(QFileDialog.FileMode.Directory)
-            folder_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
-            folder_dialog.setWindowTitle("เลือกโฟลเดอร์สำหรับจัดเก็บใบฝากต่อ")
-            
-            if folder_dialog.exec() != QFileDialog.DialogCode.Accepted:
-                return
-            
-            selected_folder = folder_dialog.selectedFiles()[0] if folder_dialog.selectedFiles() else None
-            if not selected_folder:
-                return
-            
             # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
             contract_id = self.current_contract['id']
             customer = self.db.get_customer_by_id(self.current_contract.get('customer_id'))
@@ -3143,34 +3132,36 @@ class PawnShopUI(QMainWindow):
                 # สร้างชื่อไฟล์
                 contract_number = self.current_contract.get('contract_number', 'unknown')
                 renewal_date = renewal_data['renewal_date'].replace('-', '') if renewal_data['renewal_date'] else datetime.now().strftime('%Y%m%d')
-                output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
                 
-                # สร้าง PDF พร้อมโฟลเดอร์ที่เลือก
-                result = generate_renewal_contract_pdf(
-                    original_contract_data=original_contract_data,
-                    customer_data=customer_data,
-                    product_data=product_data,
-                    renewal_data=renewal_data,
-                    shop_data=shop_data,
-                    output_file=output_file,
-                    output_folder=selected_folder
-                )
-                
-                if result:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {result}")
-                    
-                    # เปิดไฟล์ PDF
-                    import subprocess
-                    import platform
-                    
-                    if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", result])
-                    elif platform.system() == "Windows":
-                        subprocess.run(["start", result], shell=True)
-                    else:  # Linux
-                        subprocess.run(["xdg-open", result])
-                else:
-                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
+                # สร้างไฟล์ชั่วคราวสำหรับพรีวิว และแสดงพรีวิว
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    temp_file = os.path.join(tmpdir, f"renewal_preview_{contract_number}_{renewal_date}.pdf")
+                    result = generate_renewal_contract_pdf(
+                        original_contract_data=original_contract_data,
+                        customer_data=customer_data,
+                        product_data=product_data,
+                        renewal_data=renewal_data,
+                        shop_data=shop_data,
+                        output_file=os.path.basename(temp_file),
+                        output_folder=tmpdir
+                    )
+
+                    if not result:
+                        QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
+                        return
+
+                    dlg = PDFPreviewDialog(temp_file, self, window_title="ตัวอย่างใบฝากต่อ")
+                    if dlg.exec() == QDialog.DialogCode.Accepted:
+                        suggested_name = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
+                        save_path, _ = QFileDialog.getSaveFileName(
+                            self,
+                            "บันทึก PDF ใบฝากต่อ",
+                            suggested_name,
+                            "PDF Files (*.pdf)"
+                        )
+                        if save_path:
+                            shutil.copyfile(temp_file, save_path)
+                            QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
                     
             except ImportError:
                 QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
