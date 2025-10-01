@@ -14,7 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from PySide6.QtGui import QIcon, QAction, QPixmap
+from PySide6.QtGui import QIcon, QAction, QPixmap, QPalette, QColor
 from PySide6.QtCore import Qt, QSize, QDate
 from datetime import datetime, timedelta
 import requests
@@ -3838,6 +3838,23 @@ class PawnShopUI(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    # Force a consistent light theme regardless of OS dark mode
+    app.setStyle("Fusion")
+    light_palette = QPalette()
+    light_palette.setColor(QPalette.Window, QColor(248, 249, 250))
+    light_palette.setColor(QPalette.WindowText, QColor(33, 37, 41))
+    light_palette.setColor(QPalette.Base, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.AlternateBase, QColor(248, 249, 250))
+    light_palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.ToolTipText, QColor(33, 37, 41))
+    light_palette.setColor(QPalette.Text, QColor(33, 37, 41))
+    light_palette.setColor(QPalette.Button, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.ButtonText, QColor(33, 37, 41))
+    light_palette.setColor(QPalette.BrightText, QColor(220, 53, 69))
+    light_palette.setColor(QPalette.Highlight, QColor(0, 123, 255))
+    light_palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.PlaceholderText, QColor(108, 117, 125))
+    app.setPalette(light_palette)
     window = PawnShopUI()
     window.show()
     sys.exit(app.exec())
