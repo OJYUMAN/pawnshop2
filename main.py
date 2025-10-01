@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
-    QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog
+    QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog, QInputDialog
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -29,6 +29,12 @@ from fee_management import FeeManagementDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE, SEND_FORFEITURE_NOTIFICATION
 import tempfile
 import shutil
+from app_services import (
+    send_line_message as svc_send_line_message,
+    open_pdf_external as svc_open_pdf_external,
+    copy_product_image as svc_copy_product_image,
+)
+from language_manager import language_manager
 
 # Icon mapping for toolbar buttons
 ICON_MAP = {
@@ -333,37 +339,8 @@ class PawnShopUI(QMainWindow):
             print(f"เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {str(e)}")
 
     def send_line_message(self, message):
-        """ส่งข้อความเข้า Line"""
-        try:
-            url = "https://api.line.me/v2/bot/message/push"
-            
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {LINE_CHANNEL_ACCESS_TOKEN}'
-            }
-            
-            payload = {
-                "to": LINE_USER_ID,
-                "messages": [
-                    {
-                        "type": "text",
-                        "text": message
-                    }
-                ]
-            }
-            
-            response = requests.post(url, headers=headers, data=json.dumps(payload))
-            
-            if response.status_code == 200:
-                return True
-            else:
-                print(f"ส่งข้อความไม่สำเร็จ: {response.status_code}")
-                print(response.text)
-                return False
-                
-        except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อความ: {str(e)}")
-            return False
+        """ส่งข้อความเข้า Line (delegate to app_services)"""
+        return svc_send_line_message(message)
     def send_forfeiture_to_line(self, contract_data):
         """ส่งข้อมูลหลุดจำนำเข้า Line"""
         if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
@@ -392,29 +369,31 @@ class PawnShopUI(QMainWindow):
 
 
     def create_customer_tab(self):
-        """สร้างแท็บข้อมูลลูกค้า"""
+        """สร้างแท็บข้อมูลลูกค้า (รองรับหลายภาษา)"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
         layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
         # Customer search section
-        search_group = QGroupBox("ค้นหาลูกค้า")
+        search_group = QGroupBox()
+        self.customer_search_group = search_group
         search_layout = QGridLayout(search_group)
         search_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         search_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
-        search_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
+        self.lbl_customer_code = QLabel()
+        search_layout.addWidget(self.lbl_customer_code, 0, 0)
         self.customer_code_edit = QLineEdit()
         search_layout.addWidget(self.customer_code_edit, 0, 1)
         
-        self.customer_search_btn = QPushButton("ค้นหา")
+        self.customer_search_btn = QPushButton()
         self.customer_search_btn.clicked.connect(self.search_customer)
         self.customer_search_btn.setIcon(QIcon.fromTheme("system-search"))
         self.customer_search_btn.setMinimumHeight(32)
         search_layout.addWidget(self.customer_search_btn, 0, 2)
         
-        self.add_customer_btn = QPushButton("เพิ่มลูกค้าใหม่")
+        self.add_customer_btn = QPushButton()
         self.add_customer_btn.clicked.connect(self.toggle_customer_mode)
         self.add_customer_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_customer_btn.setMinimumHeight(32)
@@ -423,27 +402,34 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(search_group)
         
         # Customer info section
-        self.customer_info_group = QGroupBox("ข้อมูลลูกค้า")
+        self.customer_info_group = QGroupBox()
         self.customer_info_layout = QGridLayout(self.customer_info_group)
         self.customer_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         self.customer_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # ชื่อลูกค้า
-        self.customer_info_layout.addWidget(QLabel("ชื่อผู้กู้:"), 0, 0)
+        self.lbl_borrower_name = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_borrower_name, 0, 0)
         self.customer_name_edit = QLineEdit()
         self.customer_name_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.customer_name_edit, 0, 1)
         
         # ที่อยู่
-        self.customer_info_layout.addWidget(QLabel("ที่อยู่:"), 1, 0)
+        self.lbl_address = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_address, 1, 0)
         self.customer_address_edit = QLineEdit()
         self.customer_address_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.customer_address_edit, 1, 1)
         
         # เลขบัตรประชาชน
-        self.customer_info_layout.addWidget(QLabel("บัตร:"), 2, 0)
+        self.lbl_id_type = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_id_type, 2, 0)
         self.id_card_type_combo = QComboBox()
-        self.id_card_type_combo.addItems(["บัตรประชาชน", "ใบขับขี่", "พาสปอร์ต"])
+        self.id_card_type_combo.addItems([
+            language_manager.get_text("id_card_type_citizen"),
+            language_manager.get_text("id_card_type_driver"),
+            language_manager.get_text("id_card_type_passport"),
+        ])
         self.id_card_type_combo.setEnabled(False)
         self.customer_info_layout.addWidget(self.id_card_type_combo, 2, 1)
         self.id_card_edit = QLineEdit()
@@ -451,43 +437,50 @@ class PawnShopUI(QMainWindow):
         self.customer_info_layout.addWidget(self.id_card_edit, 2, 2)
         
         # ที่อยู่บ้าน
-        self.customer_info_layout.addWidget(QLabel("ที่อยู่บ้านเลขที่:"), 3, 0)
+        self.lbl_house_no = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_house_no, 3, 0)
         self.house_number_edit = QLineEdit()
         self.house_number_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.house_number_edit, 3, 1)
         
         # ซอย/ถนน
-        self.customer_info_layout.addWidget(QLabel("ซอย/ถนน:"), 4, 0)
+        self.lbl_street = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_street, 4, 0)
         self.street_edit = QLineEdit()
         self.street_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.street_edit, 4, 1)
         
         # ตำบล
-        self.customer_info_layout.addWidget(QLabel("ตำบล:"), 5, 0)
+        self.lbl_subdistrict = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_subdistrict, 5, 0)
         self.subdistrict_edit = QLineEdit()
         self.subdistrict_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.subdistrict_edit, 5, 1)
         
         # อำเภอ
-        self.customer_info_layout.addWidget(QLabel("อำเภอ:"), 6, 0)
+        self.lbl_district = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_district, 6, 0)
         self.district_edit = QLineEdit()
         self.district_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.district_edit, 6, 1)
         
         # จังหวัด
-        self.customer_info_layout.addWidget(QLabel("จังหวัด:"), 7, 0)
+        self.lbl_province = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_province, 7, 0)
         self.province_edit = QLineEdit()
         self.province_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.province_edit, 7, 1)
         
         # โทรศัพท์
-        self.customer_info_layout.addWidget(QLabel("โทรศัพท์:"), 8, 0)
+        self.lbl_phone = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_phone, 8, 0)
         self.phone_edit = QLineEdit()
         self.phone_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.phone_edit, 8, 1)
         
         # รายละเอียดอื่นๆ
-        self.customer_info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 9, 0)
+        self.lbl_other_details = QLabel()
+        self.customer_info_layout.addWidget(self.lbl_other_details, 9, 0)
         self.other_details_edit = QLineEdit()
         self.other_details_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.other_details_edit, 9, 1)
@@ -495,29 +488,33 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(self.customer_info_group)
         
         # Customer add form section (initially hidden)
-        self.customer_add_group = QGroupBox("เพิ่มลูกค้าใหม่")
+        self.customer_add_group = QGroupBox()
         self.customer_add_layout = QGridLayout(self.customer_add_group)
         self.customer_add_layout.setSpacing(10)
         self.customer_add_layout.setContentsMargins(15, 20, 15, 15)
         
         # รหัสลูกค้า (สร้างอัตโนมัติ)
-        self.customer_add_layout.addWidget(QLabel("รหัสลูกค้า:"), 0, 0)
+        self.lbl_customer_code2 = QLabel()
+        self.customer_add_layout.addWidget(self.lbl_customer_code2, 0, 0)
         self.customer_code_display_edit = QLineEdit()
         self.customer_code_display_edit.setReadOnly(True)
         self.customer_code_display_edit.setStyleSheet("background-color: #F0F0F0; color: #666;")
         self.customer_add_layout.addWidget(self.customer_code_display_edit, 0, 1, 1, 3)
         
         # ชื่อ-นามสกุล
-        self.customer_add_layout.addWidget(QLabel("ชื่อ:"), 1, 0)
+        self.lbl_first_name = QLabel()
+        self.customer_add_layout.addWidget(self.lbl_first_name, 1, 0)
         self.customer_first_name_edit = QLineEdit()
         self.customer_add_layout.addWidget(self.customer_first_name_edit, 1, 1)
         
-        self.customer_add_layout.addWidget(QLabel("นามสกุล:"), 1, 2)
+        self.lbl_last_name = QLabel()
+        self.customer_add_layout.addWidget(self.lbl_last_name, 1, 2)
         self.customer_last_name_edit = QLineEdit()
         self.customer_add_layout.addWidget(self.customer_last_name_edit, 1, 3)
         
         # เลขบัตรประชาชน
-        self.customer_add_layout.addWidget(QLabel("เลขบัตรประชาชน:"), 2, 0)
+        self.lbl_id_number = QLabel()
+        self.customer_add_layout.addWidget(self.lbl_id_number, 2, 0)
         self.customer_id_card_edit = QLineEdit()
         self.customer_add_layout.addWidget(self.customer_id_card_edit, 2, 1, 1, 3)
         
@@ -554,12 +551,12 @@ class PawnShopUI(QMainWindow):
         
         # ปุ่มบันทึกและยกเลิก
         button_layout = QHBoxLayout()
-        self.customer_save_btn = QPushButton("บันทึก")
+        self.customer_save_btn = QPushButton()
         self.customer_save_btn.clicked.connect(self.save_new_customer)
         self.customer_save_btn.setIcon(QIcon.fromTheme("document-save"))
         button_layout.addWidget(self.customer_save_btn)
         
-        self.customer_cancel_btn = QPushButton("ยกเลิก")
+        self.customer_cancel_btn = QPushButton()
         self.customer_cancel_btn.clicked.connect(self.toggle_customer_mode)
         self.customer_cancel_btn.setIcon(QIcon.fromTheme("edit-clear"))
         button_layout.addWidget(self.customer_cancel_btn)
@@ -570,7 +567,51 @@ class PawnShopUI(QMainWindow):
         self.customer_add_group.hide()
         layout.addWidget(self.customer_add_group)
         
+        # เชื่อมต่ออัปเดตภาษา
+        language_manager.language_changed.connect(self.apply_customer_tab_language)
+        self.apply_customer_tab_language()
+
         return tab
+
+    def apply_customer_tab_language(self, *_args):
+        """อัปเดตข้อความของแท็บลูกค้าตามภาษาปัจจุบัน"""
+        # Group titles
+        if hasattr(self, "customer_search_group") and self.customer_search_group is not None:
+            self.customer_search_group.setTitle(language_manager.get_text("customer_search_group"))
+        self.customer_info_group.setTitle(language_manager.get_text("customer_info_group"))
+        self.customer_add_group.setTitle(language_manager.get_text("customer_add_group"))
+
+        # Search section
+        self.lbl_customer_code.setText(language_manager.get_text("customer_code"))
+        self.customer_search_btn.setText(language_manager.get_text("search"))
+        self.add_customer_btn.setText(language_manager.get_text("add_new_customer"))
+
+        # Info section
+        self.lbl_borrower_name.setText(language_manager.get_text("borrower_name"))
+        self.lbl_address.setText(language_manager.get_text("address"))
+        self.lbl_id_type.setText(language_manager.get_text("id_card_short"))
+        # อัปเดตรายการใน combo ด้วย (แม้จะ disabled)
+        self.id_card_type_combo.clear()
+        self.id_card_type_combo.addItems([
+            language_manager.get_text("id_card_type_citizen"),
+            language_manager.get_text("id_card_type_driver"),
+            language_manager.get_text("id_card_type_passport"),
+        ])
+        self.lbl_house_no.setText(language_manager.get_text("house_number"))
+        self.lbl_street.setText(language_manager.get_text("street"))
+        self.lbl_subdistrict.setText(language_manager.get_text("subdistrict"))
+        self.lbl_district.setText(language_manager.get_text("district"))
+        self.lbl_province.setText(language_manager.get_text("province"))
+        self.lbl_phone.setText(language_manager.get_text("phone"))
+        self.lbl_other_details.setText(language_manager.get_text("other_details"))
+
+        # Add section
+        self.lbl_customer_code2.setText(language_manager.get_text("customer_code"))
+        self.lbl_first_name.setText(language_manager.get_text("first_name"))
+        self.lbl_last_name.setText(language_manager.get_text("last_name"))
+        self.lbl_id_number.setText(language_manager.get_text("id_card_number"))
+        self.customer_save_btn.setText(language_manager.get_text("save"))
+        self.customer_cancel_btn.setText(language_manager.get_text("cancel"))
 
     def create_product_tab(self):
         """สร้างแท็บข้อมูลสินค้า"""
@@ -1178,24 +1219,28 @@ class PawnShopUI(QMainWindow):
         
         self.addToolBar(Qt.BottomToolBarArea, toolbar)
 
-        # ปรับปรุง icon names ให้เหมาะสมและมี icon ทุกปุ่ม
-        actions = [
-            ("สร้างสัญญาใหม่", "document-new", self.generate_new_contract),
-            ("ล้างฟอร์ม", "edit-clear", self.clear_form),
-            ("บันทึกสัญญา", "document-save", self.save_contract),
-            ("สร้างใบขายฝาก", "document-export", self.generate_pawn_contract_pdf),
-            ("ต่อดอก", "view-refresh", self.extend_interest),
-            ("สร้างใบฝากต่อ", "document-export", self.generate_renewal_contract_pdf),
-            ("ไถ่ถอน", "go-previous", self.redeem_contract),
-           # ("หลุดจำนำ", "edit-delete", self.lost_contract),
-            ("ดูข้อมูลทั้งหมด", "folder-open", self.view_contracts),
-            ("ดูประวัติการไถ่ถอน", "document-properties", self.view_redemptions),
-            ("สรุปรายได้รายวัน", "x-office-calendar", self.show_daily_income_summary),
-            ("ค่าธรรมเนียม", "preferences-system", self.show_fee_management),
-            ("สแกนบัตรประชาชน", "smartcard", self.scan_id_card)
+        # เก็บ toolbar และ action ไว้สำหรับอัปเดตภาษา
+        self.bottom_toolbar = toolbar
+        self.toolbar_actions = {}
+
+        # ใช้คีย์สำหรับข้อความ เพื่อรองรับหลายภาษา
+        action_defs = [
+            ("tb_new_contract", "document-new", self.generate_new_contract),
+            ("tb_clear_form", "edit-clear", self.clear_form),
+            ("tb_save_contract", "document-save", self.save_contract),
+            ("tb_generate_pawn_pdf", "document-export", self.generate_pawn_contract_pdf),
+            ("tb_extend_interest", "view-refresh", self.extend_interest),
+            ("tb_generate_renewal_pdf", "document-export", self.generate_renewal_contract_pdf),
+            ("tb_redeem_contract", "go-previous", self.redeem_contract),
+            ("tb_view_all", "folder-open", self.view_contracts),
+            ("tb_view_redemptions", "document-properties", self.view_redemptions),
+            ("tb_daily_income", "x-office-calendar", self.show_daily_income_summary),
+            ("tb_fee_management", "preferences-system", self.show_fee_management),
+            ("tb_scan_id", "smartcard", self.scan_id_card),
         ]
 
-        for i, (text, icon_name, slot) in enumerate(actions):
+        for i, (key, icon_name, slot) in enumerate(action_defs):
+            text = language_manager.get_text(key)
             # สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม
             icon = self.create_icon_for_action(icon_name, text)
             action = QAction(icon, text, self)
@@ -1206,12 +1251,32 @@ class PawnShopUI(QMainWindow):
             
             # เพิ่ม status tip สำหรับ status bar
             action.setStatusTip(f"คลิกเพื่อ {text}")
-            
+
             toolbar.addAction(action)
+
+            # เก็บ action ไว้เพื่ออัปเดตข้อความภายหลัง
+            self.toolbar_actions[key] = action
             
             # เพิ่ม separator หลังปุ่มที่ 3 และ 7 เพื่อแบ่งกลุ่ม
             if i == 3 or i == 7 or i == 11:  # เพิ่ม separator หลังปุ่มสแกนบัตร
                 toolbar.addSeparator()
+
+        # ปุ่มสลับภาษา
+        lang_key = "tb_toggle_language"
+        lang_text = language_manager.get_text(lang_key)
+        lang_icon = self.create_icon_for_action("preferences-system", lang_text)
+        lang_action = QAction(lang_icon, lang_text, self)
+        lang_action.setToolTip(lang_text)
+        lang_action.setStatusTip(lang_text)
+        lang_action.triggered.connect(self.toggle_language)
+        toolbar.addAction(lang_action)
+        self.toolbar_actions[lang_key] = lang_action
+
+        # อัปเดตข้อความเมื่อภาษาเปลี่ยน
+        language_manager.language_changed.connect(self.apply_toolbar_language)
+
+        # ตั้งข้อความตามภาษาปัจจุบันทันที (เผื่อมีการโหลดจาก config)
+        self.apply_toolbar_language()
 
     def create_icon_for_action(self, icon_name, text):
         """สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม"""
@@ -1275,6 +1340,48 @@ class PawnShopUI(QMainWindow):
             # สร้าง QIcon จาก text (fallback สำหรับกรณีที่ไม่มี icon)
             return QIcon.fromTheme("applications-other", QIcon.fromTheme("help"))
         return QIcon()
+
+    def apply_toolbar_language(self, *_args):
+        """อัปเดตข้อความบนปุ่ม toolbar ตามภาษาปัจจุบัน"""
+        if not hasattr(self, "toolbar_actions"):
+            return
+        for key, action in self.toolbar_actions.items():
+            text = language_manager.get_text(key)
+            action.setText(text)
+            action.setToolTip(text)
+            # สำหรับปุ่มที่มีสถานะเป็นคำสั่ง เช่น "คลิกเพื่อ ..." เฉพาะปุ่มที่เป็น action หลัก
+            if key != "tb_toggle_language":
+                action.setStatusTip(f"คลิกเพื่อ {text}")
+
+    def toggle_language(self):
+        """เปิด popup ให้เลือกภาษาและเปลี่ยนภาษา"""
+        languages = language_manager.get_available_languages()
+        # แสดงชื่อภาษาให้ผู้ใช้เห็นสวยงาม
+        display_map = {
+            "th": "ไทย",
+            "en": "English",
+            "lo": "ລາວ",
+            "my": "မြန်မာ",
+        }
+        items = [display_map.get(code, code) for code in languages]
+
+        current_code = language_manager.get_current_language()
+        current_index = languages.index(current_code) if current_code in languages else 0
+
+        item, ok = QInputDialog.getItem(
+            self,
+            language_manager.get_text("language"),
+            language_manager.get_text("language"),
+            items,
+            current_index,
+            False
+        )
+        if ok and item:
+            # หา code จากชื่อที่เลือก
+            reverse_map = {v: k for k, v in display_map.items()}
+            selected_code = reverse_map.get(item)
+            if selected_code and selected_code != current_code:
+                language_manager.set_language(selected_code)
 
     def generate_new_contract(self):
         """สร้างสัญญาใหม่ - สร้างเลขที่สัญญาและแสดงบน UI"""
@@ -2732,30 +2839,9 @@ class PawnShopUI(QMainWindow):
             # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def copy_product_image(self, source_path: str) -> str:
-        """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม"""
-        if not source_path or not os.path.exists(source_path):
-            return ""
-        
-        try:
-            # สร้างโฟลเดอร์สำหรับรูปภาพสินค้า
-            images_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "product_images")
-            os.makedirs(images_dir, exist_ok=True)
-            
-            # สร้างชื่อไฟล์ใหม่
-            file_ext = os.path.splitext(source_path)[1]
-            new_filename = f"product_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
-            new_path = os.path.join(images_dir, new_filename)
-            
-            # คัดลอกไฟล์
-            import shutil
-            shutil.copy2(source_path, new_path)
-            
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
-            
-            return new_path
-        except Exception as e:
-            print(f"Error copying image: {e}")
-            return source_path  # คืนค่า path เดิมถ้าเกิดข้อผิดพลาด
+        """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม (delegate to app_services)"""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        return svc_copy_product_image(source_path, base_dir)
 
     def generate_pawn_contract_pdf(self):
         """สร้างใบขายฝากเป็น PDF"""
@@ -2868,19 +2954,8 @@ class PawnShopUI(QMainWindow):
             self._create_pawn_contract_pdf_fallback(file_path)
     
     def _open_pdf_external(self, pdf_path: str):
-        try:
-            import subprocess
-            import platform
-            if platform.system() == "Windows":
-                os_startfile = getattr(__import__("os"), "startfile", None)
-                if os_startfile:
-                    os_startfile(pdf_path)
-            elif platform.system() == "Darwin":
-                subprocess.Popen(["open", pdf_path])
-            else:
-                subprocess.Popen(["xdg-open", pdf_path])
-        except Exception:
-            pass
+        # delegate to app_services
+        svc_open_pdf_external(pdf_path)
 
     def _create_pawn_contract_pdf_fallback(self, file_path):
         """สร้างไฟล์ PDF ใบขายฝากแบบเดิม (fallback)"""
