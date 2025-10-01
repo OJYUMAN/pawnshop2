@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
     QRadioButton, QCheckBox, QFileDialog, QScrollArea, QWidget, QProgressBar
 )
 from PySide6.QtCore import Qt, QDate, QThread, Signal
+import tempfile
+import shutil
 from PySide6.QtGui import QPixmap, QIcon
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
@@ -1451,16 +1453,6 @@ class RedemptionDialog(QDialog):
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
         """สร้างสัญญาไถ่ถอนเป็น PDF"""
         try:
-            # แสดง dialog เลือกโฟลเดอร์
-            folder_dialog = FolderSelectionDialog(self, "เลือกโฟลเดอร์สำหรับจัดเก็บสัญญาไถ่ถอน")
-            if folder_dialog.exec() != QDialog.DialogCode.Accepted:
-                return
-            
-            selected_folder = folder_dialog.get_selected_folder()
-            if not selected_folder:
-                QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกโฟลเดอร์")
-                return
-            
             # นำเข้า pdf3.py
             from pdf3 import generate_redemption_contract_pdf
             
@@ -1529,55 +1521,53 @@ class RedemptionDialog(QDialog):
                 'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
             }
             
-            # สร้างชื่อไฟล์
+            # สร้างไฟล์ชั่วคราวสำหรับพรีวิวและให้ผู้ใช้เลือกบันทึก
             contract_number = self.contract_data.get('contract_number', 'unknown')
-            redemption_date = redemption_data['redemption_date'].replace('-', '')
-            output_file = f"redemption_contract_{contract_number}_{redemption_date}.pdf"
-            
-            # สร้าง PDF สัญญาไถ่ถอนพร้อมโฟลเดอร์ที่เลือก
-            result = generate_redemption_contract_pdf(
-                redemption_data=redemption_pdf_data,
-                customer_data=customer_data,
-                product_data=product_data,
-                original_contract_data=original_contract_data,
-                shop_data=shop_data,
-                output_file=output_file,
-                output_folder=selected_folder
-            )
-            
-            if result:
-                # ตรวจสอบว่าเป็นการสร้างเฉพาะสัญญาหรือการไถ่ถอนจริง
-                if redemption_id is not None:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {result}")
-                    
-                    # เปิดไฟล์ PDF
+            with tempfile.TemporaryDirectory() as tmpdir:
+                temp_file = os.path.join(tmpdir, f"redemption_preview_{contract_number}.pdf")
+
+                # สร้าง PDF ลงไฟล์ชั่วคราว
+                result = generate_redemption_contract_pdf(
+                    redemption_data=redemption_pdf_data,
+                    customer_data=customer_data,
+                    product_data=product_data,
+                    original_contract_data=original_contract_data,
+                    shop_data=shop_data,
+                    output_file=temp_file,
+                    output_folder=None
+                )
+
+                if result and os.path.exists(result):
+                    # เปิดไฟล์ PDF ภายนอกเพื่อพรีวิว
                     import subprocess
                     import platform
-                    
-                    if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", result])
-                    elif platform.system() == "Windows":
-                        subprocess.run(["start", result], shell=True)
-                    else:  # Linux
-                        subprocess.run(["xdg-open", result])
-                        
-                    # พิมพ์สัญญาไถ่ถอน
-                    self.print_redemption_contract(result)
+
+                    try:
+                        if platform.system() == "Darwin":
+                            subprocess.run(["open", result])
+                        elif platform.system() == "Windows":
+                            os.startfile(result)
+                        else:
+                            subprocess.run(["xdg-open", result])
+                    except Exception:
+                        pass
+
+                    # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
+                    suggested_name = f"ใบไถ่ถอน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    save_path, _ = QFileDialog.getSaveFileName(
+                        self,
+                        "บันทึก PDF",
+                        suggested_name,
+                        "PDF Files (*.pdf)"
+                    )
+                    if save_path:
+                        shutil.copyfile(result, save_path)
+                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่ถอนแล้วที่:\n{save_path}")
+                        # ในกรณีเป็นการไถ่ถอนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
+                        if redemption_id is not None:
+                            self.print_redemption_contract(save_path)
                 else:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างสัญญาไถ่ถอนสำเร็จ\nไฟล์: {result}")
-                    
-                    # เปิดไฟล์ PDF
-                    import subprocess
-                    import platform
-                    
-                    if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", result])
-                    elif platform.system() == "Windows":
-                        subprocess.run(["start", result], shell=True)
-                    else:  # Linux
-                        subprocess.run(["xdg-open", result])
-            else:
-                QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่ถอนไม่สำเร็จ")
+                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่ถอนไม่สำเร็จ")
                 
         except ImportError:
             QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")
@@ -1980,16 +1970,6 @@ class RenewalDialog(QDialog):
             return
         
         try:
-            # แสดง dialog เลือกโฟลเดอร์
-            folder_dialog = FolderSelectionDialog(self, "เลือกโฟลเดอร์สำหรับจัดเก็บใบฝากต่อ")
-            if folder_dialog.exec() != QDialog.DialogCode.Accepted:
-                return
-            
-            selected_folder = folder_dialog.get_selected_folder()
-            if not selected_folder:
-                QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกโฟลเดอร์")
-                return
-            
             # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
             contract_id = self.contract_data['id']
             customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
@@ -2051,42 +2031,52 @@ class RenewalDialog(QDialog):
                 'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
             }
             
-            # นำเข้า pdf2.py
+            # นำเข้า pdf2.py และสร้างไฟล์ชั่วคราวสำหรับพรีวิว แล้วค่อย Save As
             try:
                 from pdf2 import generate_renewal_contract_pdf
-                
-                # สร้างชื่อไฟล์
+
                 contract_number = self.contract_data.get('contract_number', 'unknown')
-                renewal_date = renewal_data['renewal_date'].replace('-', '')
-                output_file = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
-                
-                # สร้าง PDF พร้อมโฟลเดอร์ที่เลือก
-                result = generate_renewal_contract_pdf(
-                    original_contract_data=original_contract_data,
-                    customer_data=customer_data,
-                    product_data=product_data,
-                    renewal_data=renewal_data,
-                    shop_data=shop_data,
-                    output_file=output_file,
-                    output_folder=selected_folder
-                )
-                
-                if result:
-                    QMessageBox.information(self, "สำเร็จ", f"สร้างใบฝากต่อสำเร็จ\nไฟล์: {result}")
-                    
-                    # เปิดไฟล์ PDF
-                    import subprocess
-                    import platform
-                    
-                    if platform.system() == "Darwin":  # macOS
-                        subprocess.run(["open", result])
-                    elif platform.system() == "Windows":
-                        subprocess.run(["start", result], shell=True)
-                    else:  # Linux
-                        subprocess.run(["xdg-open", result])
-                else:
-                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
-                    
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    temp_file = os.path.join(tmpdir, f"renewal_preview_{contract_number}.pdf")
+
+                    result = generate_renewal_contract_pdf(
+                        original_contract_data=original_contract_data,
+                        customer_data=customer_data,
+                        product_data=product_data,
+                        renewal_data=renewal_data,
+                        shop_data=shop_data,
+                        output_file=temp_file,
+                        output_folder=None
+                    )
+
+                    if result and os.path.exists(result):
+                        # เปิดไฟล์ PDF ภายนอกเพื่อพรีวิว
+                        import subprocess
+                        import platform
+
+                        try:
+                            if platform.system() == "Darwin":
+                                subprocess.run(["open", result])
+                            elif platform.system() == "Windows":
+                                os.startfile(result)
+                            else:
+                                subprocess.run(["xdg-open", result])
+                        except Exception:
+                            pass
+
+                        # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
+                        suggested_name = f"ใบฝากต่อ_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                        save_path, _ = QFileDialog.getSaveFileName(
+                            self,
+                            "บันทึก PDF",
+                            suggested_name,
+                            "PDF Files (*.pdf)"
+                        )
+                        if save_path:
+                            shutil.copyfile(result, save_path)
+                            QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
+                    else:
+                        QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
             except ImportError:
                 QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
             except Exception as e:
