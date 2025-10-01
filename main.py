@@ -870,15 +870,21 @@ class PawnShopUI(QMainWindow):
       
         
         # Renewal history table
-        history_group = QGroupBox("ประวัติการต่อดอก")
+        history_group = QGroupBox()
         history_layout = QVBoxLayout(history_group)
         history_layout.setContentsMargins(15, 20, 15, 15)
         
         # สร้างตารางประวัติการต่อดอก
         self.renewal_history_table = QTableWidget(0, 8)
         headers = [
-            "ลำดับ", "วันที่ต่อดอก", "จำนวนวันต่อ", "ค่าธรรมเนียม", 
-            "ค่าปรับ", "ส่วนลด", "ยอดรวม", "วันที่ครบกำหนดใหม่"
+            language_manager.get_text("renewal_h_seq"),
+            language_manager.get_text("renewal_h_date"),
+            language_manager.get_text("renewal_h_days"),
+            language_manager.get_text("renewal_h_fee"),
+            language_manager.get_text("renewal_h_penalty"),
+            language_manager.get_text("renewal_h_discount"),
+            language_manager.get_text("renewal_h_total"),
+            language_manager.get_text("renewal_h_new_due"),
         ]
         self.renewal_history_table.setHorizontalHeaderLabels(headers)
         
@@ -898,7 +904,7 @@ class PawnShopUI(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)
         
-        self.renewal_process_btn = QPushButton("ดำเนินการต่อดอก")
+        self.renewal_process_btn = QPushButton()
         self.renewal_process_btn.clicked.connect(self.process_renewal)
         self.renewal_process_btn.setIcon(QIcon.fromTheme("view-refresh"))
         self.renewal_process_btn.setMinimumHeight(32)
@@ -914,7 +920,7 @@ class PawnShopUI(QMainWindow):
         """)
         button_layout.addWidget(self.renewal_process_btn)
         
-        self.renewal_clear_form_btn = QPushButton("ล้างฟอร์ม")
+        self.renewal_clear_form_btn = QPushButton()
         self.renewal_clear_form_btn.clicked.connect(self.clear_renewal_form)
         self.renewal_clear_form_btn.setIcon(QIcon.fromTheme("edit-clear"))
         self.renewal_clear_form_btn.setMinimumHeight(32)
@@ -922,8 +928,30 @@ class PawnShopUI(QMainWindow):
         
         history_layout.addLayout(button_layout)
         layout.addWidget(history_group)
+
+        # ผูกภาษา
+        language_manager.language_changed.connect(self.apply_renewal_language)
+        self.apply_renewal_language()
         
         return tab
+
+    def apply_renewal_language(self, *_args):
+        # ชื่อกลุ่ม
+        # ค้นหา QGroupBox ใกล้เคียงจากปุ่มในส่วนนี้ไม่ได้ตั้ง objectName ไว้ จึงใช้ข้อความตรงๆจาก layout
+        # อย่างไรก็ตาม เราอัปเดตหัวตารางและปุ่ม ซึ่งครอบคลุมตามภาพ
+        headers = [
+            language_manager.get_text("renewal_h_seq"),
+            language_manager.get_text("renewal_h_date"),
+            language_manager.get_text("renewal_h_days"),
+            language_manager.get_text("renewal_h_fee"),
+            language_manager.get_text("renewal_h_penalty"),
+            language_manager.get_text("renewal_h_discount"),
+            language_manager.get_text("renewal_h_total"),
+            language_manager.get_text("renewal_h_new_due"),
+        ]
+        self.renewal_history_table.setHorizontalHeaderLabels(headers)
+        self.renewal_process_btn.setText(language_manager.get_text("renewal_process"))
+        self.renewal_clear_form_btn.setText(language_manager.get_text("clear_form"))
 
 
     def create_left_panel(self):
@@ -1006,34 +1034,38 @@ class PawnShopUI(QMainWindow):
         return right_widget
 
     def create_contract_info_section(self):
-        """สร้างส่วนข้อมูลสัญญา"""
-        group_box = QGroupBox("ข้อมูลสัญญา")
+        """สร้างส่วนข้อมูลสัญญา (รองรับหลายภาษา)"""
+        group_box = QGroupBox()
         group_box.setObjectName("TopLeftGroup")
         layout = QGridLayout(group_box)
         layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # เลขที่สัญญา
-        layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
+        self.lbl_contract_number = QLabel()
+        layout.addWidget(self.lbl_contract_number, 0, 0)
         self.contract_number_edit = QLineEdit()
         self.contract_number_edit.setReadOnly(True)
         layout.addWidget(self.contract_number_edit, 0, 1)
         
         # วันที่เริ่มต้น
-        layout.addWidget(QLabel("วันที่เริ่มต้น:"), 1, 0)
+        self.lbl_start_date = QLabel()
+        layout.addWidget(self.lbl_start_date, 1, 0)
         self.start_date_edit = QDateEdit()
         self.start_date_edit.setDate(QDate.currentDate())
         layout.addWidget(self.start_date_edit, 1, 1)
         
         # จำนวนวัน
-        layout.addWidget(QLabel("จำนวนวัน:"), 2, 0)
+        self.lbl_days = QLabel()
+        layout.addWidget(self.lbl_days, 2, 0)
         self.days_spin = QSpinBox()
         self.days_spin.setRange(1, 365)
         self.days_spin.setValue(30)
         layout.addWidget(self.days_spin, 2, 1)
         
         # วันที่สิ้นสุด
-        layout.addWidget(QLabel("วันที่สิ้นสุด:"), 3, 0)
+        self.lbl_end_date = QLabel()
+        layout.addWidget(self.lbl_end_date, 3, 0)
         self.end_date_edit = QLineEdit()
         self.end_date_edit.setReadOnly(True)
         layout.addWidget(self.end_date_edit, 3, 1)
@@ -1043,11 +1075,12 @@ class PawnShopUI(QMainWindow):
         self.days_spin.valueChanged.connect(self.calculate_end_date)
         
         # สถานะสัญญา
-        layout.addWidget(QLabel("สถานะสัญญา:"), 4, 0)
+        self.lbl_contract_status = QLabel()
+        layout.addWidget(self.lbl_contract_status, 4, 0)
         status_layout = QHBoxLayout()
-        self.active_radio = QRadioButton("สัญญาเปิด")
-        self.redeemed_radio = QRadioButton("ไถ่ถอนแล้ว")
-        self.lost_radio = QRadioButton("สูญหาย")
+        self.active_radio = QRadioButton()
+        self.redeemed_radio = QRadioButton()
+        self.lost_radio = QRadioButton()
         self.active_radio.setChecked(True)
         status_layout.addWidget(self.active_radio)
         status_layout.addWidget(self.redeemed_radio)
@@ -1055,43 +1088,64 @@ class PawnShopUI(QMainWindow):
         layout.addLayout(status_layout, 4, 1)
         
         # ปุ่มอัปเดตสถานะ
-        self.update_status_btn = QPushButton("อัปเดตสถานะ")
+        self.update_status_btn = QPushButton()
         self.update_status_btn.clicked.connect(self.update_contract_status)
         self.update_status_btn.setMaximumWidth(120)
         self.update_status_btn.setIcon(QIcon.fromTheme("view-refresh"))
         layout.addWidget(self.update_status_btn, 4, 2)
         
+        # เชื่อมต่อภาษา
+        language_manager.language_changed.connect(self.apply_contract_info_language)
+        self.apply_contract_info_language()
+
         return group_box
 
+    def apply_contract_info_language(self, *_args):
+        if (w := self.findChild(QGroupBox, "TopLeftGroup")) is not None:
+            w.setTitle(language_manager.get_text("contract_info_group"))
+        self.lbl_contract_number.setText(language_manager.get_text("contract_number"))
+        self.lbl_start_date.setText(language_manager.get_text("start_date"))
+        self.lbl_days.setText(language_manager.get_text("days"))
+        self.lbl_end_date.setText(language_manager.get_text("end_date"))
+        self.lbl_contract_status.setText(language_manager.get_text("contract_status"))
+        self.active_radio.setText(language_manager.get_text("status_active"))
+        self.redeemed_radio.setText(language_manager.get_text("status_redeemed"))
+        self.lost_radio.setText(language_manager.get_text("status_lost"))
+        self.update_status_btn.setText(language_manager.get_text("update_status"))
+
     def create_results_section(self):
-        """สร้างส่วนผลจัดทำ"""
-        group_box = QGroupBox("ผลจัดทำ")
+        """สร้างส่วนผลจัดทำ (รองรับหลายภาษา)"""
+        group_box = QGroupBox()
         group_box.setObjectName("TopMiddleGroup")
         layout = QGridLayout(group_box)
         layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
 
         # ยอดฝาก
-        layout.addWidget(QLabel("ยอดฝาก"), 0, 0)
+        self.lbl_pawn_amount = QLabel()
+        layout.addWidget(self.lbl_pawn_amount, 0, 0)
         self.pawn_amount_spin = QDoubleSpinBox()
         self.pawn_amount_spin.setRange(0, 999999)
         self.pawn_amount_spin.setSuffix(" บาท")
         layout.addWidget(self.pawn_amount_spin, 0, 1)
 
         # อัตราดอกเบี้ย
-        layout.addWidget(QLabel("อัตราดอกเบี้ย"), 1, 0)
+        self.lbl_interest_rate = QLabel()
+        layout.addWidget(self.lbl_interest_rate, 1, 0)
         self.interest_rate_spin = QDoubleSpinBox()
         self.interest_rate_spin.setRange(0, 100)
         self.interest_rate_spin.setSuffix(" %")
         layout.addWidget(self.interest_rate_spin, 1, 1)
 
         # ค่าธรรมเนียม
-        layout.addWidget(QLabel("ค่าธรรมเนียม"), 2, 0)
+        self.lbl_fee_amount = QLabel()
+        layout.addWidget(self.lbl_fee_amount, 2, 0)
         self.fee_amount_label = QLabel("0.00 บาท")
         layout.addWidget(self.fee_amount_label, 2, 1)
         
         # อัตราหัก ณ ที่จ่าย
-        layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย"), 3, 0)
+        self.lbl_withholding_rate = QLabel()
+        layout.addWidget(self.lbl_withholding_rate, 3, 0)
         self.withholding_tax_rate_spin = QDoubleSpinBox()
         self.withholding_tax_rate_spin.setRange(0, 100)
         self.withholding_tax_rate_spin.setSuffix(" %")
@@ -1099,24 +1153,27 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
         
         # ปุ่มอัปเดตอัตราหัก ณ ที่จ่าย
-        self.update_tax_rate_btn = QPushButton("อัปเดต")
+        self.update_tax_rate_btn = QPushButton()
         self.update_tax_rate_btn.clicked.connect(self.update_withholding_tax_rate)
         self.update_tax_rate_btn.setMaximumWidth(80)
         self.update_tax_rate_btn.setIcon(QIcon.fromTheme("view-refresh"))
         layout.addWidget(self.update_tax_rate_btn, 3, 2)
         
         # ยอดหัก ณ ที่จ่าย
-        layout.addWidget(QLabel("ยอดหัก ณ ที่จ่าย"), 4, 0)
+        self.lbl_withholding_amount = QLabel()
+        layout.addWidget(self.lbl_withholding_amount, 4, 0)
         self.withholding_tax_amount_label = QLabel("0.00 บาท")
         layout.addWidget(self.withholding_tax_amount_label, 4, 1)
         
         # ยอดจ่าย
-        layout.addWidget(QLabel("ยอดจ่าย"), 5, 0)
+        self.lbl_total_paid = QLabel()
+        layout.addWidget(self.lbl_total_paid, 5, 0)
         self.total_paid_label = QLabel("0.00 บาท")
         layout.addWidget(self.total_paid_label, 5, 1)
 
         # ยอดไถ่ถอน
-        layout.addWidget(QLabel("ยอดไถ่ถอน"), 6, 0)
+        self.lbl_total_redemption = QLabel()
+        layout.addWidget(self.lbl_total_redemption, 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
         layout.addWidget(self.total_redemption_label, 6, 1)
 
@@ -1125,10 +1182,26 @@ class PawnShopUI(QMainWindow):
         self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
         self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
 
+        # เชื่อมภาษา
+        language_manager.language_changed.connect(self.apply_results_language)
+        self.apply_results_language()
+
         return group_box
 
+    def apply_results_language(self, *_args):
+        if (w := self.findChild(QGroupBox, "TopMiddleGroup")) is not None:
+            w.setTitle(language_manager.get_text("results_group"))
+        self.lbl_pawn_amount.setText(language_manager.get_text("pawn_amount"))
+        self.lbl_interest_rate.setText(language_manager.get_text("interest_rate"))
+        self.lbl_fee_amount.setText(language_manager.get_text("fee_amount"))
+        self.lbl_withholding_rate.setText(language_manager.get_text("withholding_rate"))
+        self.update_tax_rate_btn.setText(language_manager.get_text("update"))
+        self.lbl_withholding_amount.setText(language_manager.get_text("withholding_rate"))
+        self.lbl_total_paid.setText(language_manager.get_text("total_paid"))
+        self.lbl_total_redemption.setText(language_manager.get_text("total_redemption"))
+
     def create_search_group(self):
-        group_box = QGroupBox("ค้นหาสัญญา")
+        group_box = QGroupBox()
         group_box.setObjectName("SearchGroup")
         layout = QVBoxLayout(group_box)
         layout.setSpacing(15)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
@@ -1136,9 +1209,14 @@ class PawnShopUI(QMainWindow):
         
         # เลือกประเภทการค้นหา
         search_type_layout = QHBoxLayout()
-        search_type_layout.addWidget(QLabel("ค้นหาตาม:"))
+        self.lbl_search_by = QLabel()
+        search_type_layout.addWidget(self.lbl_search_by)
         self.search_type_combo = QComboBox()
-        self.search_type_combo.addItems(["เลขที่สัญญา", "เลขบัตรประชาชน", "ชื่อนามสกุล"])
+        self.search_type_combo.addItems([
+            language_manager.get_text("search_type_contract"),
+            language_manager.get_text("search_type_idcard"),
+            language_manager.get_text("search_type_name"),
+        ])
         self.search_type_combo.currentTextChanged.connect(self.on_search_type_changed)
         search_type_layout.addWidget(self.search_type_combo)
         layout.addLayout(search_type_layout)
@@ -1148,31 +1226,35 @@ class PawnShopUI(QMainWindow):
         form_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างคอลัมน์
         
         # เลขที่สัญญา (เริ่มต้น)
-        form_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
+        self.lbl_search_contract = QLabel()
+        form_layout.addWidget(self.lbl_search_contract, 0, 0)
         self.search_contract_combo = QComboBox()
         self.search_contract_combo.addItems(["=", ">", "<", ">=", "<="])
         form_layout.addWidget(self.search_contract_combo, 0, 1)
         self.search_contract_edit = QLineEdit()
-        self.search_contract_edit.setPlaceholderText("กรอกเลขที่สัญญา...")
+        self.search_contract_edit.setPlaceholderText(language_manager.get_text("enter_contract_number"))
         form_layout.addWidget(self.search_contract_edit, 0, 2)
         
         # เลขบัตรประชาชน (ซ่อนไว้)
-        form_layout.addWidget(QLabel("เลขบัตรประชาชน:"), 1, 0)
+        self.lbl_search_idcard = QLabel()
+        form_layout.addWidget(self.lbl_search_idcard, 1, 0)
         self.search_id_card_edit = QLineEdit()
-        self.search_id_card_edit.setPlaceholderText("กรอกเลขบัตรประชาชน...")
+        self.search_id_card_edit.setPlaceholderText(language_manager.get_text("enter_id_card"))
         self.search_id_card_edit.hide()
         form_layout.addWidget(self.search_id_card_edit, 1, 1, 1, 2)
         
         # ชื่อนามสกุล (ซ่อนไว้)
-        form_layout.addWidget(QLabel("ชื่อ:"), 2, 0)
+        self.lbl_search_first_name = QLabel()
+        form_layout.addWidget(self.lbl_search_first_name, 2, 0)
         self.search_first_name_edit = QLineEdit()
-        self.search_first_name_edit.setPlaceholderText("กรอกชื่อ...")
+        self.search_first_name_edit.setPlaceholderText(language_manager.get_text("enter_first_name"))
         self.search_first_name_edit.hide()
         form_layout.addWidget(self.search_first_name_edit, 2, 1)
         
-        form_layout.addWidget(QLabel("นามสกุล:"), 2, 2)
+        self.lbl_search_last_name = QLabel()
+        form_layout.addWidget(self.lbl_search_last_name, 2, 2)
         self.search_last_name_edit = QLineEdit()
-        self.search_last_name_edit.setPlaceholderText("กรอกนามสกุล...")
+        self.search_last_name_edit.setPlaceholderText(language_manager.get_text("enter_last_name"))
         self.search_last_name_edit.hide()
         form_layout.addWidget(self.search_last_name_edit, 2, 3)
 
@@ -1182,13 +1264,13 @@ class PawnShopUI(QMainWindow):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างปุ่ม
         
-        self.search_btn = QPushButton("ค้นหา")
+        self.search_btn = QPushButton()
         self.search_btn.clicked.connect(self.search_contracts)
         self.search_btn.setIcon(QIcon.fromTheme("system-search"))
         self.search_btn.setMinimumHeight(32)
         button_layout.addWidget(self.search_btn)
         
-        self.clear_search_btn = QPushButton("ล้างการค้นหา")
+        self.clear_search_btn = QPushButton()
         self.clear_search_btn.clicked.connect(self.clear_search)
         self.clear_search_btn.setIcon(QIcon.fromTheme("edit-clear"))
         self.clear_search_btn.setMinimumHeight(32)
@@ -1199,24 +1281,68 @@ class PawnShopUI(QMainWindow):
         # ตัวเลือกสถานะสัญญา
         radio_layout = QHBoxLayout()
         radio_layout.setSpacing(15)  # เพิ่มระยะห่างระหว่าง radio button
-        radio_layout.addWidget(QLabel("สถานะสัญญา:"))
-        self.search_active_radio = QRadioButton("สัญญาเปิด")
-        self.search_closed_radio = QRadioButton("สัญญาปิด")
-        self.search_all_radio = QRadioButton("ทั้งหมด")
+        self.lbl_search_status = QLabel()
+        radio_layout.addWidget(self.lbl_search_status)
+        self.search_active_radio = QRadioButton()
+        self.search_closed_radio = QRadioButton()
+        self.search_all_radio = QRadioButton()
         self.search_all_radio.setChecked(True)
         radio_layout.addWidget(self.search_active_radio)
         radio_layout.addWidget(self.search_closed_radio)
         radio_layout.addWidget(self.search_all_radio)
         layout.addLayout(radio_layout)
         
+        # ผูกภาษา
+        language_manager.language_changed.connect(self.apply_search_language)
+        self.apply_search_language()
+
         return group_box
+
+    def apply_search_language(self, *_args):
+        if (w := self.findChild(QGroupBox, "SearchGroup")) is not None:
+            w.setTitle(language_manager.get_text("search_group"))
+        self.lbl_search_by.setText(language_manager.get_text("search_by"))
+        # reset search type items
+        current_idx = self.search_type_combo.currentIndex()
+        self.search_type_combo.clear()
+        self.search_type_combo.addItems([
+            language_manager.get_text("search_type_contract"),
+            language_manager.get_text("search_type_idcard"),
+            language_manager.get_text("search_type_name"),
+        ])
+        self.search_type_combo.setCurrentIndex(max(0, min(current_idx, 2)))
+        self.lbl_search_contract.setText(language_manager.get_text("contract_number"))
+        self.search_contract_edit.setPlaceholderText(language_manager.get_text("enter_contract_number"))
+        self.lbl_search_idcard.setText(language_manager.get_text("id_card_number"))
+        self.search_id_card_edit.setPlaceholderText(language_manager.get_text("enter_id_card"))
+        self.lbl_search_first_name.setText(language_manager.get_text("first_name"))
+        self.search_first_name_edit.setPlaceholderText(language_manager.get_text("enter_first_name"))
+        self.lbl_search_last_name.setText(language_manager.get_text("last_name"))
+        self.search_last_name_edit.setPlaceholderText(language_manager.get_text("enter_last_name"))
+        self.search_btn.setText(language_manager.get_text("search"))
+        self.clear_search_btn.setText(language_manager.get_text("clear_search"))
+        self.lbl_search_status.setText(language_manager.get_text("contract_status"))
+        self.search_active_radio.setText(language_manager.get_text("status_open"))
+        self.search_closed_radio.setText(language_manager.get_text("status_closed"))
+        self.search_all_radio.setText(language_manager.get_text("all"))
 
     def create_data_table(self):
         self.contract_table = QTableWidget(0, 14)  # เพิ่มคอลัมน์ให้ครบถ้วน
         headers = [
-            "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ยอดจำนำ", 
-            "อัตราดอกเบี้ย", "ค่าธรรมเนียม", "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
-            "จำนวนวัน", "ดอกเบี้ย", "หัก ณ ที่จ่าย", "ยอดรวม", "สถานะ"
+            language_manager.get_text("th_sequence"),
+            language_manager.get_text("th_contract_no"),
+            language_manager.get_text("th_customer_name"),
+            language_manager.get_text("th_product_name"),
+            language_manager.get_text("th_pawn_amount"),
+            language_manager.get_text("th_interest_rate"),
+            language_manager.get_text("th_fee_amount"),
+            language_manager.get_text("th_start_date"),
+            language_manager.get_text("th_end_date"),
+            language_manager.get_text("th_days"),
+            language_manager.get_text("th_interest"),
+            language_manager.get_text("th_withholding"),
+            language_manager.get_text("th_total"),
+            language_manager.get_text("th_status"),
         ]
         self.contract_table.setHorizontalHeaderLabels(headers)
         
@@ -1248,7 +1374,28 @@ class PawnShopUI(QMainWindow):
         # เชื่อมต่อการคลิกในตารางเพื่อโหลดข้อมูลสัญญา
         self.contract_table.itemClicked.connect(self.on_contract_table_clicked)
         
+        # ผูกภาษาให้รีเฟรชหัวตาราง
+        language_manager.language_changed.connect(self.apply_table_headers_language)
         return self.contract_table
+
+    def apply_table_headers_language(self, *_args):
+        headers = [
+            language_manager.get_text("th_sequence"),
+            language_manager.get_text("th_contract_no"),
+            language_manager.get_text("th_customer_name"),
+            language_manager.get_text("th_product_name"),
+            language_manager.get_text("th_pawn_amount"),
+            language_manager.get_text("th_interest_rate"),
+            language_manager.get_text("th_fee_amount"),
+            language_manager.get_text("th_start_date"),
+            language_manager.get_text("th_end_date"),
+            language_manager.get_text("th_days"),
+            language_manager.get_text("th_interest"),
+            language_manager.get_text("th_withholding"),
+            language_manager.get_text("th_total"),
+            language_manager.get_text("th_status"),
+        ]
+        self.contract_table.setHorizontalHeaderLabels(headers)
 
   
 
