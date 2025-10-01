@@ -11,6 +11,9 @@ except Exception:
     QPdfView = None
     QT_PDF_AVAILABLE = False
 
+# บังคับให้ไม่ใช้ Qt PDF ภายในแอปเสมอ และเปิดด้วยโปรแกรมภายนอกแทน
+QT_PDF_AVAILABLE = False
+
 
 class PDFPreviewDialog(QDialog):
     def __init__(self, pdf_path: str, parent=None, window_title: str = "ตัวอย่างเอกสาร PDF"):

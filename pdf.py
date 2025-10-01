@@ -60,7 +60,7 @@ def generate_pawn_ticket_from_data(
     renewal_data: Optional[List[Dict]] = None,
 ) -> str:
     """
-    คอมแพ็กต์ครึ่งบน A4 หน้าเดียว (2 คอลัมน์) – เวอร์ชันไม่มีเลข/บูลเล็ทหลุดมา
+    คอมแพ็กต์ครึ่งบน A4 หน้าเดียว (2 คอลัมน์) – เวอร์ชันตัด อัตราดอกเบี้ย/ค่าธรรมเนียม/หัก ณ ที่จ่าย ออก
     """
     ensure_fonts()
 
@@ -95,13 +95,8 @@ def generate_pawn_ticket_from_data(
     days_count = contract_data.get('days_count', 0)
 
     pawn_amount = float(contract_data.get('pawn_amount', 0))
-    interest_rate = float(contract_data.get('interest_rate', 0))
-    fee_amount = float(contract_data.get('fee_amount', 0))
     total_redemption = float(contract_data.get('total_redemption', pawn_amount))
-    withholding_tax_rate = float(contract_data.get('withholding_tax_rate', 0))
-    withholding_tax_amount = float(contract_data.get('withholding_tax_amount', 0))
     total_paid = float(contract_data.get('total_paid', pawn_amount))
-    interest_amt = (pawn_amount * interest_rate * days_count) / 36500.0 if interest_rate > 0 else 0.0
 
     full_name = f"{customer_data.get('first_name','')} {customer_data.get('last_name','')}".strip() or "-"
     customer_code = customer_data.get('customer_code', '-') or '-'
@@ -164,7 +159,7 @@ def generate_pawn_ticket_from_data(
     left_w = col_w * 0.53
     right_w = col_w * 0.47
 
-    # Left column: สร้างเป็นตารางคอลัมน์เดียวเพื่อวาง flowables ทีละบล็อก (ไม่มี bullets/เลข)
+    # Left column
     cust_tbl_inner = Table([
         [Paragraph(f"รหัสลูกค้า: <b>{customer_code}</b>", styles["TH-base"]),
          Paragraph(f"โทรศัพท์: <b>{phone}</b>", styles["TH-base"])],
@@ -205,27 +200,16 @@ def generate_pawn_ticket_from_data(
         ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
 
-    # Right column: finance + highlight + terms (วางเป็นคอลัมน์เดียวเช่นกัน)
-    finance_tbl_inner = Table(
-        [
-            [Paragraph(f"ยอดฝาก: <b>{pawn_amount:,.2f} บาท</b>", styles["TH-base"]),
-             Paragraph(f"ระยะเวลา: <b>{days_count} วัน</b>", styles["TH-base"])],
-        ] + (
-            [[Paragraph(f"อัตราดอกเบี้ย: <b>{interest_rate:.2f}% ต่อปี</b>", styles["TH-base"]),
-              Paragraph(f"ดอกเบี้ยประมาณ: <b>{interest_amt:,.2f} บาท</b>", styles["TH-base"])]]
-            if interest_rate > 0 else []
-        ) + (
-            [[Paragraph(f"ค่าธรรมเนียม: <b>{fee_amount:,.2f} บาท</b>", styles["TH-base"]), ""]]
-            if fee_amount > 0 else []
-        ) + (
-            [[Paragraph(f"หัก ณ ที่จ่าย ({withholding_tax_rate:.2f}%): <b>{withholding_tax_amount:,.2f} บาท</b>", styles["TH-base"]), ""]]
-            if (withholding_tax_rate > 0 and withholding_tax_amount > 0) else []
-        ) + (
-            [[Paragraph(f"ยอดจ่าย: <b>{total_paid:,.2f} บาท</b>", styles["TH-base"]), ""]]
-            if abs(total_paid - pawn_amount) > 1e-6 else []
-        ),
-        colWidths=[right_w*0.58, right_w*0.42]
-    )
+    # Right column: finance (ตัดอัตราดอก/ค่าธรรมเนียม/หัก ณ ที่จ่าย)
+    finance_rows = [
+        [Paragraph(f"ยอดฝาก: <b>{pawn_amount:,.2f} บาท</b>", styles["TH-base"]),
+         Paragraph(f"ระยะเวลา: <b>{days_count} วัน</b>", styles["TH-base"])],
+    ]
+    # แสดง "ยอดจ่าย" เฉพาะเมื่อไม่เท่ากับยอดฝาก
+    if abs(total_paid - pawn_amount) > 1e-6:
+        finance_rows.append([Paragraph(f"ยอดจ่าย: <b>{total_paid:,.2f} บาท</b>", styles["TH-base"]), ""])
+
+    finance_tbl_inner = Table(finance_rows, colWidths=[right_w*0.58, right_w*0.42])
     finance_tbl_inner.setStyle(TableStyle([
         ("BOX",(0,0),(-1,-1),0.7,colors.black),
         ("INNERGRID",(0,0),(-1,-1),0.25,colors.Color(0.85,0.85,0.85)),
@@ -244,14 +228,16 @@ def generate_pawn_ticket_from_data(
         ("TOPPADDING",(0,0),(-1,-1),3), ("BOTTOMPADDING",(0,0),(-1,-1),3),
     ]))
 
+    # เงื่อนไขสำคัญ (ตัดข้อความเกี่ยวกับดอกเบี้ย/ค่าธรรมเนียม/หัก ณ ที่จ่าย ออก)
     terms = [
         f"• ไถ่ถอนภายใน <b>{end_date}</b> มิฉะนั้นทรัพย์จะตกเป็นของร้าน",
-        f"• ยอดไถ่ถอนรวม <b>{total_redemption:,.2f} บาท</b> (อัตราดอกเบี้ย <b>{interest_rate:.2f}% ต่อปี</b>)",
+        f"• ยอดไถ่ถอนรวม <b>{total_redemption:,.2f} บาท</b>",
     ]
     if renewal_data:
         terms += renewal_lines
     else:
-        terms += ["• ต่อดอกได้เมื่อครบกำหนด โดยชำระดอกเบี้ยและค่าธรรมเนียมตามที่กำหนด"]
+        terms += ["• ต่อดอกได้เมื่อครบกำหนด ตามเงื่อนไขของร้าน"]
+
     terms += [
         "• ผู้ขายฝากยืนยันกรรมสิทธิ์ถูกต้องและไม่เกี่ยวข้องกับการกระทำผิดกฎหมาย",
         "• กรณีมีผู้ก่อกวนสิทธิ์ ผู้ขายฝากต้องชดใช้ความเสียหาย",
@@ -275,7 +261,7 @@ def generate_pawn_ticket_from_data(
         ("BOTTOMPADDING",(0,0),(-1,-1),0),
     ]))
 
-    # Two-column wrapper (ไม่มี boundary/debug)
+    # Two-column wrapper
     two_col = Table([[left_stack, right_stack]], colWidths=[left_w, right_w])
     two_col.setStyle(TableStyle([
         ("VALIGN",(0,0),(-1,-1),"TOP"),
@@ -316,7 +302,7 @@ def generate_pawn_ticket_from_data(
         styles["TH-base"]
     ))
 
-    # ------- DocTemplate with top-half frame (no boundary) -------
+    # ------- DocTemplate with top-half frame -------
     class TopHalfDoc(BaseDocTemplate):
         def __init__(self, filename, **kw):
             kw.setdefault("allowSplitting", 1)
@@ -326,7 +312,7 @@ def generate_pawn_ticket_from_data(
             frame = Frame(
                 margin_lr, frame_y, width-2*margin_lr, frame_h,
                 leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
-                showBoundary=0  # สำคัญ: ไม่มีกรอบ debug
+                showBoundary=0
             )
             self.addPageTemplates(PageTemplate(id='TopHalf', frames=[frame]))
 
@@ -346,10 +332,7 @@ if __name__ == "__main__":
         "days_count": 30,
         "estimated_value": 15000,
         "pawn_amount": 10000,
-        "interest_rate": 15.0,
-        "fee_amount": 200,
-        "withholding_tax_rate": 0.0,
-        "withholding_tax_amount": 0.0,
+        # *** ตัด fields ดอก/ค่าธรรมเนียม/หัก ณ ที่จ่าย ออก — เก็บไว้ก็ได้แต่ไม่ถูกใช้งาน ***
         "total_paid": 10000,
         "total_redemption": 10350
     }

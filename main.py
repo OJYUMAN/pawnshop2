@@ -27,7 +27,6 @@ from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
 from fee_management import FeeManagementDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE
-from pdf_preview_dialog import PDFPreviewDialog
 import tempfile
 import shutil
 
@@ -227,8 +226,6 @@ class PawnShopUI(QMainWindow):
             }
         """)
 
-        # --- Menu Bar ---
-        self.create_menu_bar()
 
         # --- Main Widget and Layout ---
         central_widget = QWidget()
@@ -1094,59 +1091,7 @@ class PawnShopUI(QMainWindow):
         
         return self.contract_table
 
-    def create_menu_bar(self):
-        menu_bar = self.menuBar()
-        
-        # เมนูไฟล์
-        file_menu = menu_bar.addMenu("ไฟล์")
-        view_data_action = QAction("ดูข้อมูลทั้งหมด", self)
-        view_data_action.triggered.connect(self.view_contracts)
-        file_menu.addAction(view_data_action)
-        
-        view_renewals_action = QAction("ดูข้อมูลการต่อดอก", self)
-        view_renewals_action.triggered.connect(self.view_renewals)
-        file_menu.addAction(view_renewals_action)
-        
-        # เมนูลูกค้า
-        customer_menu = menu_bar.addMenu("ลูกค้า")
-        add_customer_action = QAction("เพิ่มลูกค้า", self)
-        add_customer_action.triggered.connect(self.toggle_customer_mode)
-        customer_menu.addAction(add_customer_action)
-        
-        # เพิ่มปุ่มสแกนบัตรประชาชน
-        scan_id_card_action = QAction("สแกนบัตรประชาชน", self)
-        scan_id_card_action.triggered.connect(self.scan_id_card)
-        customer_menu.addAction(scan_id_card_action)
-        
-        # เมนูรายงาน
-        report_menu = menu_bar.addMenu("รายงาน")
-        daily_report_action = QAction("รายงานประจำวัน", self)
-        daily_report_action.triggered.connect(self.show_daily_report)
-        report_menu.addAction(daily_report_action)
-        
-        monthly_report_action = QAction("รายงานประจำเดือน", self)
-        monthly_report_action.triggered.connect(self.show_monthly_report)
-        report_menu.addAction(monthly_report_action)
-        
-        withholding_tax_report_action = QAction("รายงานหัก ณ ที่จ่าย", self)
-        withholding_tax_report_action.triggered.connect(self.show_withholding_tax_report)
-        report_menu.addAction(withholding_tax_report_action)
-        
-        renewals_report_action = QAction("รายงานการต่อดอก", self)
-        renewals_report_action.triggered.connect(self.show_renewals_report)
-        report_menu.addAction(renewals_report_action)
-        
-        # เมนูจัดการค่าธรรมเนียม
-        fee_menu = menu_bar.addMenu("จัดการค่าธรรมเนียม")
-        fee_management_action = QAction("ตารางจัดการค่าธรรมเนียม", self)
-        fee_management_action.triggered.connect(self.show_fee_management)
-        fee_menu.addAction(fee_management_action)
-        
-        # เมนูจัดการฐานข้อมูล
-        db_menu = menu_bar.addMenu("จัดการฐานข้อมูล")
-        fix_duplicates_action = QAction("แก้ไขข้อมูลซ้ำซ้อน", self)
-        fix_duplicates_action.triggered.connect(self.fix_database_duplicates)
-        db_menu.addAction(fix_duplicates_action)
+  
 
     def create_bottom_toolbar(self):
         toolbar = QToolBar("Main Toolbar")
@@ -2790,21 +2735,19 @@ class PawnShopUI(QMainWindow):
                 # สร้าง PDF ลงไฟล์ชั่วคราว
                 self._create_pawn_contract_pdf(temp_file)
 
-                # แสดงหน้าต่างพรีวิว
-                dlg = PDFPreviewDialog(temp_file, self, window_title="ตัวอย่างใบขายฝาก")
-                if dlg.exec() == QDialog.DialogCode.Accepted:
-                    suggested_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    save_path, _ = QFileDialog.getSaveFileName(
-                        self,
-                        "บันทึก PDF",
-                        suggested_name,
-                        "PDF Files (*.pdf)"
-                    )
-                    if save_path:
-                        shutil.copyfile(temp_file, save_path)
-                        QMessageBox.information(self, "สำเร็จ", f"บันทึกใบขายฝากแล้วที่:\n{save_path}")
-                else:
-                    return
+                # เปิดด้วยโปรแกรมอ่าน PDF ภายนอกเสมอ และให้ตัวเลือกบันทึก
+                self._open_pdf_external(temp_file)
+
+                suggested_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                save_path, _ = QFileDialog.getSaveFileName(
+                    self,
+                    "บันทึก PDF",
+                    suggested_name,
+                    "PDF Files (*.pdf)"
+                )
+                if save_path:
+                    shutil.copyfile(temp_file, save_path)
+                    QMessageBox.information(self, "สำเร็จ", f"บันทึกใบขายฝากแล้วที่:\n{save_path}")
 
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง/พรีวิว PDF: {str(e)}")
@@ -2869,6 +2812,21 @@ class PawnShopUI(QMainWindow):
             print(f"Error using pdf.py: {e}")
             self._create_pawn_contract_pdf_fallback(file_path)
     
+    def _open_pdf_external(self, pdf_path: str):
+        try:
+            import subprocess
+            import platform
+            if platform.system() == "Windows":
+                os_startfile = getattr(__import__("os"), "startfile", None)
+                if os_startfile:
+                    os_startfile(pdf_path)
+            elif platform.system() == "Darwin":
+                subprocess.Popen(["open", pdf_path])
+            else:
+                subprocess.Popen(["xdg-open", pdf_path])
+        except Exception:
+            pass
+
     def _create_pawn_contract_pdf_fallback(self, file_path):
         """สร้างไฟล์ PDF ใบขายฝากแบบเดิม (fallback)"""
         doc = SimpleDocTemplate(file_path, pagesize=A4)
@@ -3150,18 +3108,19 @@ class PawnShopUI(QMainWindow):
                         QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
                         return
 
-                    dlg = PDFPreviewDialog(temp_file, self, window_title="ตัวอย่างใบฝากต่อ")
-                    if dlg.exec() == QDialog.DialogCode.Accepted:
-                        suggested_name = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
-                        save_path, _ = QFileDialog.getSaveFileName(
-                            self,
-                            "บันทึก PDF ใบฝากต่อ",
-                            suggested_name,
-                            "PDF Files (*.pdf)"
-                        )
-                        if save_path:
-                            shutil.copyfile(temp_file, save_path)
-                            QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
+                    # เปิดด้วยโปรแกรมอ่าน PDF ภายนอกเสมอ และให้ตัวเลือกบันทึก
+                    self._open_pdf_external(temp_file)
+
+                    suggested_name = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
+                    save_path, _ = QFileDialog.getSaveFileName(
+                        self,
+                        "บันทึก PDF ใบฝากต่อ",
+                        suggested_name,
+                        "PDF Files (*.pdf)"
+                    )
+                    if save_path:
+                        shutil.copyfile(temp_file, save_path)
+                        QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
                     
             except ImportError:
                 QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
