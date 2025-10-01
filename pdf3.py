@@ -1,582 +1,367 @@
 # -*- coding: utf-8 -*-
 """
-ระบบสร้างสัญญาไถ่ถอน PDF
-สำหรับการไถ่ถอนสินค้าที่ขายฝาก
+ระบบสร้างสัญญาไถ่ถอน/ใบเสร็จ PDF
+กระดาษ = A4 เต็ม แต่เนื้อหาขนาดเดิมเท่าครึ่งแผ่น (วางบนครึ่งบนของหน้า)
 """
 
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import os
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib import colors
+from reportlab.platypus import (
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
+    KeepInFrame
+)
+from reportlab.lib.units import mm
 from datetime import datetime, timedelta
-from typing import Dict, Optional, List
+from typing import Dict, Optional
+import os
 
 
-def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict, 
-                                    product_data: Dict, original_contract_data: Dict,
-                                    shop_data: Optional[Dict] = None, 
-                                    output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
-    """
-    สร้าง PDF สัญญาไถ่ถอน
-    
-    Args:
-        redemption_data (Dict): ข้อมูลการไถ่ถอน
-        customer_data (Dict): ข้อมูลลูกค้า
-        product_data (Dict): ข้อมูลสินค้า
-        original_contract_data (Dict): ข้อมูลสัญญาเดิม
-        shop_data (Dict, optional): ข้อมูลร้านค้า
-        output_file (str, optional): ชื่อไฟล์ PDF ที่จะสร้าง
-    
-    Returns:
-        str: ชื่อไฟล์ PDF ที่สร้าง
-    """
-    try:
-        # ตรวจสอบฟอนต์
-        font_path = 'THSarabun.ttf'
-        bold_font_path = 'THSarabun Bold.ttf'
-
-        if not os.path.exists(font_path) or not os.path.exists(bold_font_path):
-            print(f"Error: Font file not found.")
-            print("Please make sure 'THSarabun.ttf' and 'THSarabun Bold.ttf' are in the same folder as the script.")
-            return ""
-
+# ---------- Font & Date ----------
+def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf'):
+    if not (os.path.exists(font_path) and os.path.exists(bold_font_path)):
+        raise FileNotFoundError("กรุณาวาง THSarabun.ttf และ THSarabun Bold.ttf ไว้โฟลเดอร์เดียวกับสคริปต์")
+    if 'THSarabun' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('THSarabun', font_path))
+    if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
 
-    except Exception as e:
-        print(f"An error occurred while loading the font: {e}")
-        return ""
+def thai_date(date_str: Optional[str]) -> str:
+    month_map = {
+        'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
+        'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
+        'July': 'กรกฎาคม', 'August': 'สิงหาคม', 'September': 'กันยายน',
+        'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
+    }
+    try:
+        if not date_str or date_str == 'N/A':
+            return 'N/A'
+        if isinstance(date_str, datetime):
+            dt = date_str
+        else:
+            s = str(date_str)
+            dt = datetime.strptime(s, '%Y-%m-%d') if '-' in s else datetime.strptime(s, '%d/%m/%Y')
+        out = dt.strftime('%d %B %Y')
+        for eng, th in month_map.items():
+            out = out.replace(eng, th)
+        return out
+    except Exception:
+        return str(date_str) if date_str else 'N/A'
 
-    # สร้างชื่อไฟล์อัตโนมัติถ้าไม่ระบุ
+
+# ---------- A4 (Top Half) Doc ----------
+class A4TopHalfDoc(BaseDocTemplate):
+    """
+    กำหนดหน้า A4 เต็ม แต่สร้าง Frame เท่ากับ 'พื้นที่ครึ่งแผ่น' ที่ครึ่งบนของหน้า
+    เพื่อให้เนื้อหาขนาดเท่าเดิม (แบบครึ่งแผ่น) ไม่ถูกขยาย
+    """
+    def __init__(self, filename, pagesize=A4, **kwargs):
+        super().__init__(filename, pagesize=pagesize, **kwargs)
+        width, height = pagesize
+        margin_lr = 8 * mm
+        margin_tb = 6 * mm
+        # วางกรอบบนครึ่งบน: เริ่มที่ y = height/2 + margin_tb
+        # ความสูงกรอบ = (height/2) - 2*margin_tb  (เท่ากับตอนใช้หน้า Half-A4)
+        self.frame = Frame(
+            margin_lr,
+            (height / 2.0) + margin_tb,
+            width - 2 * margin_lr,
+            (height / 2.0) - 2 * margin_tb,
+            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+            showBoundary=0
+        )
+        self.addPageTemplates(PageTemplate(id='A4TopHalf', frames=[self.frame]))
+
+
+# ---------- Styles (compact) ----------
+def make_styles():
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=9.6, leading=11))
+    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=9.6, leading=11))
+    styles.add(ParagraphStyle(name="TH-h", fontName="THSarabun-Bold", fontSize=16, leading=18, alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name="TH-sub", fontName="THSarabun-Bold", fontSize=11, leading=12.5, alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=9.6, leading=11, alignment=TA_RIGHT))
+    styles.add(ParagraphStyle(name="TH-mini", fontName="THSarabun", fontSize=8.6, leading=10))
+    return styles
+
+
+# ---------- Helpers ----------
+def _shop(shop_data: Optional[Dict]):
+    return (
+        (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส'),
+        (shop_data or {}).get('branch', 'สาขาหล่มสัก'),
+        (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'),
+    )
+
+def _boxed(tbl, colWidths, header_rows=1, font_size=9.6):
+    t = Table(tbl, colWidths=colWidths)
+    t.setStyle(TableStyle([
+        ('FONT', (0,0), (-1,-1), 'THSarabun', font_size),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+        ('BOX', (0,0), (-1,-1), 0.25, colors.grey),
+        ('INNERGRID', (0,header_rows), (-1,-1), 0.25, colors.grey),
+        ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
+        ('LEFTPADDING',(0,0),(-1,-1),2),
+        ('RIGHTPADDING',(0,0),(-1,-1),2),
+        ('TOPPADDING',(0,0),(-1,-1),1),
+        ('BOTTOMPADDING',(0,0),(-1,-1),1),
+    ]))
+    return t
+
+
+# ================= CONTRACT =================
+def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
+                                    product_data: Dict, original_contract_data: Dict,
+                                    shop_data: Optional[Dict] = None,
+                                    output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
+    try:
+        ensure_fonts()
+    except Exception as e:
+        print(e); return ""
+
     if not output_file:
         contract_number = original_contract_data.get('contract_number', 'unknown')
         redemption_date = redemption_data.get('redemption_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"redemption_contract_{contract_number}_{redemption_date}.pdf"
-    
-    # กำหนดโฟลเดอร์ปลายทาง
+
     if output_folder:
-        # สร้างโฟลเดอร์ถ้ายังไม่มี
         os.makedirs(output_folder, exist_ok=True)
-        # รวมเส้นทางโฟลเดอร์กับชื่อไฟล์
         output_file = os.path.join(output_folder, output_file)
 
-    c = canvas.Canvas(output_file, pagesize=A4)
-    width, height = A4
-    
-    # กำหนดค่าคงที่สำหรับ layout
-    LEFT_MARGIN = 50
-    RIGHT_MARGIN = width - 50
-    TOP_MARGIN = height - 40
-    BOTTOM_MARGIN = 80
-    LINE_HEIGHT = 18
-    SECTION_SPACING = 25
-    
-    # ฟังก์ชันช่วยในการตรวจสอบและเพิ่มหน้าใหม่
-    def check_page_break(current_y, required_lines=3):
-        if current_y - (required_lines * LINE_HEIGHT) < BOTTOM_MARGIN:
-            c.showPage()
-            return TOP_MARGIN
-        return current_y
-    
-    # ฟังก์ชันแปลงวันที่เป็นภาษาไทย
-    def convert_to_thai_date(date_str):
-        month_map = {
-            'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
-            'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
-            'July': 'กรกฎาคม', 'August': 'สิงหาคม', 'September': 'กันยายน',
-            'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
-        }
-        
-        try:
-            if date_str and date_str != 'N/A':
-                if isinstance(date_str, str):
-                    if '-' in date_str:
-                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    else:
-                        date_obj = datetime.strptime(date_str, '%d/%m/%Y')
-                    thai_date = date_obj.strftime('%d %B %Y')
-                    for eng, thai in month_map.items():
-                        thai_date = thai_date.replace(eng, thai)
-                    return thai_date
-                else:
-                    return str(date_str)
-            else:
-                return 'N/A'
-        except:
-            return date_str if date_str else 'N/A'
-    
-    # เริ่มต้น y_position
-    y_pos = TOP_MARGIN
+    styles = make_styles()
+    PAGE_W = A4[0]  # กว้างเท่าเดิมกับ Half-A4 (210mm)
 
-    # --- Header ---
-    c.setFont("THSarabun-Bold", 24)
-    c.drawCentredString(width / 2.0, y_pos, "สัญญาไถ่ถอน")
-    y_pos -= 35
+    shop_name, shop_branch, shop_address = _shop(shop_data)
 
-    c.setFont("THSarabun-Bold", 16)
-    shop_name = shop_data.get('name', 'ร้าน ไอโปรโมบายเซอร์วิส') if shop_data else 'ร้าน ไอโปรโมบายเซอร์วิส'
-    shop_branch = shop_data.get('branch', 'สาขาหล่มสัก') if shop_data else 'สาขาหล่มสัก'
-    shop_full_name = f"{shop_name} ({shop_branch})"
-    c.drawCentredString(width / 2.0, y_pos, shop_full_name)
-    y_pos -= 25
-
-    c.setFont("THSarabun", 12)
-    shop_address = shop_data.get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110') if shop_data else '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-    c.drawCentredString(width / 2.0, y_pos, shop_address)
-    y_pos -= SECTION_SPACING
-
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 5)
-
-    # --- Original Contract Info Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลสัญญาเดิม:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
+    # original
     original_contract_number = original_contract_data.get('contract_number', 'N/A')
-    original_start_date = original_contract_data.get('start_date', 'N/A')
-    original_end_date = original_contract_data.get('end_date', 'N/A')
-    original_pawn_amount = original_contract_data.get('pawn_amount', 0)
-    
-    thai_original_start_date = convert_to_thai_date(original_start_date)
-    thai_original_end_date = convert_to_thai_date(original_end_date)
+    original_start_date = thai_date(original_contract_data.get('start_date', 'N/A'))
+    original_end_date = thai_date(original_contract_data.get('end_date', 'N/A'))
+    original_pawn_amount = float(original_contract_data.get('pawn_amount', 0) or 0)
 
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"เลขที่สัญญาเดิม: {original_contract_number}")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"วันที่เริ่มต้น: {thai_original_start_date}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดฝากเดิม: {original_pawn_amount:,.2f} บาท")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ครบกำหนดเดิม: {thai_original_end_date}")
-    y_pos -= SECTION_SPACING
+    # redemption
+    thai_redemption_date = thai_date(redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d')))
+    deposit_date = thai_date(redemption_data.get('deposit_date', 'N/A'))
+    due_date = thai_date(redemption_data.get('due_date', 'N/A'))
+    total_days = int(redemption_data.get('total_days', 0) or 0)
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 6)
+    principal_amount = float(redemption_data.get('principal_amount', 0) or 0)
+    fee_amount = float(redemption_data.get('fee_amount', 0) or 0)
+    penalty_amount = float(redemption_data.get('penalty_amount', 0) or 0)
+    discount_amount = float(redemption_data.get('discount_amount', 0) or 0)
+    total_redemption = float(redemption_data.get('redemption_amount', 0) or 0)
 
-    # --- Redemption Info Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลการไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    redemption_date = redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d'))
-    deposit_date = redemption_data.get('deposit_date', 'N/A')
-    due_date = redemption_data.get('due_date', 'N/A')
-    total_days = redemption_data.get('total_days', 0)
-    
-    thai_redemption_date = convert_to_thai_date(redemption_date)
-    thai_deposit_date = convert_to_thai_date(deposit_date)
-    thai_due_date = convert_to_thai_date(due_date)
-
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"วันที่ไถ่ถอน: {thai_redemption_date}")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"วันที่รับฝาก: {thai_deposit_date}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"จำนวนวันที่ฝาก: {total_days} วัน")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"วันที่ครบกำหนด: {thai_due_date}")
-    y_pos -= SECTION_SPACING
-
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 6)
-
-    # --- Customer Info Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลผู้ไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
+    # customer
     first_name = customer_data.get('first_name', '')
     last_name = customer_data.get('last_name', '')
     customer_name = f"{first_name} {last_name}".strip()
     customer_code = customer_data.get('customer_code', '')
     phone = customer_data.get('phone', 'N/A')
     id_card = customer_data.get('id_card', 'N/A')
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"รหัสลูกค้า: {customer_code}")
-    c.drawString(LEFT_MARGIN + 280, y_pos, f"โทรศัพท์: {phone}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ชื่อ-นามสกุล: {customer_name}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"บัตรประชาชน: {id_card}")
-    y_pos -= LINE_HEIGHT
-    
-    # สร้างที่อยู่แบบย่อ
-    house_number = customer_data.get('house_number', '')
-    street = customer_data.get('street', '')
-    subdistrict = customer_data.get('subdistrict', '')
-    district = customer_data.get('district', '')
-    province = customer_data.get('province', '')
-    
-    address_parts = []
-    if house_number: address_parts.append(house_number)
-    if street: address_parts.append(street)
-    if subdistrict: address_parts.append(f"ต.{subdistrict}")
-    if district: address_parts.append(f"อ.{district}")
-    if province: address_parts.append(f"จ.{province}")
-    
-    address = " ".join(address_parts) if address_parts else "N/A"
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ที่อยู่: {address}")
-    y_pos -= SECTION_SPACING
+    addr_parts = []
+    if customer_data.get('house_number'): addr_parts.append(customer_data['house_number'])
+    if customer_data.get('street'): addr_parts.append(customer_data['street'])
+    if customer_data.get('subdistrict'): addr_parts.append(f"ต.{customer_data['subdistrict']}")
+    if customer_data.get('district'): addr_parts.append(f"อ.{customer_data['district']}")
+    if customer_data.get('province'): addr_parts.append(f"จ.{customer_data['province']}")
+    address = " ".join(addr_parts) if addr_parts else "N/A"
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 6)
-
-    # --- Product Info Section ---
-    c.line(LEFT_MARGIN, y_pos + 5, RIGHT_MARGIN, y_pos + 5)
-    y_pos -= 15
-    
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "รายการทรัพย์สินที่ไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
+    # product
     product_name = product_data.get('name', 'N/A')
     brand = product_data.get('brand', '')
-    product_display = f"{brand} {product_name}" if brand else product_name
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ทรัพย์สิน: {product_display}")
-    y_pos -= LINE_HEIGHT
-    
-    # แสดงรายละเอียดสินค้าแบบ compact
-    details = []
-    size = product_data.get('size', '')
-    weight = product_data.get('weight', '')
-    weight_unit = product_data.get('weight_unit', '')
-    serial_number = product_data.get('serial_number', '')
-    
-    if size: details.append(f"ขนาด: {size}")
-    if weight: 
-        weight_text = f"{weight} {weight_unit}" if weight_unit else str(weight)
-        details.append(f"น้ำหนัก: {weight_text}")
-    if serial_number: details.append(f"S/N: {serial_number}")
-    
-    if details:
-        details_text = " | ".join(details)
-        c.drawString(LEFT_MARGIN + 20, y_pos, details_text)
-        y_pos -= LINE_HEIGHT
-    
+    product_display = f"{brand} {product_name}".strip()
+    details_bits = []
+    if product_data.get('size'): details_bits.append(f"ขนาด {product_data.get('size')}")
+    if product_data.get('weight'):
+        w = str(product_data.get('weight')); wu = product_data.get('weight_unit') or ''
+        details_bits.append(f"น้ำหนัก {w}{(' '+wu) if wu else ''}")
+    if product_data.get('serial_number'): details_bits.append(f"S/N {product_data.get('serial_number')}")
     other_details = product_data.get('other_details', '')
-    if other_details:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"รายละเอียดอื่นๆ: {other_details}")
-        y_pos -= LINE_HEIGHT
-    
-    estimated_value = original_contract_data.get('estimated_value', 0)
-    if estimated_value > 0:
-        c.drawString(LEFT_MARGIN + 20, y_pos, f"มูลค่าประเมิน: {estimated_value:,.2f} บาท")
-        y_pos -= LINE_HEIGHT
-    
-    y_pos -= 10
+    estimated_value = float(original_contract_data.get('estimated_value', 0) or 0)
 
-    # ตรวจสอบหน้าใหม่
-    y_pos = check_page_break(y_pos, 8)
-
-    # --- Financial Summary Section ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "สรุปการเงิน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    principal_amount = redemption_data.get('principal_amount', 0)
-    fee_amount = redemption_data.get('fee_amount', 0)
-    penalty_amount = redemption_data.get('penalty_amount', 0)
-    discount_amount = redemption_data.get('discount_amount', 0)
-    total_redemption = redemption_data.get('redemption_amount', 0)
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"เงินต้น: {principal_amount:,.2f} บาท")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ค่าธรรมเนียม: {fee_amount:,.2f} บาท")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ค่าปรับ: {penalty_amount:,.2f} บาท")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ส่วนลด: {discount_amount:,.2f} บาท")
-    y_pos -= LINE_HEIGHT
-    
-    # ไฮไลท์ยอดไถ่ถอนรวม
-    c.setFont("THSarabun-Bold", 16)
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท")
-    y_pos -= SECTION_SPACING
-
-    # ตรวจสอบหน้าใหม่สำหรับเงื่อนไข
-    y_pos = check_page_break(y_pos, 10)
-
-    # --- Terms and Conditions for Redemption ---
-    c.line(LEFT_MARGIN, y_pos + 5, RIGHT_MARGIN, y_pos + 5)
-    y_pos -= 15
-    
-    c.setFont("THSarabun-Bold", 12)
-    c.drawString(LEFT_MARGIN, y_pos, "เงื่อนไขการไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 10)
-    redemption_terms = [
-        f"• การไถ่ถอนครั้งนี้ทำในวันที่: {thai_redemption_date}",
-        f"• จำนวนวันที่ฝากไว้: {total_days} วัน",
-        f"• ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท",
-        "• หลังจากไถ่ถอนแล้ว สินค้าจะถูกส่งมอบให้กับผู้ไถ่ถอน",
-        "• การไถ่ถอนถือเป็นการสิ้นสุดสัญญาการขายฝาก",
-        "• ผู้ไถ่ถอนต้องตรวจสอบสินค้าก่อนรับมอบ",
-        "• หากสินค้ามีความเสียหาย ต้องแจ้งให้ทราบทันที",
-        "• หลังจากรับมอบสินค้าแล้ว ทางร้านไม่รับผิดชอบความเสียหายใดๆ"
+    # ---------- story ----------
+    story = [
+        Paragraph("สัญญาไถ่ถอน", styles["TH-h"]),
+        Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
+        Paragraph(shop_address, styles["TH"]),
+        Spacer(1, 2),
     ]
-    
-    for term in redemption_terms:
-        y_pos = check_page_break(y_pos, 1)
-        c.drawString(LEFT_MARGIN + 15, y_pos, term)
-        y_pos -= 14
-    
-    y_pos -= 10
 
-    # ตรวจสอบหน้าใหม่สำหรับ Summary Box
-    y_pos = check_page_break(y_pos, 8)
+    # top two columns (ขนาดเท่าเดิม)
+    col_w = (PAGE_W - 16*mm) / 2.0
+    left = [
+        [Paragraph("<b>สัญญาเดิม</b>", styles["TH-bold"]), ""],
+        [Paragraph("เลขที่", styles["TH"]), Paragraph(original_contract_number, styles["TH-right"])],
+        [Paragraph("เริ่ม", styles["TH"]), Paragraph(original_start_date, styles["TH-right"])],
+        [Paragraph("ครบเดิม", styles["TH"]), Paragraph(original_end_date, styles["TH-right"])],
+        [Paragraph("ยอดฝากเดิม", styles["TH"]), Paragraph(f"{original_pawn_amount:,.2f} บาท", styles["TH-right"])],
+    ]
+    right = [
+        [Paragraph("<b>การไถ่ถอน</b>", styles["TH-bold"]), ""],
+        [Paragraph("วันที่ไถ่ถอน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
+        [Paragraph("วันที่รับฝาก", styles["TH"]), Paragraph(deposit_date, styles["TH-right"])],
+        [Paragraph("ครบกำหนด", styles["TH"]), Paragraph(due_date, styles["TH-right"])],
+        [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
+    ]
+    left_t  = _boxed(left,  [30*mm, col_w-30*mm])
+    right_t = _boxed(right, [30*mm, col_w-30*mm])
+    two_col = Table([[left_t, right_t]], colWidths=[col_w, col_w])
+    two_col.setStyle(TableStyle([
+        ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('LEFTPADDING',(0,0),(-1,-1),1),
+        ('RIGHTPADDING',(0,0),(-1,-1),1),
+        ('TOPPADDING',(0,0),(-1,-1),0),
+        ('BOTTOMPADDING',(0,0),(-1,-1),0),
+    ]))
+    story += [two_col, Spacer(1,2)]
 
-    # --- Redemption Summary Box ---
-    c.setFont("THSarabun-Bold", 14)
-    
-    summary_box_y = y_pos - 20
-    box_height = 80
-    c.rect(LEFT_MARGIN, summary_box_y - box_height, RIGHT_MARGIN - LEFT_MARGIN, box_height, stroke=1, fill=0)
-    
-    # ข้อมูลการไถ่ถอน
-    c.drawCentredString(width / 2.0, summary_box_y - 15, f"การไถ่ถอน: {thai_redemption_date}")
-    c.drawCentredString(width / 2.0, summary_box_y - 30, f"ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท")
-    c.drawCentredString(width / 2.0, summary_box_y - 45, f"จำนวนวันที่ฝาก: {total_days} วัน")
-    c.drawCentredString(width / 2.0, summary_box_y - 60, f"สถานะ: ไถ่ถอนเรียบร้อย")
-    
-    y_pos = summary_box_y - (box_height + 20)
+    # customer + product
+    cust_prod = [
+        [Paragraph("<b>ผู้ไถ่ถอน</b>", styles["TH-bold"]), Paragraph("<b>ทรัพย์สิน</b>", styles["TH-bold"])],
+        [Paragraph(f"รหัส: {customer_code} | โทร: {phone}<br/>ชื่อ: {customer_name}<br/>บัตร: {id_card}<br/>ที่อยู่: {address}", styles["TH"]),
+         Paragraph(f"{product_display}"
+                   + (f"<br/>{' | '.join(details_bits)}" if details_bits else "")
+                   + (f"<br/>รายละเอียด: {other_details}" if other_details else "")
+                   + (f"<br/>ประเมิน: {estimated_value:,.2f} บาท" if estimated_value>0 else ""), styles["TH"])],
+    ]
+    cust_prod_t = _boxed(cust_prod, [col_w, col_w], header_rows=1)
+    story += [cust_prod_t, Spacer(1,2)]
 
-    # ตรวจสอบหน้าใหม่สำหรับลายเซ็น
-    y_pos = check_page_break(y_pos, 6)
+    # money summary
+    money = [
+        [Paragraph("เงินต้น", styles["TH"]), Paragraph(f"{principal_amount:,.2f}", styles["TH-right"]),
+         Paragraph("ค่าธรรมเนียม", styles["TH"]), Paragraph(f"{fee_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("ค่าปรับ", styles["TH"]), Paragraph(f"{penalty_amount:,.2f}", styles["TH-right"]),
+         Paragraph("ส่วนลด", styles["TH"]), Paragraph(f"{discount_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("<b>ยอดไถ่ถอนรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"]),
+         Paragraph("", styles["TH"]), Paragraph("", styles["TH"])],
+    ]
+    money_t = _boxed(money, [28*mm, 28*mm, 28*mm, (PAGE_W-16*mm)-84*mm], header_rows=0)
+    story += [money_t, Spacer(1,2)]
 
-    # --- Signatures ---
-    c.setFont("THSarabun", 12)
-    signature_y = y_pos - 20
-    
-    # ลายเซ็นผู้รับฝาก
-    c.drawString(LEFT_MARGIN + 30, signature_y, "ลงชื่อ _________________________ ผู้รับฝาก")
-    c.drawString(LEFT_MARGIN + 30, signature_y - 20, "( นาย/นาง/นางสาว _________________ )")
-    c.drawString(LEFT_MARGIN + 30, signature_y - 35, "วันที่: _________________")
-    
-    # ลายเซ็นผู้ไถ่ถอน
-    c.drawString(width - 280, signature_y, "ลงชื่อ _________________________ ผู้ไถ่ถอน")
-    c.drawString(width - 280, signature_y - 20, f"( {customer_name} )")
-    c.drawString(width - 280, signature_y - 35, f"วันที่: {thai_redemption_date}")
-    
-    # Footer info
-    signature_y -= 60
-    c.setFont("THSarabun", 10)
-    c.drawString(LEFT_MARGIN, signature_y, f"เอกสารไถ่ถอนสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    # terms
+    terms_text = (
+        f"• ไถ่ถอนวันที่ {thai_redemption_date} • ฝาก {total_days} วัน • ยอดไถ่ถอน {total_redemption:,.2f} บาท "
+        "• หลังไถ่ถอนถือว่าสัญญาขายฝากสิ้นสุด • ตรวจสอบสินค้าให้เรียบร้อยก่อนรับมอบ"
+    )
+    terms_t = _boxed([[Paragraph(terms_text, styles["TH-mini"])]], [PAGE_W-16*mm], header_rows=0)
+    story += [terms_t, Spacer(1,2)]
 
-    # Save the PDF file
-    c.save()
+    # signatures
+    sig = Table([
+        [Paragraph("ลงชื่อ ____________________ ผู้รับฝาก", styles["TH"]),
+         Paragraph("ลงชื่อ ____________________ ผู้ไถ่ถอน", styles["TH"])],
+        [Paragraph("( นาย/นาง/นางสาว _________________ )", styles["TH"]),
+         Paragraph(f"( {customer_name} )", styles["TH"])],
+        [Paragraph("วันที่: _________________", styles["TH"]),
+         Paragraph(f"วันที่: {thai_redemption_date}", styles["TH"])],
+    ], colWidths=[col_w, col_w])
+    sig.setStyle(TableStyle([
+        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('VALIGN',(0,0),(-1,-1),'TOP'),
+        ('LEFTPADDING',(0,0),(-1,-1),2),
+        ('RIGHTPADDING',(0,0),(-1,-1),2),
+        ('TOPPADDING',(0,0),(-1,-1),1),
+        ('BOTTOMPADDING',(0,0),(-1,-1),1),
+    ]))
+    story += [sig, Spacer(1,1)]
+    story += [Paragraph(
+        f"เอกสารไถ่ถอนสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        styles["TH-mini"]
+    )]
+
+    # build (A4 เต็ม / ใช้เฉพาะกรอบครึ่งบน)
+    doc = A4TopHalfDoc(output_file, pagesize=A4)
+    _frame = getattr(doc, "frame", doc.pageTemplates[0].frames[0])
+    story = [KeepInFrame(_frame._width, _frame._height, story, mode='shrink')]
+    doc.build(story)
     print(f"Successfully created redemption contract '{output_file}'")
     return output_file
 
 
-def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict, 
-                                   product_data: Dict, original_contract_data: Dict,
-                                   shop_data: Optional[Dict] = None,
-                                   output_file: Optional[str] = None) -> str:
-    """
-    สร้าง PDF ใบเสร็จการไถ่ถอน
-    
-    Args:
-        redemption_data (Dict): ข้อมูลการไถ่ถอน
-        customer_data (Dict): ข้อมูลลูกค้า
-        product_data (Dict): ข้อมูลสินค้า
-        original_contract_data (Dict): ข้อมูลสัญญาเดิม
-        shop_data (Dict, optional): ข้อมูลร้านค้า
-        output_file (str, optional): ชื่อไฟล์ PDF ที่จะสร้าง
-    
-    Returns:
-        str: ชื่อไฟล์ PDF ที่สร้าง
-    """
+# ================= RECEIPT =================
+def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
+                                    product_data: Dict, original_contract_data: Dict,
+                                    shop_data: Optional[Dict] = None,
+                                    output_file: Optional[str] = None) -> str:
     try:
-        # ตรวจสอบฟอนต์
-        font_path = 'THSarabun.ttf'
-        bold_font_path = 'THSarabun Bold.ttf'
-
-        if not os.path.exists(font_path) or not os.path.exists(bold_font_path):
-            print(f"Error: Font file not found.")
-            print("Please make sure 'THSarabun.ttf' and 'THSarabun Bold.ttf' are in the same folder as the script.")
-            return ""
-
-        pdfmetrics.registerFont(TTFont('THSarabun', font_path))
-        pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
-
+        ensure_fonts()
     except Exception as e:
-        print(f"An error occurred while loading the font: {e}")
-        return ""
+        print(e); return ""
 
-    # สร้างชื่อไฟล์อัตโนมัติถ้าไม่ระบุ
     if not output_file:
         contract_number = original_contract_data.get('contract_number', 'unknown')
         redemption_date = redemption_data.get('redemption_date', datetime.now().strftime('%Y%m%d'))
         output_file = f"redemption_receipt_{contract_number}_{redemption_date}.pdf"
 
-    c = canvas.Canvas(output_file, pagesize=A4)
-    width, height = A4
-    
-    # กำหนดค่าคงที่สำหรับ layout
-    LEFT_MARGIN = 50
-    RIGHT_MARGIN = width - 50
-    TOP_MARGIN = height - 40
-    BOTTOM_MARGIN = 80
-    LINE_HEIGHT = 18
-    SECTION_SPACING = 25
-    
-    # ฟังก์ชันแปลงวันที่เป็นภาษาไทย
-    def convert_to_thai_date(date_str):
-        month_map = {
-            'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
-            'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
-            'July': 'กรกฎาคม', 'August': 'สิงหาคม', 'September': 'กันยายน',
-            'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
-        }
-        
-        try:
-            if date_str and date_str != 'N/A':
-                if isinstance(date_str, str):
-                    if '-' in date_str:
-                        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    else:
-                        date_obj = datetime.strptime(date_str, '%d/%m/%Y')
-                    thai_date = date_obj.strftime('%d %B %Y')
-                    for eng, thai in month_map.items():
-                        thai_date = thai_date.replace(eng, thai)
-                    return thai_date
-                else:
-                    return str(date_str)
-            else:
-                return 'N/A'
-        except:
-            return date_str if date_str else 'N/A'
-    
-    # เริ่มต้น y_position
-    y_pos = TOP_MARGIN
+    styles = make_styles()
+    PAGE_W = A4[0]
+    shop_name, shop_branch, shop_address = _shop(shop_data)
 
-    # --- Header ---
-    c.setFont("THSarabun-Bold", 24)
-    c.drawCentredString(width / 2.0, y_pos, "ใบเสร็จการไถ่ถอน")
-    y_pos -= 35
-
-    c.setFont("THSarabun-Bold", 16)
-    shop_name = shop_data.get('name', 'ร้าน ไอโปรโมบายเซอร์วิส') if shop_data else 'ร้าน ไอโปรโมบายเซอร์วิส'
-    shop_branch = shop_data.get('branch', 'สาขาหล่มสัก') if shop_data else 'สาขาหล่มสัก'
-    shop_full_name = f"{shop_name} ({shop_branch})"
-    c.drawCentredString(width / 2.0, y_pos, shop_full_name)
-    y_pos -= 25
-
-    c.setFont("THSarabun", 12)
-    shop_address = shop_data.get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110') if shop_data else '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-    c.drawCentredString(width / 2.0, y_pos, shop_address)
-    y_pos -= SECTION_SPACING
-
-    # --- Receipt Details ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "รายละเอียดการไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
     contract_number = original_contract_data.get('contract_number', 'N/A')
-    redemption_date = redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d'))
-    total_days = redemption_data.get('total_days', 0)
-    
-    thai_redemption_date = convert_to_thai_date(redemption_date)
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"เลขที่สัญญา: {contract_number}")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"วันที่ไถ่ถอน: {thai_redemption_date}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"จำนวนวันที่ฝาก: {total_days} วัน")
-    y_pos -= SECTION_SPACING
+    total_days = int(redemption_data.get('total_days', 0) or 0)
+    thai_redemption_date = thai_date(redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d')))
 
-    # --- Payment Details ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "รายละเอียดการชำระ:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    principal_amount = redemption_data.get('principal_amount', 0)
-    fee_amount = redemption_data.get('fee_amount', 0)
-    penalty_amount = redemption_data.get('penalty_amount', 0)
-    discount_amount = redemption_data.get('discount_amount', 0)
-    total_redemption = redemption_data.get('redemption_amount', 0)
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"เงินต้น: {principal_amount:,.2f} บาท")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ค่าธรรมเนียม: {fee_amount:,.2f} บาท")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ค่าปรับ: {penalty_amount:,.2f} บาท")
-    c.drawRightString(RIGHT_MARGIN, y_pos, f"ส่วนลด: {discount_amount:,.2f} บาท")
-    y_pos -= LINE_HEIGHT
-    
-    # ไฮไลท์ยอดรวม
-    c.setFont("THSarabun-Bold", 16)
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ยอดรวม: {total_redemption:,.2f} บาท")
-    y_pos -= SECTION_SPACING
+    principal_amount = float(redemption_data.get('principal_amount', 0) or 0)
+    fee_amount = float(redemption_data.get('fee_amount', 0) or 0)
+    penalty_amount = float(redemption_data.get('penalty_amount', 0) or 0)
+    discount_amount = float(redemption_data.get('discount_amount', 0) or 0)
+    total_redemption = float(redemption_data.get('redemption_amount', 0) or 0)
 
-    # --- Customer Info ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "ข้อมูลลูกค้า:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
     first_name = customer_data.get('first_name', '')
     last_name = customer_data.get('last_name', '')
     customer_name = f"{first_name} {last_name}".strip()
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ชื่อ-นามสกุล: {customer_name}")
-    y_pos -= LINE_HEIGHT
-    
     phone = customer_data.get('phone', 'N/A')
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"โทรศัพท์: {phone}")
-    y_pos -= SECTION_SPACING
 
-    # --- Product Info ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "สินค้าที่ไถ่ถอน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    product_name = product_data.get('name', 'N/A')
-    brand = product_data.get('brand', '')
-    product_display = f"{brand} {product_name}" if brand else product_name
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"ทรัพย์สิน: {product_display}")
-    y_pos -= SECTION_SPACING
+    story = [
+        Paragraph("ใบเสร็จการไถ่ถอน", styles["TH-h"]),
+        Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
+        Paragraph(shop_address, styles["TH"]),
+        Spacer(1, 2),
+    ]
 
-    # --- Payment Confirmation ---
-    c.setFont("THSarabun-Bold", 14)
-    c.drawString(LEFT_MARGIN, y_pos, "การชำระเงิน:")
-    y_pos -= LINE_HEIGHT
-    
-    c.setFont("THSarabun", 12)
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"สถานะ: ชำระแล้ว")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"วันที่ชำระ: {thai_redemption_date}")
-    y_pos -= LINE_HEIGHT
-    
-    c.drawString(LEFT_MARGIN + 20, y_pos, f"จำนวนเงิน: {total_redemption:,.2f} บาท")
-    y_pos -= SECTION_SPACING
+    info = _boxed([
+        [Paragraph("<b>รายละเอียดการไถ่ถอน</b>", styles["TH-bold"]), ""],
+        [Paragraph("เลขที่สัญญา", styles["TH"]), Paragraph(contract_number, styles["TH-right"])],
+        [Paragraph("วันที่ไถ่ถอน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
+        [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
+    ], [60*mm, (PAGE_W-16*mm)-60*mm], header_rows=1)
+    story += [info, Spacer(1,2)]
 
-    # --- Footer ---
-    y_pos -= 20
-    c.setFont("THSarabun", 10)
-    c.drawString(LEFT_MARGIN, y_pos, f"เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    pay = _boxed([
+        [Paragraph("<b>รายละเอียดการชำระ</b>", styles["TH-bold"]), ""],
+        [Paragraph("เงินต้น", styles["TH"]), Paragraph(f"{principal_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("ค่าธรรมเนียม", styles["TH"]), Paragraph(f"{fee_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("ค่าปรับ", styles["TH"]), Paragraph(f"{penalty_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("ส่วนลด", styles["TH"]), Paragraph(f"{discount_amount:,.2f}", styles["TH-right"])],
+        [Paragraph("<b>ยอดรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"])],
+    ], [60*mm, (PAGE_W-16*mm)-60*mm], header_rows=1)
+    story += [pay, Spacer(1,2)]
 
-    # Save the PDF file
-    c.save()
+    col_w = (PAGE_W - 16*mm)/2
+    cp = _boxed([
+        [Paragraph("<b>ลูกค้า</b>", styles["TH-bold"]), Paragraph("<b>สินค้า</b>", styles["TH-bold"])],
+        [Paragraph(f"ชื่อ: {customer_name}<br/>โทร: {phone}", styles["TH"]),
+         Paragraph((product_data.get('brand','') + ' ' if product_data.get('brand') else '') + product_data.get('name','N/A'), styles["TH"])],
+    ], [col_w, col_w], header_rows=1)
+    story += [cp, Spacer(1,1)]
+
+    story += [Paragraph(
+        f"เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        styles["TH-mini"]
+    )]
+
+    doc = A4TopHalfDoc(output_file, pagesize=A4)
+    _frame = getattr(doc, "frame", doc.pageTemplates[0].frames[0])
+    story = [KeepInFrame(_frame._width, _frame._height, story, mode='shrink')]
+    doc.build(story)
     print(f"Successfully created redemption receipt '{output_file}'")
     return output_file
 
 
-# --- Main execution ---
+# --- Main ---
 if __name__ == "__main__":
-    # ตัวอย่างการใช้งาน
-    print("PDF3.py - ระบบสร้างสัญญาไถ่ถอน")
-    print("ฟังก์ชันที่ใช้งานได้:")
-    print("1. generate_redemption_contract_pdf() - สร้างสัญญาไถ่ถอน")
-    print("2. generate_redemption_receipt_pdf() - สร้างใบเสร็จการไถ่ถอน")
+    print("A4 full page; content sized like half-page (top half).")
