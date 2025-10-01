@@ -51,6 +51,33 @@ _TRANSLATIONS = {
         "first_name": "ชื่อ:",
         "last_name": "นามสกุล:",
         "id_card_number": "เลขบัตรประชาชน:",
+
+        # Tabs
+        "tab_customer": "ข้อมูลลูกค้า",
+        "tab_product": "ข้อมูลสินค้าขายฝาก",
+        "tab_renewal": "ข้อมูลต่อดอก",
+
+        # Product Tab
+        "product_search_group": "ค้นหาสินค้า",
+        "product_name": "ชื่อสินค้า:",
+        "product_search": "ค้นหา",
+        "add_new_product": "เพิ่มสินค้าใหม่",
+        "product_info_group": "ข้อมูลสินค้า",
+        "pawned_product": "สินค้าฝากขาย:",
+        "brand_model": "ยี่ห้อ/รุ่น:",
+        "size": "ขนาด:",
+        "weight": "น้ำหนัก:",
+        "unit_gram": "กรัม",
+        "unit_kilogram": "กิโลกรัม",
+        "unit_baht": "บาท",
+        "serial_number": "หมายเลขซีเรียล:",
+        "product_other_details": "รายละเอียดอื่นๆ:",
+        "product_image": "รูปภาพสินค้า:",
+        "no_image": "ไม่มีรูปภาพ",
+        "product_add_group": "เพิ่มสินค้าใหม่",
+        "choose_file": "เลือกไฟล์",
+        "choose_image_placeholder": "เลือกไฟล์รูปภาพ...",
+        "image_preview": "ตัวอย่างรูปภาพ:",
     },
     "en": {
         # Common
@@ -98,6 +125,33 @@ _TRANSLATIONS = {
         "first_name": "First Name:",
         "last_name": "Last Name:",
         "id_card_number": "National ID Number:",
+
+        # Tabs
+        "tab_customer": "Customer",
+        "tab_product": "Pawned Product",
+        "tab_renewal": "Renewal",
+
+        # Product Tab
+        "product_search_group": "Search Product",
+        "product_name": "Product Name:",
+        "product_search": "Search",
+        "add_new_product": "Add New Product",
+        "product_info_group": "Product Information",
+        "pawned_product": "Pawned Product:",
+        "brand_model": "Brand/Model:",
+        "size": "Size:",
+        "weight": "Weight:",
+        "unit_gram": "Gram",
+        "unit_kilogram": "Kilogram",
+        "unit_baht": "Baht",
+        "serial_number": "Serial Number:",
+        "product_other_details": "Other Details:",
+        "product_image": "Product Image:",
+        "no_image": "No Image",
+        "product_add_group": "Add New Product",
+        "choose_file": "Choose File",
+        "choose_image_placeholder": "Choose an image file...",
+        "image_preview": "Image Preview:",
     },
     "lo": {
         # Common
@@ -145,6 +199,33 @@ _TRANSLATIONS = {
         "first_name": "ຊື່:",
         "last_name": "ນາມສະກຸນ:",
         "id_card_number": "ເລກບັດປະຊາຊົນ:",
+
+        # Tabs
+        "tab_customer": "ຂໍ້ມູນລູກຄ້າ",
+        "tab_product": "ຂໍ້ມູນສິນຄ້າຝາກຂາຍ",
+        "tab_renewal": "ຂໍ້ມູນຕໍ່ດອກ",
+
+        # Product Tab
+        "product_search_group": "ຄົ້ນຫາສິນຄ້າ",
+        "product_name": "ຊື່ສິນຄ້າ:",
+        "product_search": "ຄົ້ນຫາ",
+        "add_new_product": "ເພີ່ມສິນຄ້າໃໝ່",
+        "product_info_group": "ຂໍ້ມູນສິນຄ້າ",
+        "pawned_product": "ສິນຄ້າຝາກຂາຍ:",
+        "brand_model": "ຍີ່ຫໍ້/ແບບ:",
+        "size": "ຂນາດ:",
+        "weight": "ນ້ຳໜັກ:",
+        "unit_gram": "ກຣາມ",
+        "unit_kilogram": "ກິໂລກຣາມ",
+        "unit_baht": "ບາດ",
+        "serial_number": "ເລກ Serial:",
+        "product_other_details": "ລາຍລະອຽດອື່ນໆ:",
+        "product_image": "ຮູບພາບສິນຄ້າ:",
+        "no_image": "ບໍ່ມີຮູບພາບ",
+        "product_add_group": "ເພີ່ມສິນຄ້າໃໝ່",
+        "choose_file": "ເລືອກໄຟລ໌",
+        "choose_image_placeholder": "ເລືອກໄຟລ໌ຮູບພາບ...",
+        "image_preview": "ຕົວຢ່າງຮູບພາບ:",
     },
     "my": {
         # Common
@@ -192,6 +273,33 @@ _TRANSLATIONS = {
         "first_name": "နာမည်:",
         "last_name": "အမျိုးအမည်:",
         "id_card_number": "အမျိုးသားကတ်နံပါတ်:",
+
+        # Tabs
+        "tab_customer": "ဈေးသည်",
+        "tab_product": "သောင်ချေးထားသည့်ပစ္စည်း",
+        "tab_renewal": "တိုးချဲ့",
+
+        # Product Tab
+        "product_search_group": "ကုန်ပစ္စည်း ရှာဖွေ",
+        "product_name": "ကုန်ပစ္စည်းအမည်:",
+        "product_search": "ရှာဖွေ",
+        "add_new_product": "ကုန်ပစ္စည်းအသစ် ထည့်",
+        "product_info_group": "ကုန်ပစ္စည်း အချက်အလက်",
+        "pawned_product": "အပေါင်ထားကုန်ပစ္စည်း:",
+        "brand_model": "အမှတ်တံဆိပ်/မော်ဒယ်:",
+        "size": "အရွယ်အစား:",
+        "weight": "အလေးချိန်:",
+        "unit_gram": "ဂရမ်",
+        "unit_kilogram": "ကီလိုဂရမ်",
+        "unit_baht": "ဘတ်",
+        "serial_number": "Serial နံပါတ်:",
+        "product_other_details": "အသေးစိတ် အခြား:",
+        "product_image": "ကုန်ပစ္စည်း ဓာတ်ပုံ:",
+        "no_image": "ဓာတ်ပုံမရှိ",
+        "product_add_group": "ကုန်ပစ္စည်းအသစ် ထည့်",
+        "choose_file": "ဖိုင်ရွေးရန်",
+        "choose_image_placeholder": "ဓာတ်ပုံဖိုင် ရွေးပါ...",
+        "image_preview": "ဓာတ်ပုံ အမျိုးအစား:",
     },
 }
 

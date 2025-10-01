@@ -621,22 +621,24 @@ class PawnShopUI(QMainWindow):
         layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
         # Product search section
-        search_group = QGroupBox("ค้นหาสินค้า")
+        search_group = QGroupBox()
+        self.product_search_group = search_group
         search_layout = QGridLayout(search_group)
         search_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         search_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
-        search_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
+        self.lbl_product_name = QLabel()
+        search_layout.addWidget(self.lbl_product_name, 0, 0)
         self.product_name_edit = QLineEdit()
         search_layout.addWidget(self.product_name_edit, 0, 1)
         
-        self.product_search_btn = QPushButton("ค้นหา")
+        self.product_search_btn = QPushButton()
         self.product_search_btn.clicked.connect(self.search_product)
         self.product_search_btn.setIcon(QIcon.fromTheme("system-search"))
         self.product_search_btn.setMinimumHeight(32)
         search_layout.addWidget(self.product_search_btn, 0, 2)
         
-        self.add_product_btn = QPushButton("เพิ่มสินค้าใหม่")
+        self.add_product_btn = QPushButton()
         self.add_product_btn.clicked.connect(self.toggle_product_mode)
         self.add_product_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_product_btn.setMinimumHeight(32)
@@ -645,106 +647,128 @@ class PawnShopUI(QMainWindow):
         layout.addWidget(search_group)
         
         # Product info section
-        self.product_info_group = QGroupBox("ข้อมูลสินค้า")
+        self.product_info_group = QGroupBox()
         self.product_info_layout = QGridLayout(self.product_info_group)
         self.product_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         self.product_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
         
         # สินค้าฝากขาย
-        self.product_info_layout.addWidget(QLabel("สินค้าฝากขาย:"), 0, 0)
+        self.lbl_pawned_product = QLabel()
+        self.product_info_layout.addWidget(self.lbl_pawned_product, 0, 0)
         self.product_name_display_edit = QLineEdit()
         self.product_name_display_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_name_display_edit, 0, 1)
         
         # ยี่ห้อ/รุ่น
-        self.product_info_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
+        self.lbl_brand_model = QLabel()
+        self.product_info_layout.addWidget(self.lbl_brand_model, 1, 0)
         self.product_brand_edit = QLineEdit()
         self.product_brand_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_brand_edit, 1, 1)
         
         # ขนาด
-        self.product_info_layout.addWidget(QLabel("ขนาด:"), 2, 0)
+        self.lbl_size = QLabel()
+        self.product_info_layout.addWidget(self.lbl_size, 2, 0)
         self.product_size_edit = QLineEdit()
         self.product_size_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_size_edit, 2, 1)
         
         # น้ำหนัก
-        self.product_info_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
+        self.lbl_weight = QLabel()
+        self.product_info_layout.addWidget(self.lbl_weight, 3, 0)
         self.product_weight_combo = QComboBox()
-        self.product_weight_combo.addItems(["กรัม", "กิโลกรัม", "บาท"])
+        self.product_weight_combo.addItems([
+            language_manager.get_text("unit_gram"),
+            language_manager.get_text("unit_kilogram"),
+            language_manager.get_text("unit_baht"),
+        ])
         self.product_weight_combo.setEnabled(False)
         self.product_info_layout.addWidget(self.product_weight_combo, 3, 1)
         
         # หมายเลขซีเรียล
-        self.product_info_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
+        self.lbl_serial = QLabel()
+        self.product_info_layout.addWidget(self.lbl_serial, 4, 0)
         self.serial_number_edit = QLineEdit()
         self.serial_number_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.serial_number_edit, 4, 1)
         
         # รายละเอียดอื่นๆ
-        self.product_info_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
+        self.lbl_product_other = QLabel()
+        self.product_info_layout.addWidget(self.lbl_product_other, 5, 0)
         self.product_details_edit = QLineEdit()
         self.product_details_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_details_edit, 5, 1)
         
         # รูปภาพสินค้า
-        self.product_info_layout.addWidget(QLabel("รูปภาพสินค้า:"), 6, 0)
+        self.lbl_product_image = QLabel()
+        self.product_info_layout.addWidget(self.lbl_product_image, 6, 0)
         self.product_image_display = QLabel()
         self.product_image_display.setMinimumSize(200, 150)
         self.product_image_display.setMaximumSize(300, 200)
         self.product_image_display.setStyleSheet("border: 2px solid #ccc; background-color: #f9f9f9;")
         self.product_image_display.setAlignment(Qt.AlignCenter)
-        self.product_image_display.setText("ไม่มีรูปภาพ")
+        self.product_image_display.setText(language_manager.get_text("no_image"))
         self.product_info_layout.addWidget(self.product_image_display, 6, 1)
         
         layout.addWidget(self.product_info_group)
         
         # Product add form section (initially hidden)
-        self.product_add_group = QGroupBox("เพิ่มสินค้าใหม่")
+        self.product_add_group = QGroupBox()
         self.product_add_layout = QGridLayout(self.product_add_group)
         self.product_add_layout.setSpacing(10)
         self.product_add_layout.setContentsMargins(15, 20, 15, 15)
         
         # ชื่อสินค้า
-        self.product_add_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
+        self.lbl_add_product_name = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_product_name, 0, 0)
         self.product_add_name_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_name_edit, 0, 1, 1, 3)
         
         # ยี่ห้อ/รุ่น
-        self.product_add_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
+        self.lbl_add_brand_model = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_brand_model, 1, 0)
         self.product_add_brand_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_brand_edit, 1, 1, 1, 3)
         
         # ขนาด
-        self.product_add_layout.addWidget(QLabel("ขนาด:"), 2, 0)
+        self.lbl_add_size = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_size, 2, 0)
         self.product_add_size_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_size_edit, 2, 1, 1, 3)
         
         # น้ำหนัก
-        self.product_add_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
+        self.lbl_add_weight = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_weight, 3, 0)
         self.product_add_weight_combo = QComboBox()
-        self.product_add_weight_combo.addItems(["กรัม", "กิโลกรัม", "บาท"])
+        self.product_add_weight_combo.addItems([
+            language_manager.get_text("unit_gram"),
+            language_manager.get_text("unit_kilogram"),
+            language_manager.get_text("unit_baht"),
+        ])
         self.product_add_layout.addWidget(self.product_add_weight_combo, 3, 1, 1, 3)
         
         # หมายเลขซีเรียล
-        self.product_add_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
+        self.lbl_add_serial = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_serial, 4, 0)
         self.product_add_serial_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_serial_edit, 4, 1, 1, 3)
         
         # รายละเอียดอื่นๆ
-        self.product_add_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
+        self.lbl_add_other_details = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_other_details, 5, 0)
         self.product_add_details_edit = QLineEdit()
         self.product_add_layout.addWidget(self.product_add_details_edit, 5, 1, 1, 3)
         
         # รูปภาพสินค้า
-        self.product_add_layout.addWidget(QLabel("รูปภาพสินค้า:"), 6, 0)
+        self.lbl_add_product_image = QLabel()
+        self.product_add_layout.addWidget(self.lbl_add_product_image, 6, 0)
         self.product_add_image_path_edit = QLineEdit()
-        self.product_add_image_path_edit.setPlaceholderText("เลือกไฟล์รูปภาพ...")
+        self.product_add_image_path_edit.setPlaceholderText(language_manager.get_text("choose_image_placeholder"))
         self.product_add_image_path_edit.setReadOnly(True)
         image_layout = QHBoxLayout()
         image_layout.addWidget(self.product_add_image_path_edit)
         
-        self.product_add_image_browse_btn = QPushButton("เลือกไฟล์")
+        self.product_add_image_browse_btn = QPushButton()
         self.product_add_image_browse_btn.clicked.connect(self.browse_product_image)
         self.product_add_image_browse_btn.setIcon(QIcon.fromTheme("document-open"))
         image_layout.addWidget(self.product_add_image_browse_btn)
@@ -752,23 +776,24 @@ class PawnShopUI(QMainWindow):
         self.product_add_layout.addLayout(image_layout, 6, 1, 1, 3)
         
         # แสดงรูปภาพตัวอย่าง
-        self.product_add_layout.addWidget(QLabel("ตัวอย่างรูปภาพ:"), 7, 0)
+        self.lbl_image_preview = QLabel()
+        self.product_add_layout.addWidget(self.lbl_image_preview, 7, 0)
         self.product_image_preview = QLabel()
         self.product_image_preview.setMinimumSize(200, 150)
         self.product_image_preview.setMaximumSize(300, 200)
         self.product_image_preview.setStyleSheet("border: 2px dashed #ccc; background-color: #f9f9f9;")
         self.product_image_preview.setAlignment(Qt.AlignCenter)
-        self.product_image_preview.setText("ไม่มีรูปภาพ")
+        self.product_image_preview.setText(language_manager.get_text("no_image"))
         self.product_add_layout.addWidget(self.product_image_preview, 7, 1, 1, 3)
         
         # ปุ่มบันทึกและยกเลิก
         button_layout = QHBoxLayout()
-        self.product_save_btn = QPushButton("บันทึก")
+        self.product_save_btn = QPushButton()
         self.product_save_btn.clicked.connect(self.save_new_product)
         self.product_save_btn.setIcon(QIcon.fromTheme("document-save"))
         button_layout.addWidget(self.product_save_btn)
         
-        self.product_cancel_btn = QPushButton("ยกเลิก")
+        self.product_cancel_btn = QPushButton()
         self.product_cancel_btn.clicked.connect(self.toggle_product_mode)
         self.product_cancel_btn.setIcon(QIcon.fromTheme("edit-clear"))
         button_layout.addWidget(self.product_cancel_btn)
@@ -778,8 +803,62 @@ class PawnShopUI(QMainWindow):
         # ซ่อนฟอร์มเพิ่มสินค้าไว้ก่อน
         self.product_add_group.hide()
         layout.addWidget(self.product_add_group)
+
+        # เชื่อมต่ออัปเดตภาษา
+        language_manager.language_changed.connect(self.apply_product_tab_language)
+        self.apply_product_tab_language()
         
         return tab
+
+    def apply_product_tab_language(self, *_args):
+        """อัปเดตข้อความของแท็บสินค้า ตามภาษาปัจจุบัน"""
+        if hasattr(self, "product_search_group") and self.product_search_group is not None:
+            self.product_search_group.setTitle(language_manager.get_text("product_search_group"))
+        self.product_info_group.setTitle(language_manager.get_text("product_info_group"))
+        self.product_add_group.setTitle(language_manager.get_text("product_add_group"))
+
+        # Search section
+        self.lbl_product_name.setText(language_manager.get_text("product_name"))
+        self.product_search_btn.setText(language_manager.get_text("product_search"))
+        self.add_product_btn.setText(language_manager.get_text("add_new_product"))
+
+        # Info section
+        self.lbl_pawned_product.setText(language_manager.get_text("pawned_product"))
+        self.lbl_brand_model.setText(language_manager.get_text("brand_model"))
+        self.lbl_size.setText(language_manager.get_text("size"))
+        self.lbl_weight.setText(language_manager.get_text("weight"))
+        # units combo
+        self.product_weight_combo.clear()
+        self.product_weight_combo.addItems([
+            language_manager.get_text("unit_gram"),
+            language_manager.get_text("unit_kilogram"),
+            language_manager.get_text("unit_baht"),
+        ])
+        self.lbl_serial.setText(language_manager.get_text("serial_number"))
+        self.lbl_product_other.setText(language_manager.get_text("product_other_details"))
+        self.lbl_product_image.setText(language_manager.get_text("product_image"))
+        self.product_image_display.setText(language_manager.get_text("no_image"))
+
+        # Add section
+        self.lbl_add_product_name.setText(language_manager.get_text("product_name"))
+        self.lbl_add_brand_model.setText(language_manager.get_text("brand_model"))
+        self.lbl_add_size.setText(language_manager.get_text("size"))
+        self.lbl_add_weight.setText(language_manager.get_text("weight"))
+        self.product_add_weight_combo.clear()
+        self.product_add_weight_combo.addItems([
+            language_manager.get_text("unit_gram"),
+            language_manager.get_text("unit_kilogram"),
+            language_manager.get_text("unit_baht"),
+        ])
+        self.lbl_add_serial.setText(language_manager.get_text("serial_number"))
+        self.lbl_add_other_details.setText(language_manager.get_text("product_other_details"))
+        self.lbl_add_product_image.setText(language_manager.get_text("product_image"))
+        self.product_add_image_path_edit.setPlaceholderText(language_manager.get_text("choose_image_placeholder"))
+        self.product_add_image_browse_btn.setText(language_manager.get_text("choose_file"))
+        self.lbl_image_preview.setText(language_manager.get_text("image_preview"))
+        self.product_image_preview.setText(language_manager.get_text("no_image"))
+        self.product_save_btn.setText(language_manager.get_text("save"))
+        self.product_cancel_btn.setText(language_manager.get_text("cancel"))
 
     def create_renewal_tab(self):
         """สร้างแท็บข้อมูลต่อดอก"""
@@ -867,17 +946,31 @@ class PawnShopUI(QMainWindow):
         
         # Tab 1: Customer Info
         customer_tab = self.create_customer_tab()
-        tab_widget.addTab(customer_tab, "ข้อมูลลูกค้า")
+        tab_widget.addTab(customer_tab, language_manager.get_text("tab_customer"))
         
         # Tab 2: Product Info
         product_tab = self.create_product_tab()
-        tab_widget.addTab(product_tab, "ข้อมูลสินค้าขายฝาก")
+        tab_widget.addTab(product_tab, language_manager.get_text("tab_product"))
         
         # Tab 3: Interest Renewal Info
         renewal_tab = self.create_renewal_tab()
-        tab_widget.addTab(renewal_tab, "ข้อมูลต่อดอก")
+        tab_widget.addTab(renewal_tab, language_manager.get_text("tab_renewal"))
+
+        # เก็บอ้างอิงเพื่ออัปเดตชื่อแท็บเมื่อภาษาเปลี่ยน
+        self.info_tab_widget = tab_widget
+        language_manager.language_changed.connect(self.apply_info_tabs_language)
+        self.apply_info_tabs_language()
         
         return tab_widget
+
+    def apply_info_tabs_language(self, *_args):
+        """อัปเดตชื่อแท็บข้อมูลซ้ายมือ ตามภาษาปัจจุบัน"""
+        if not hasattr(self, "info_tab_widget"):
+            return
+        # สมมุติว่าเรียงลำดับคงเดิม: 0=customer,1=product,2=renewal
+        self.info_tab_widget.setTabText(0, language_manager.get_text("tab_customer"))
+        self.info_tab_widget.setTabText(1, language_manager.get_text("tab_product"))
+        self.info_tab_widget.setTabText(2, language_manager.get_text("tab_renewal"))
 
     def create_right_panel(self):
         """สร้างแผงด้านขวา - ข้อมูลสัญญา ผลจัดทำ ค้นหา"""
