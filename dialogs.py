@@ -1243,7 +1243,7 @@ class RedemptionDialog(QDialog):
             color: #8B4513;
         """)
         
-        self.total_amount_label = QLabel("0")
+        self.total_amount_label = QLabel("0.00 บาท")
         self.total_amount_label.setStyleSheet("""
             background-color: #FFD700;
             border: 2px solid #D2691E;
@@ -1282,27 +1282,8 @@ class RedemptionDialog(QDialog):
         # ปุ่มยืนยัน
         button_layout = QHBoxLayout()
         
-        # ปุ่มสร้างสัญญาไถ่ถอน
-        generate_contract_button = QPushButton("สร้างสัญญาไถ่ถอน")
-        generate_contract_button.setIcon(self.create_document_icon())
-        generate_contract_button.setStyleSheet("""
-            QPushButton {
-                background-color: #17A2B8;
-                color: white;
-                font-weight: bold;
-                padding: 10px 20px;
-                border-radius: 5px;
-                min-width: 150px;
-                min-height: 50px;
-            }
-            QPushButton:hover {
-                background-color: #138496;
-            }
-        """)
-        generate_contract_button.clicked.connect(self.generate_redemption_contract_only)
-        
-        # ปุ่มใช่ (มีไอคอนไฟ)
-        yes_button = QPushButton("ใช่")
+        # ปุ่มตกลง
+        yes_button = QPushButton("ตกลง")
         yes_button.setIcon(self.create_fire_icon())
         yes_button.clicked.connect(self.confirm_redemption)
         
@@ -1311,7 +1292,6 @@ class RedemptionDialog(QDialog):
         no_button.setIcon(self.create_trash_icon())
         no_button.clicked.connect(self.reject)
         
-        button_layout.addWidget(generate_contract_button)
         button_layout.addWidget(yes_button)
         button_layout.addWidget(no_button)
         layout.addLayout(button_layout)
@@ -1327,8 +1307,7 @@ class RedemptionDialog(QDialog):
         return QIcon()
     
     def create_document_icon(self):
-        """สร้างไอคอนเอกสารสำหรับปุ่มสร้างสัญญา"""
-        # สร้างไอคอนแบบง่ายๆ ด้วยข้อความ
+        """สร้างไอคอนเอกสารสำหรับปุ่มสร้างสัญญา (ยังคงไว้เพื่อความเข้ากันได้)"""
         return QIcon()
     
     def create_trash_icon(self):
@@ -1384,11 +1363,11 @@ class RedemptionDialog(QDialog):
             total = principal + fee_amount + penalty - discount
             
             # แสดงผลลัพธ์
-            self.principal_amount_label.setText(f"{principal:,.0f}")
-            self.fee_amount_label.setText(f"{fee_amount:,.0f}")
-            self.penalty_amount_label.setText(f"{penalty:,.0f}")
-            self.discount_amount_label.setText(f"{discount:,.0f}")
-            self.total_amount_label.setText(f"{total:,.0f}")
+            self.principal_amount_label.setText(f"{principal:,.2f} บาท")
+            self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
+            self.penalty_amount_label.setText(f"{penalty:,.2f} บาท")
+            self.discount_amount_label.setText(f"{discount:,.2f} บาท")
+            self.total_amount_label.setText(f"{total:,.2f} บาท")
             
         except Exception as e:
             print(f"Error calculating amounts: {e}")
@@ -1428,23 +1407,32 @@ class RedemptionDialog(QDialog):
             redemption_data = {
                 'contract_id': self.contract_data['id'],
                 'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
-                'redemption_amount': float(self.total_amount_label.text().replace(',', '')),
+                'redemption_amount': float(self.total_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'deposit_date': self.deposit_date_edit.date().toString("yyyy-MM-dd"),
                 'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
                 'total_days': int(self.total_days_label.text()),
-                'principal_amount': float(self.principal_amount_label.text().replace(',', '')),
-                'fee_amount': float(self.fee_amount_label.text().replace(',', '')),
-                'penalty_amount': float(self.penalty_amount_label.text().replace(',', '')),
-                'discount_amount': float(self.discount_amount_label.text().replace(',', ''))
+                'principal_amount': float(self.principal_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'penalty_amount': float(self.penalty_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
             
             # บันทึกการไถ่ถอน
             redemption_id = self.db.redeem_contract(redemption_data)
             
-            # สร้างสัญญาไถ่ถอน PDF
-            self.generate_redemption_contract_pdf(redemption_data, redemption_id)
-            
-            QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างสัญญาไถ่ถอนเรียบร้อยแล้ว")
+            # ถามว่าจะสร้างสัญญาไถ่ถอนหรือไม่
+            reply = QMessageBox.question(
+                self,
+                "สร้างสัญญาไถ่ถอน",
+                "ต้องการจะสร้างสัญญาไถ่ถอนหรือไม่?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if reply == QMessageBox.Yes:
+                self.generate_redemption_contract_pdf(redemption_data, redemption_id)
+                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างสัญญาไถ่ถอนเรียบร้อยแล้ว")
+            else:
+                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย")
             self.accept()
             
         except Exception as e:
@@ -1625,14 +1613,14 @@ class RedemptionDialog(QDialog):
             redemption_data = {
                 'contract_id': self.contract_data['id'],
                 'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
-                'redemption_amount': float(self.total_amount_label.text().replace(',', '')),
+                'redemption_amount': float(self.total_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'deposit_date': self.deposit_date_edit.date().toString("yyyy-MM-dd"),
                 'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
                 'total_days': int(self.total_days_label.text()),
-                'principal_amount': float(self.principal_amount_label.text().replace(',', '')),
-                'fee_amount': float(self.fee_amount_label.text().replace(',', '')),
-                'penalty_amount': float(self.penalty_amount_label.text().replace(',', '')),
-                'discount_amount': float(self.discount_amount_label.text().replace(',', ''))
+                'principal_amount': float(self.principal_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'penalty_amount': float(self.penalty_amount_label.text().replace(' บาท', '').replace(',', '')),
+                'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
             
             # สร้างสัญญาไถ่ถอน PDF
