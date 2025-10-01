@@ -15,6 +15,7 @@ import shutil
 from PySide6.QtGui import QPixmap, QIcon
 from language_manager import language_manager
 from datetime import datetime, timedelta
+from language_manager import language_manager
 from typing import Dict, Optional, List
 from database import PawnShopDatabase
 from utils import PawnShopUtils
@@ -1094,7 +1095,7 @@ class RedemptionDialog(QDialog):
             self.load_contract_data()
     
     def setup_ui(self):
-        self.setWindowTitle("ไถ่ถอน")
+        self.setWindowTitle(language_manager.get_text("redemption_title"))
         self.setModal(True)
         self.resize(600, 700)
         
@@ -1152,7 +1153,7 @@ class RedemptionDialog(QDialog):
         layout = QVBoxLayout(self)
         
         # หัวข้อหลัก
-        title_label = QLabel("ไถ่ถอน")
+        title_label = QLabel(language_manager.get_text("redemption_title"))
         title_label.setStyleSheet("""
             font-size: 24px;
             font-weight: bold;
@@ -1164,7 +1165,7 @@ class RedemptionDialog(QDialog):
         layout.addWidget(title_label)
         
         # ข้อมูลวันที่และจำนวนวัน
-        date_group = QGroupBox("ข้อมูลวันที่")
+        date_group = QGroupBox(language_manager.get_text("redemption_date_group"))
         date_layout = QGridLayout(date_group)
         
         self.deposit_date_edit = QDateEdit()
@@ -1189,19 +1190,19 @@ class RedemptionDialog(QDialog):
             color: #8B4513;
         """)
         
-        date_layout.addWidget(QLabel("วันที่รับฝาก / ผากต่อ:"), 0, 0)
+        date_layout.addWidget(QLabel(language_manager.get_text("redemption_deposit_or_extend")), 0, 0)
         date_layout.addWidget(self.deposit_date_edit, 0, 1)
-        date_layout.addWidget(QLabel("วันที่ไถ่ถอน:"), 1, 0)
+        date_layout.addWidget(QLabel(language_manager.get_text("redemption_date")), 1, 0)
         date_layout.addWidget(self.redemption_date_edit, 1, 1)
-        date_layout.addWidget(QLabel("วันที่ครบกำหนด:"), 2, 0)
+        date_layout.addWidget(QLabel(language_manager.get_text("redemption_due_date")), 2, 0)
         date_layout.addWidget(self.due_date_edit, 2, 1)
-        date_layout.addWidget(QLabel("รวมวันที่ฝากไว้:"), 3, 0)
+        date_layout.addWidget(QLabel(language_manager.get_text("redemption_total_days")), 3, 0)
         date_layout.addWidget(self.total_days_label, 3, 1)
         
         layout.addWidget(date_group)
         
         # ข้อมูลจำนวนเงิน
-        amount_group = QGroupBox("ข้อมูลจำนวนเงิน")
+        amount_group = QGroupBox(language_manager.get_text("redemption_amount_group"))
         amount_layout = QGridLayout(amount_group)
         
         self.principal_amount_label = QLabel("0")
@@ -1255,21 +1256,21 @@ class RedemptionDialog(QDialog):
             font-size: 16px;
         """)
         
-        amount_layout.addWidget(QLabel("เงินต้น:"), 0, 0)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_principal")), 0, 0)
         amount_layout.addWidget(self.principal_amount_label, 0, 1)
-        amount_layout.addWidget(QLabel("ค่าธรรมเนียม:"), 1, 0)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_fee")), 1, 0)
         amount_layout.addWidget(self.fee_amount_label, 1, 1)
-        amount_layout.addWidget(QLabel("ค่าปรับ:"), 2, 0)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_penalty")), 2, 0)
         amount_layout.addWidget(self.penalty_amount_label, 2, 1)
-        amount_layout.addWidget(QLabel("ส่วนลด:"), 3, 0)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_discount")), 3, 0)
         amount_layout.addWidget(self.discount_amount_label, 3, 1)
-        amount_layout.addWidget(QLabel("รวม:"), 4, 0)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_total")), 4, 0)
         amount_layout.addWidget(self.total_amount_label, 4, 1)
         
         layout.addWidget(amount_group)
         
         # คำถามยืนยัน
-        confirm_label = QLabel("ต้องการไถ่ถอนสัญญานี้ใช่หรือไม่")
+        confirm_label = QLabel(language_manager.get_text("redemption_confirm"))
         confirm_label.setStyleSheet("""
             font-size: 16px;
             font-weight: bold;
@@ -1284,12 +1285,12 @@ class RedemptionDialog(QDialog):
         button_layout = QHBoxLayout()
         
         # ปุ่มตกลง
-        yes_button = QPushButton("ตกลง")
+        yes_button = QPushButton(language_manager.get_text("ok"))
         yes_button.setIcon(self.create_fire_icon())
         yes_button.clicked.connect(self.confirm_redemption)
         
         # ปุ่มไม่ใช่ (มีไอคอนถังขยะ)
-        no_button = QPushButton("ไม่ใช่")
+        no_button = QPushButton(language_manager.get_text("no"))
         no_button.setIcon(self.create_trash_icon())
         no_button.clicked.connect(self.reject)
         
@@ -1301,6 +1302,13 @@ class RedemptionDialog(QDialog):
         self.deposit_date_edit.dateChanged.connect(self.calculate_total_days)
         self.redemption_date_edit.dateChanged.connect(self.calculate_total_days)
         self.due_date_edit.dateChanged.connect(self.calculate_total_days)
+
+        # ผูกภาษา
+        language_manager.language_changed.connect(self.apply_language)
+        self.apply_language()
+
+    def apply_language(self, *_args):
+        self.setWindowTitle(language_manager.get_text("redemption_title"))
     
     def create_fire_icon(self):
         """สร้างไอคอนไฟสำหรับปุ่มใช่"""

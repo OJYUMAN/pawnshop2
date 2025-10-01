@@ -167,6 +167,21 @@ _TRANSLATIONS = {
         "renewal_confirm_text": "คุณต้องการต่อดอกสัญญานี้ใช่หรือไม่",
         "ok": "ตกลง",
         "no": "ไม่ใช่",
+
+        # Redemption Dialog
+        "redemption_title": "ไถ่ถอน",
+        "redemption_date_group": "ข้อมูลวันที่",
+        "redemption_deposit_or_extend": "วันที่รับฝาก / ผากต่อ:",
+        "redemption_date": "วันที่ไถ่ถอน:",
+        "redemption_due_date": "วันที่ครบกำหนด:",
+        "redemption_total_days": "รวมวันที่ฝากไว้:",
+        "redemption_amount_group": "ข้อมูลจำนวนเงิน",
+        "redemption_principal": "เงินต้น:",
+        "redemption_fee": "ค่าธรรมเนียม:",
+        "redemption_penalty": "ค่าปรับ:",
+        "redemption_discount": "ส่วนลด:",
+        "redemption_total": "รวม:",
+        "redemption_confirm": "ต้องการไถ่ถอนสัญญานี้ใช่หรือไม่",
     },
     "en": {
         # Common
@@ -330,6 +345,21 @@ _TRANSLATIONS = {
         "renewal_confirm_text": "Do you want to renew this contract?",
         "ok": "OK",
         "no": "No",
+
+        # Redemption Dialog
+        "redemption_title": "Redeem",
+        "redemption_date_group": "Date Information",
+        "redemption_deposit_or_extend": "Deposit / Extend Date:",
+        "redemption_date": "Redemption Date:",
+        "redemption_due_date": "Due Date:",
+        "redemption_total_days": "Total Days Deposited:",
+        "redemption_amount_group": "Amount Information",
+        "redemption_principal": "Principal:",
+        "redemption_fee": "Fee:",
+        "redemption_penalty": "Penalty:",
+        "redemption_discount": "Discount:",
+        "redemption_total": "Total:",
+        "redemption_confirm": "Do you want to redeem this contract?",
     },
     "lo": {
         # Common
@@ -493,6 +523,21 @@ _TRANSLATIONS = {
         "renewal_confirm_text": "ທ່ານຕ້ອງການຕໍ່ດອກສັນຍານີ້ບໍ?",
         "ok": "ຕົກລົງ",
         "no": "ບໍ່ແມ່ນ",
+
+        # Redemption Dialog
+        "redemption_title": "ໄຖ່ຖອນ",
+        "redemption_date_group": "ຂໍ້ມູນວັນທີ",
+        "redemption_deposit_or_extend": "ວັນທີຮັບຝາກ / ຝາກຕໍ່:",
+        "redemption_date": "ວັນທີໄຖ່ຖອນ:",
+        "redemption_due_date": "ວັນຄົບກຳນົດ:",
+        "redemption_total_days": "ລວມວັນທີ່ຝາກໄວ້:",
+        "redemption_amount_group": "ຂໍ້ມູນຈຳນວນເງິນ",
+        "redemption_principal": "ເງິນຕົ້ນ:",
+        "redemption_fee": "ຄ່າທຳນຽມ:",
+        "redemption_penalty": "ຄ່າປັບ:",
+        "redemption_discount": "ສ່ວນຫຼຸດ:",
+        "redemption_total": "ລວມ:",
+        "redemption_confirm": "ຕ້ອງການໄຖ່ຖອນສັນຍານີ້ບໍ?",
     },
     "my": {
         # Common
@@ -656,6 +701,21 @@ _TRANSLATIONS = {
         "renewal_confirm_text": "ဤစာချုပ်ကို တိုးချဲ့မည်လား?",
         "ok": "အိုကေ",
         "no": "မဟုတ်ပါ",
+
+        # Redemption Dialog
+        "redemption_title": "ပြန်ရယူ",
+        "redemption_date_group": "ရက်စွဲ အချက်အလက်",
+        "redemption_deposit_or_extend": "အပေါင် / တိုးချဲ့ ရက်:",
+        "redemption_date": "ပြန်ရယူရက်:",
+        "redemption_due_date": "ဆုံးရက်:",
+        "redemption_total_days": "စုစုပေါင်းသိုလှောင်ရက်:",
+        "redemption_amount_group": "ငွေပမာဏ အချက်အလက်",
+        "redemption_principal": "ရင်းနှီးငွေ:",
+        "redemption_fee": "ကြေး:",
+        "redemption_penalty": "ပြစ်ဒဏ်:",
+        "redemption_discount": "လျော့စျေး:",
+        "redemption_total": "စုစုပေါင်း:",
+        "redemption_confirm": "ဤစာချုပ်ကို ပြန်ရယူမည်လား?",
     },
 }
 
