@@ -13,6 +13,7 @@ SEND_CONTRACT_NOTIFICATION = True  # ส่งการแจ้งเตือ�
 SEND_RENEWAL_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อต่อดอก
 SEND_REDEMPTION_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อไถ่ถอน
 SEND_DAILY_INCOME_NOTIFICATION = True  # ส่งการแจ้งเตือนสรุปรายได้รายวัน
+SEND_FORFEITURE_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อสินค้าหลุดจำนำ
 
 # รูปแบบข้อความ
 MESSAGE_TEMPLATE = {
@@ -58,6 +59,16 @@ MESSAGE_TEMPLATE = {
 💰 จำนวนเงินไถ่ถอน: {redemption_amount:,.2f} บาท
 📅 วันไถ่ถอน: {redemption_date}
 ⏰ เวลาที่ไถ่ถอน: {timestamp}
+    """.strip(),
+    
+    'forfeiture': """
+    ❗ หลุดจำนำ: {contract_number}
+
+    👤 ลูกค้า: {customer_name}
+    💍 สินค้า: {product_name}
+    💰 วงเงินกู้: {pawn_amount:,.2f} บาท
+    📅 วันสิ้นสุดสัญญา: {end_date}
+    ⏰ วันที่หลุด: {timestamp}
     """.strip(),
     
     'daily_income': """

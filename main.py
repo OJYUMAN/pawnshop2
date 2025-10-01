@@ -26,7 +26,7 @@ from data_viewer import DataViewerDialog
 from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
 from fee_management import FeeManagementDialog
-from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE
+from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE, SEND_FORFEITURE_NOTIFICATION
 import tempfile
 import shutil
 
@@ -364,6 +364,31 @@ class PawnShopUI(QMainWindow):
         except Exception as e:
             print(f"เกิดข้อผิดพลาดในการส่งข้อความ: {str(e)}")
             return False
+    def send_forfeiture_to_line(self, contract_data):
+        """ส่งข้อมูลหลุดจำนำเข้า Line"""
+        if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
+            return
+        try:
+            customer_name = f"{contract_data.get('first_name', '')} {contract_data.get('last_name', '')}".strip() or "-"
+            product_name = contract_data.get('product_name', '-') or '-'
+            pawn_amount = float(contract_data.get('pawn_amount', 0))
+            end_date = contract_data.get('end_date')
+            if isinstance(end_date, (datetime,)):
+                end_date_txt = end_date.strftime('%d/%m/%Y')
+            else:
+                end_date_txt = str(end_date)
+            line_message = MESSAGE_TEMPLATE.get('forfeiture', "หลุดจำนำ {contract_number}").format(
+                contract_number=contract_data.get('contract_number', '-'),
+                customer_name=customer_name,
+                product_name=product_name,
+                pawn_amount=pawn_amount,
+                end_date=end_date_txt,
+                timestamp=datetime.now().strftime('%d/%m/%Y %H:%M')
+            )
+            self.send_line_message(line_message)
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งข้อมูลหลุดจำนำเข้า Line: {str(e)}")
+
 
 
     def create_customer_tab(self):
@@ -1555,6 +1580,21 @@ class PawnShopUI(QMainWindow):
                 # อัปเดตสถานะสัญญาในฟอร์ม
                 if hasattr(self, 'lost_radio'):
                     self.lost_radio.setChecked(True)
+
+                # ส่งแจ้งเตือนเข้า Line เมื่อหลุดจำนำ
+                try:
+                    # enrich minimal fields for template
+                    customer = self.db.get_customer_by_id(updated_contract.get('customer_id')) if updated_contract else None
+                    product = self.db.get_product_by_id(updated_contract.get('product_id')) if updated_contract else None
+                    enriched = {
+                        **(updated_contract or {}),
+                        'first_name': (customer or {}).get('first_name', ''),
+                        'last_name': (customer or {}).get('last_name', ''),
+                        'product_name': (product or {}).get('name', ''),
+                    }
+                    self.send_forfeiture_to_line(enriched)
+                except Exception as e:
+                    print(f"ส่งแจ้งเตือนหลุดจำนำล้มเหลว: {e}")
                 
             QMessageBox.information(self, "สำเร็จ", "อัปเดตสถานะสัญญาเป็น 'หลุดจำนำ' เรียบร้อย")
             
@@ -1586,6 +1626,21 @@ class PawnShopUI(QMainWindow):
                 if updated_contract:
                     self.current_contract = updated_contract
                     self.load_contract_data()
+
+                    # ถ้าสถานะเป็น lost ให้ส่งแจ้งเตือนเข้า Line
+                    if status == 'lost':
+                        try:
+                            customer = self.db.get_customer_by_id(updated_contract.get('customer_id')) if updated_contract else None
+                            product = self.db.get_product_by_id(updated_contract.get('product_id')) if updated_contract else None
+                            enriched = {
+                                **(updated_contract or {}),
+                                'first_name': (customer or {}).get('first_name', ''),
+                                'last_name': (customer or {}).get('last_name', ''),
+                                'product_name': (product or {}).get('name', ''),
+                            }
+                            self.send_forfeiture_to_line(enriched)
+                        except Exception as e:
+                            print(f"ส่งแจ้งเตือนหลุดจำนำล้มเหลว: {e}")
                 
                 QMessageBox.information(self, "สำเร็จ", f"อัปเดตสถานะสัญญาเป็น '{status}' เรียบร้อย")
             else:

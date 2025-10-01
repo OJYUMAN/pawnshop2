@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit,
     QPushButton, QComboBox, QTextEdit, QMessageBox, QDateEdit, QSpinBox,
     QDoubleSpinBox, QGroupBox, QTabWidget, QWidget, QScrollArea, QTableWidget,
-    QTableWidgetItem, QHeaderView, QSplitter
+    QTableWidgetItem, QHeaderView, QSplitter, QInputDialog
 )
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QIcon
@@ -28,6 +28,21 @@ class DataViewerDialog(QDialog):
         self.setup_ui()
         self.load_data()
     
+    def verify_delete_password(self) -> bool:
+        """ขอรหัสผ่านก่อนอนุญาตให้ลบข้อมูล"""
+        password, ok = QInputDialog.getText(
+            self,
+            "ยืนยันรหัสผ่าน",
+            "กรอกรหัสผ่านเพื่อลบ:",
+            QLineEdit.EchoMode.Password
+        )
+        if not ok:
+            return False
+        if password != "ipro1101":
+            QMessageBox.warning(self, "รหัสผ่านไม่ถูกต้อง", "รหัสผ่านไม่ถูกต้อง")
+            return False
+        return True
+
     def setup_ui(self):
         self.setWindowTitle("ดูข้อมูลทั้งหมด")
         self.setModal(True)
@@ -642,6 +657,10 @@ class DataViewerDialog(QDialog):
     def delete_customer(self, row: int):
         """ลบข้อมูลลูกค้า"""
         try:
+            # ตรวจรหัสผ่านก่อน
+            if not self.verify_delete_password():
+                return
+
             customer_code = self.customer_table.item(row, 0).text()
             customer_name = f"{self.customer_table.item(row, 1).text()} {self.customer_table.item(row, 2).text()}"
             
@@ -674,6 +693,10 @@ class DataViewerDialog(QDialog):
     def delete_product(self, row: int):
         """ลบข้อมูลสินค้า"""
         try:
+            # ตรวจรหัสผ่านก่อน
+            if not self.verify_delete_password():
+                return
+
             product_name = self.product_table.item(row, 0).text()
             serial_number = self.product_table.item(row, 4).text()
             
@@ -706,6 +729,10 @@ class DataViewerDialog(QDialog):
     def delete_contract(self, row: int):
         """ลบข้อมูลสัญญา"""
         try:
+            # ตรวจรหัสผ่านก่อน
+            if not self.verify_delete_password():
+                return
+
             contract_number = self.contract_table.item(row, 0).text()
             customer_name = self.contract_table.item(row, 1).text()
             
