@@ -1212,11 +1212,10 @@ class PawnShopUI(QMainWindow):
         self.lbl_search_by = QLabel()
         search_type_layout.addWidget(self.lbl_search_by)
         self.search_type_combo = QComboBox()
-        self.search_type_combo.addItems([
-            language_manager.get_text("search_type_contract"),
-            language_manager.get_text("search_type_idcard"),
-            language_manager.get_text("search_type_name"),
-        ])
+        # เพิ่มด้วย userData คงที่ เพื่อไม่พังเมื่อเปลี่ยนภาษา
+        self.search_type_combo.addItem(language_manager.get_text("search_type_contract"), "contract")
+        self.search_type_combo.addItem(language_manager.get_text("search_type_idcard"), "idcard")
+        self.search_type_combo.addItem(language_manager.get_text("search_type_name"), "name")
         self.search_type_combo.currentTextChanged.connect(self.on_search_type_changed)
         search_type_layout.addWidget(self.search_type_combo)
         layout.addLayout(search_type_layout)
@@ -1304,12 +1303,12 @@ class PawnShopUI(QMainWindow):
         self.lbl_search_by.setText(language_manager.get_text("search_by"))
         # reset search type items
         current_idx = self.search_type_combo.currentIndex()
+        self.search_type_combo.blockSignals(True)
         self.search_type_combo.clear()
-        self.search_type_combo.addItems([
-            language_manager.get_text("search_type_contract"),
-            language_manager.get_text("search_type_idcard"),
-            language_manager.get_text("search_type_name"),
-        ])
+        self.search_type_combo.addItem(language_manager.get_text("search_type_contract"), "contract")
+        self.search_type_combo.addItem(language_manager.get_text("search_type_idcard"), "idcard")
+        self.search_type_combo.addItem(language_manager.get_text("search_type_name"), "name")
+        self.search_type_combo.blockSignals(False)
         self.search_type_combo.setCurrentIndex(max(0, min(current_idx, 2)))
         self.lbl_search_contract.setText(language_manager.get_text("contract_number"))
         self.search_contract_edit.setPlaceholderText(language_manager.get_text("enter_contract_number"))
@@ -2370,7 +2369,8 @@ class PawnShopUI(QMainWindow):
 
     def on_search_type_changed(self):
         """เมื่อเปลี่ยนประเภทการค้นหา"""
-        search_type = self.search_type_combo.currentText()
+        # ใช้ userData ที่ไม่แปลเพื่อกำหนดโหมด
+        search_type = self.search_type_combo.currentData()
         
         # ซ่อนฟอร์มทั้งหมดก่อน
         self.search_contract_edit.hide()
@@ -2380,12 +2380,12 @@ class PawnShopUI(QMainWindow):
         self.search_last_name_edit.hide()
         
         # แสดงฟอร์มที่เหมาะสม
-        if search_type == "เลขที่สัญญา":
+        if search_type == "contract":
             self.search_contract_edit.show()
             self.search_contract_combo.show()
-        elif search_type == "เลขบัตรประชาชน":
+        elif search_type == "idcard":
             self.search_id_card_edit.show()
-        elif search_type == "ชื่อนามสกุล":
+        elif search_type == "name":
             self.search_first_name_edit.show()
             self.search_last_name_edit.show()
         
@@ -2405,20 +2405,20 @@ class PawnShopUI(QMainWindow):
 
     def search_contracts(self):
         """ค้นหาสัญญาตามประเภทที่เลือก"""
-        search_type = self.search_type_combo.currentText()
+        search_type = self.search_type_combo.currentData()
         
         # ตรวจสอบข้อมูลการค้นหา
-        if search_type == "เลขที่สัญญา":
+        if search_type == "contract":
             search_term = self.search_contract_edit.text().strip()
             if not search_term:
                 QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขที่สัญญา")
                 return
-        elif search_type == "เลขบัตรประชาชน":
+        elif search_type == "idcard":
             search_term = self.search_id_card_edit.text().strip()
             if not search_term:
                 QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขบัตรประชาชน")
                 return
-        elif search_type == "ชื่อนามสกุล":
+        elif search_type == "name":
             first_name = self.search_first_name_edit.text().strip()
             last_name = self.search_last_name_edit.text().strip()
             if not first_name and not last_name:
@@ -2438,11 +2438,11 @@ class PawnShopUI(QMainWindow):
         
         try:
             # ค้นหาสัญญาตามประเภทที่เลือก
-            if search_type == "เลขที่สัญญา":
+            if search_type == "contract":
                 contracts = self.db.search_contracts_by_number(search_term, status)
-            elif search_type == "เลขบัตรประชาชน":
+            elif search_type == "idcard":
                 contracts = self.db.search_contracts_by_id_card(search_term, status)
-            elif search_type == "ชื่อนามสกุล":
+            elif search_type == "name":
                 contracts = self.db.search_contracts_by_name(first_name, last_name, status)
             else:
                 contracts = []

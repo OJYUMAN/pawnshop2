@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt, QDate, QThread, Signal
 import tempfile
 import shutil
 from PySide6.QtGui import QPixmap, QIcon
+from language_manager import language_manager
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 from database import PawnShopDatabase
@@ -1715,14 +1716,14 @@ class RenewalDialog(QDialog):
             self.load_contract_data()
     
     def setup_ui(self):
-        self.setWindowTitle("ต่อดอก")
+        self.setWindowTitle(language_manager.get_text("renewal_title"))
         self.setModal(True)
         self.resize(600, 500)
         
         layout = QVBoxLayout(self)
         
         # ข้อมูลสัญญา
-        contract_group = QGroupBox("ข้อมูลสัญญา")
+        contract_group = QGroupBox(language_manager.get_text("renewal_info_group"))
         contract_layout = QGridLayout(contract_group)
         
         self.contract_number_label = QLabel()
@@ -1730,75 +1731,75 @@ class RenewalDialog(QDialog):
         self.pawn_amount_label = QLabel()
         self.interest_rate_label = QLabel()
         
-        contract_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
+        contract_layout.addWidget(QLabel(language_manager.get_text("renewal_contract_number")), 0, 0)
         contract_layout.addWidget(self.contract_number_label, 0, 1)
-        contract_layout.addWidget(QLabel("ชื่อลูกค้า:"), 1, 0)
+        contract_layout.addWidget(QLabel(language_manager.get_text("renewal_customer_name")), 1, 0)
         contract_layout.addWidget(self.customer_name_label, 1, 1)
-        contract_layout.addWidget(QLabel("ยอดฝาก:"), 2, 0)
+        contract_layout.addWidget(QLabel(language_manager.get_text("renewal_pawn_amount")), 2, 0)
         contract_layout.addWidget(self.pawn_amount_label, 2, 1)
-        contract_layout.addWidget(QLabel("อัตราดอกเบี้ย:"), 3, 0)
+        contract_layout.addWidget(QLabel(language_manager.get_text("renewal_interest_rate")), 3, 0)
         contract_layout.addWidget(self.interest_rate_label, 3, 1)
         
         layout.addWidget(contract_group)
         
         # ข้อมูลการต่อดอก
-        renewal_group = QGroupBox("ข้อมูลการต่อดอก")
+        renewal_group = QGroupBox(language_manager.get_text("renewal_group"))
         renewal_layout = QGridLayout(renewal_group)
         
         # จำนวนวันฝากนับถึงปัจจุบัน
-        self.days_deposit_label = QLabel("0 วัน")
-        renewal_layout.addWidget(QLabel("จำนวนวันฝากนับถึงปัจจุบัน:"), 0, 0)
+        self.days_deposit_label = QLabel("0")
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_days_deposit")), 0, 0)
         renewal_layout.addWidget(self.days_deposit_label, 0, 1)
         
         # ต่อดอกครั้งที่
         self.renewal_count_spin = QSpinBox()
         self.renewal_count_spin.setRange(1, 99)
         self.renewal_count_spin.setValue(1)
-        renewal_layout.addWidget(QLabel("ต่อดอกครั้งที่:"), 1, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_count")), 1, 0)
         renewal_layout.addWidget(self.renewal_count_spin, 1, 1)
         
         # ค่าธรรมเนียม
         self.fee_amount_spin = QDoubleSpinBox()
         self.fee_amount_spin.setRange(0, 999999)
         self.fee_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel("ค่าธรรมเนียม:"), 2, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_fee")), 2, 0)
         renewal_layout.addWidget(self.fee_amount_spin, 2, 1)
         
         # ค่าปรับ
         self.penalty_amount_spin = QDoubleSpinBox()
         self.penalty_amount_spin.setRange(0, 999999)
         self.penalty_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel("ค่าปรับ:"), 3, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_penalty")), 3, 0)
         renewal_layout.addWidget(self.penalty_amount_spin, 3, 1)
         
         # ส่วนลด
         self.discount_amount_spin = QDoubleSpinBox()
         self.discount_amount_spin.setRange(0, 999999)
         self.discount_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel("ส่วนลด:"), 4, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_discount")), 4, 0)
         renewal_layout.addWidget(self.discount_amount_spin, 4, 1)
         
         # รวม
         self.total_amount_label = QLabel("0.00 บาท")
-        renewal_layout.addWidget(QLabel("รวม:"), 5, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_total")), 5, 0)
         renewal_layout.addWidget(self.total_amount_label, 5, 1)
         
         # วันที่ต่อดอก
         self.renewal_date_edit = QDateEdit()
         self.renewal_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel("วันต่อดอก:"), 6, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_date")), 6, 0)
         renewal_layout.addWidget(self.renewal_date_edit, 6, 1)
         
         # วันครบกำหนดปัจจุบัน
         self.current_due_date_edit = QDateEdit()
         self.current_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel("วันครบกำหนดปัจจุบัน:"), 7, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_current_due")), 7, 0)
         renewal_layout.addWidget(self.current_due_date_edit, 7, 1)
         
         # วันครบกำหนดใหม่
         self.new_due_date_edit = QDateEdit()
         self.new_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel("วันครบกำหนดใหม่:"), 8, 0)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_new_due")), 8, 0)
         renewal_layout.addWidget(self.new_due_date_edit, 8, 1)
         
         # เชื่อมต่อสัญญาณ
@@ -1809,7 +1810,7 @@ class RenewalDialog(QDialog):
         layout.addWidget(renewal_group)
         
         # ข้อความยืนยัน
-        confirm_label = QLabel("คุณต้องการต่อดอกสัญญานี้ใช่หรือไม่")
+        confirm_label = QLabel(language_manager.get_text("renewal_confirm_text"))
         confirm_label.setAlignment(Qt.AlignCenter)
         confirm_label.setStyleSheet("font-weight: bold; color: #2E86AB; font-size: 14px;")
         layout.addWidget(confirm_label)
@@ -1817,7 +1818,7 @@ class RenewalDialog(QDialog):
         # ปุ่ม
         button_layout = QHBoxLayout()
         
-        save_button = QPushButton("ตกลง")
+        save_button = QPushButton(language_manager.get_text("ok"))
         save_button.setIcon(QIcon.fromTheme("document-save"))
         save_button.setStyleSheet("""
             QPushButton {
@@ -1831,7 +1832,7 @@ class RenewalDialog(QDialog):
                 background-color: #218838;
             }
         """)
-        cancel_button = QPushButton("ไม่ใช่")
+        cancel_button = QPushButton(language_manager.get_text("no"))
         cancel_button.setIcon(QIcon.fromTheme("edit-delete"))
         cancel_button.setStyleSheet("""
             QPushButton {
@@ -1852,6 +1853,13 @@ class RenewalDialog(QDialog):
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
+
+        # ผูกภาษา
+        language_manager.language_changed.connect(self.apply_language)
+        self.apply_language()
+
+    def apply_language(self, *_args):
+        self.setWindowTitle(language_manager.get_text("renewal_title"))
     
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
