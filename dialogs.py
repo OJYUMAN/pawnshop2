@@ -1829,23 +1829,6 @@ class RenewalDialog(QDialog):
         # ปุ่ม
         button_layout = QHBoxLayout()
         
-        # ปุ่มสร้างใบฝากต่อ
-        generate_pdf_button = QPushButton("สร้างใบฝากต่อ")
-        generate_pdf_button.setIcon(QIcon.fromTheme("document-export"))
-        generate_pdf_button.setStyleSheet("""
-            QPushButton {
-                background-color: #17A2B8;
-                color: white;
-                font-weight: bold;
-                padding: 10px 20px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #138496;
-            }
-        """)
-        generate_pdf_button.clicked.connect(self.generate_renewal_pdf)
-        
         save_button = QPushButton("ตกลง")
         save_button.setIcon(QIcon.fromTheme("document-save"))
         save_button.setStyleSheet("""
@@ -1878,7 +1861,6 @@ class RenewalDialog(QDialog):
         save_button.clicked.connect(self.save_renewal)
         cancel_button.clicked.connect(self.reject)
         
-        button_layout.addWidget(generate_pdf_button)
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
@@ -1958,6 +1940,19 @@ class RenewalDialog(QDialog):
             )
             
             QMessageBox.information(self, "สำเร็จ", "บันทึกการต่อดอกเรียบร้อย")
+            
+            # ถามว่าต้องการสร้างใบฝากต่อไหม
+            reply = QMessageBox.question(
+                self, 
+                "สร้างใบฝากต่อ", 
+                "ต้องการสร้างใบฝากต่อไหม?", 
+                QMessageBox.Yes | QMessageBox.No, 
+                QMessageBox.Yes
+            )
+            
+            if reply == QMessageBox.Yes:
+                self.generate_renewal_pdf()
+            
             self.accept()
             
         except Exception as e:
