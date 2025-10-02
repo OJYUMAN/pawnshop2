@@ -240,19 +240,44 @@ class PawnShopUI(QMainWindow):
         main_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
         main_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
 
-        # --- Main Content Area ---
+        # --- Main Content Area - 2x3 Grid Layout ---
         content_widget = QWidget()
-        content_layout = QHBoxLayout(content_widget)
-        content_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนซ้ายและขวา
+        content_layout = QGridLayout(content_widget)
+        content_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
         content_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
-        # Left side - Customer and Product info (50% of screen)
-        left_panel = self.create_left_panel()
-        content_layout.addWidget(left_panel, 1)
+        # Top row (row 0)
+        # เลขที่สัญญา (0,0)
+        contract_section = self.create_contract_info_section()
+        content_layout.addWidget(contract_section, 0, 0)
         
-        # Right side - Contract info, Results, Search (50% of screen)
-        right_panel = self.create_right_panel()
-        content_layout.addWidget(right_panel, 1)
+        # ยอดฝาก (0,1)
+        deposit_section = self.create_results_section()
+        content_layout.addWidget(deposit_section, 0, 1)
+        
+        # ค้นหาสัญญา (0,2)
+        search_section = self.create_search_group()
+        content_layout.addWidget(search_section, 0, 2)
+        
+        # Bottom row (row 1)
+        # ข้อมูลลูกค้า (1,0)
+        customer_section = self.create_customer_tab()
+        content_layout.addWidget(customer_section, 1, 0)
+        
+        # ข้อมูลสินค้าฝาก (1,1)
+        product_section = self.create_product_tab()
+        content_layout.addWidget(product_section, 1, 1)
+        
+        # ข้อมูลต่อดอก (1,2)
+        renewal_section = self.create_renewal_tab()
+        content_layout.addWidget(renewal_section, 1, 2)
+        
+        # ตั้งค่า stretch factors เพื่อให้แต่ละคอลัมน์มีขนาดเท่ากัน
+        content_layout.setColumnStretch(0, 1)
+        content_layout.setColumnStretch(1, 1)
+        content_layout.setColumnStretch(2, 1)
+        content_layout.setRowStretch(0, 1)
+        content_layout.setRowStretch(1, 1)
         
         main_layout.addWidget(content_widget)
 
@@ -975,56 +1000,6 @@ class PawnShopUI(QMainWindow):
         self.renewal_clear_form_btn.setText(language_manager.get_text("clear_form"))
 
 
-    def create_left_panel(self):
-        """สร้างแผงด้านซ้าย - ข้อมูลผู้ขายและสินค้าฝากขาย"""
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
-        left_layout.setContentsMargins(0, 0, 0, 0)  # ไม่มี margin ด้านซ้าย
-        
-        # Customer info section
-        customer_section = self.create_customer_tab()
-        left_layout.addWidget(customer_section)
-        
-        # Product info section
-        product_section = self.create_product_tab()
-        left_layout.addWidget(product_section)
-        
-        # Renewal info section
-        renewal_section = self.create_renewal_tab()
-        left_layout.addWidget(renewal_section)
-        
-        return left_widget
-
-
-    def create_right_panel(self):
-        """สร้างแผงด้านขวา - ข้อมูลสัญญา ผลจัดทำ ค้นหา"""
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
-        right_layout.setContentsMargins(0, 0, 0, 0)  # ไม่มี margin ด้านขวา
-        
-        # Top row - Contract info and Results in same row
-        top_row = QWidget()
-        top_row_layout = QHBoxLayout(top_row)
-        top_row_layout.setSpacing(20)
-        top_row_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Contract info section
-        contract_info = self.create_contract_info_section()
-        top_row_layout.addWidget(contract_info)
-        
-        # Results section
-        results_section = self.create_results_section()
-        top_row_layout.addWidget(results_section)
-        
-        right_layout.addWidget(top_row)
-        
-        # Search group
-        search_group = self.create_search_group()
-        right_layout.addWidget(search_group)
-        
-        return right_widget
 
     def create_contract_info_section(self):
         """สร้างส่วนข้อมูลสัญญา (รองรับหลายภาษา)"""
