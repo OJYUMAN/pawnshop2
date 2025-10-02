@@ -369,9 +369,12 @@ class PawnShopUI(QMainWindow):
 
 
     def create_customer_tab(self):
-        """สร้างแท็บข้อมูลลูกค้า (รองรับหลายภาษา)"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+        """สร้างส่วนข้อมูลลูกค้า (รองรับหลายภาษา)"""
+        # สร้าง GroupBox หลักสำหรับข้อมูลลูกค้า
+        main_group = QGroupBox()
+        main_group.setObjectName("TopLeftGroup")
+        self.customer_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
+        layout = QVBoxLayout(main_group)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
         layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
@@ -571,10 +574,14 @@ class PawnShopUI(QMainWindow):
         language_manager.language_changed.connect(self.apply_customer_tab_language)
         self.apply_customer_tab_language()
 
-        return tab
+        return main_group
 
     def apply_customer_tab_language(self, *_args):
-        """อัปเดตข้อความของแท็บลูกค้าตามภาษาปัจจุบัน"""
+        """อัปเดตข้อความของส่วนข้อมูลลูกค้าตามภาษาปัจจุบัน"""
+        # ตั้งชื่อ GroupBox หลัก
+        if hasattr(self, "customer_main_group"):
+            self.customer_main_group.setTitle(language_manager.get_text("tab_customer"))
+        
         # Group titles
         if hasattr(self, "customer_search_group") and self.customer_search_group is not None:
             self.customer_search_group.setTitle(language_manager.get_text("customer_search_group"))
@@ -614,9 +621,12 @@ class PawnShopUI(QMainWindow):
         self.customer_cancel_btn.setText(language_manager.get_text("cancel"))
 
     def create_product_tab(self):
-        """สร้างแท็บข้อมูลสินค้า"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+        """สร้างส่วนข้อมูลสินค้า"""
+        # สร้าง GroupBox หลักสำหรับข้อมูลสินค้า
+        main_group = QGroupBox()
+        main_group.setObjectName("TopMiddleGroup")
+        self.product_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
+        layout = QVBoxLayout(main_group)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
         layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
@@ -808,10 +818,14 @@ class PawnShopUI(QMainWindow):
         language_manager.language_changed.connect(self.apply_product_tab_language)
         self.apply_product_tab_language()
         
-        return tab
+        return main_group
 
     def apply_product_tab_language(self, *_args):
-        """อัปเดตข้อความของแท็บสินค้า ตามภาษาปัจจุบัน"""
+        """อัปเดตข้อความของส่วนข้อมูลสินค้า ตามภาษาปัจจุบัน"""
+        # ตั้งชื่อ GroupBox หลัก
+        if hasattr(self, "product_main_group"):
+            self.product_main_group.setTitle(language_manager.get_text("tab_product"))
+        
         if hasattr(self, "product_search_group") and self.product_search_group is not None:
             self.product_search_group.setTitle(language_manager.get_text("product_search_group"))
         self.product_info_group.setTitle(language_manager.get_text("product_info_group"))
@@ -861,9 +875,12 @@ class PawnShopUI(QMainWindow):
         self.product_cancel_btn.setText(language_manager.get_text("cancel"))
 
     def create_renewal_tab(self):
-        """สร้างแท็บข้อมูลต่อดอก"""
-        tab = QWidget()
-        layout = QVBoxLayout(tab)
+        """สร้างส่วนข้อมูลต่อดอก"""
+        # สร้าง GroupBox หลักสำหรับข้อมูลต่อดอก
+        main_group = QGroupBox()
+        main_group.setObjectName("SearchGroup")
+        self.renewal_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
+        layout = QVBoxLayout(main_group)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
         layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
         
@@ -933,9 +950,13 @@ class PawnShopUI(QMainWindow):
         language_manager.language_changed.connect(self.apply_renewal_language)
         self.apply_renewal_language()
         
-        return tab
+        return main_group
 
     def apply_renewal_language(self, *_args):
+        # ตั้งชื่อ GroupBox หลัก
+        if hasattr(self, "renewal_main_group"):
+            self.renewal_main_group.setTitle(language_manager.get_text("tab_renewal"))
+        
         # ชื่อกลุ่ม
         # ค้นหา QGroupBox ใกล้เคียงจากปุ่มในส่วนนี้ไม่ได้ตั้ง objectName ไว้ จึงใช้ข้อความตรงๆจาก layout
         # อย่างไรก็ตาม เราอัปเดตหัวตารางและปุ่ม ซึ่งครอบคลุมตามภาพ
@@ -961,44 +982,20 @@ class PawnShopUI(QMainWindow):
         left_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
         left_layout.setContentsMargins(0, 0, 0, 0)  # ไม่มี margin ด้านซ้าย
         
-        # Customer and Product info tabs
-        info_tabs = self.create_info_tabs()
-        left_layout.addWidget(info_tabs)
+        # Customer info section
+        customer_section = self.create_customer_tab()
+        left_layout.addWidget(customer_section)
+        
+        # Product info section
+        product_section = self.create_product_tab()
+        left_layout.addWidget(product_section)
+        
+        # Renewal info section
+        renewal_section = self.create_renewal_tab()
+        left_layout.addWidget(renewal_section)
         
         return left_widget
 
-    def create_info_tabs(self):
-        """สร้างแท็บข้อมูลผู้ขายและสินค้า"""
-        tab_widget = QTabWidget()
-        tab_widget.setObjectName("TabWidget")
-        
-        # Tab 1: Customer Info
-        customer_tab = self.create_customer_tab()
-        tab_widget.addTab(customer_tab, language_manager.get_text("tab_customer"))
-        
-        # Tab 2: Product Info
-        product_tab = self.create_product_tab()
-        tab_widget.addTab(product_tab, language_manager.get_text("tab_product"))
-        
-        # Tab 3: Interest Renewal Info
-        renewal_tab = self.create_renewal_tab()
-        tab_widget.addTab(renewal_tab, language_manager.get_text("tab_renewal"))
-
-        # เก็บอ้างอิงเพื่ออัปเดตชื่อแท็บเมื่อภาษาเปลี่ยน
-        self.info_tab_widget = tab_widget
-        language_manager.language_changed.connect(self.apply_info_tabs_language)
-        self.apply_info_tabs_language()
-        
-        return tab_widget
-
-    def apply_info_tabs_language(self, *_args):
-        """อัปเดตชื่อแท็บข้อมูลซ้ายมือ ตามภาษาปัจจุบัน"""
-        if not hasattr(self, "info_tab_widget"):
-            return
-        # สมมุติว่าเรียงลำดับคงเดิม: 0=customer,1=product,2=renewal
-        self.info_tab_widget.setTabText(0, language_manager.get_text("tab_customer"))
-        self.info_tab_widget.setTabText(1, language_manager.get_text("tab_product"))
-        self.info_tab_widget.setTabText(2, language_manager.get_text("tab_renewal"))
 
     def create_right_panel(self):
         """สร้างแผงด้านขวา - ข้อมูลสัญญา ผลจัดทำ ค้นหา"""
