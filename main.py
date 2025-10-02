@@ -5,7 +5,8 @@ from PySide6.QtWidgets import (
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
-    QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog, QInputDialog
+    QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog, QInputDialog,
+    QSizePolicy
 )
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -60,7 +61,8 @@ class PawnShopUI(QMainWindow):
         self.current_contract = None
         
         self.setWindowTitle("Pawnshop Management System")
-        self.setGeometry(100, 100, 1600, 900)
+        self.setMinimumSize(1024, 700)
+        self.resize(1600, 900)
 
         # Apply modern styles for better UI appearance
         self.setStyleSheet("""
@@ -85,6 +87,16 @@ class PawnShopUI(QMainWindow):
                 margin-left: 15px;
                 background-color: #F8F9FA;
                 color: #495057;
+            }
+            /* ซ่อนหัวข้อและลบระยะห่างด้านบนสำหรับกล่องหลักทั้ง 6 กล่อง */
+            #TopLeftGroup, #TopMiddleGroup, #SearchGroup {
+                margin-top: 0px;
+            }
+            #TopLeftGroup::title, #TopMiddleGroup::title, #SearchGroup::title {
+                height: 0px;
+                margin: 0;
+                padding: 0;
+                color: transparent;
             }
             #TopLeftGroup {
                 background-color: #E8F5E8;
@@ -237,14 +249,22 @@ class PawnShopUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
-        main_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
+        # จัดให้ชิดขอบทั้งหมด ไม่มีช่องว่างรอบนอก
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
         # --- Main Content Area - 2x3 Grid Layout ---
         content_widget = QWidget()
         content_layout = QGridLayout(content_widget)
-        content_layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
-        content_layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
+        # ทำให้คอลัมน์ขยายเท่ากัน และจัดให้แถวล่างสูงกว่าแถวบน
+        content_layout.setColumnStretch(0, 1)
+        content_layout.setColumnStretch(1, 1)
+        content_layout.setColumnStretch(2, 1)
+        content_layout.setRowStretch(0, 1)   # แถวบนเตี้ยกว่า
+        content_layout.setRowStretch(1, 2)   # แถวล่างสูงกว่า
+        # ไม่มีช่องไฟระหว่างกล่อง และไม่มี margin รอบ grid
+        content_layout.setSpacing(0)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         
         # Top row (row 0)
         # เลขที่สัญญา (0,0)
@@ -272,12 +292,12 @@ class PawnShopUI(QMainWindow):
         renewal_section = self.create_renewal_tab()
         content_layout.addWidget(renewal_section, 1, 2)
         
-        # ตั้งค่า stretch factors เพื่อให้แต่ละคอลัมน์มีขนาดเท่ากัน
+        # ยืนยันสัดส่วนคอลัมน์เท่ากันและแถวล่างสูงกว่า
         content_layout.setColumnStretch(0, 1)
         content_layout.setColumnStretch(1, 1)
         content_layout.setColumnStretch(2, 1)
         content_layout.setRowStretch(0, 1)
-        content_layout.setRowStretch(1, 1)
+        content_layout.setRowStretch(1, 2)
         
         main_layout.addWidget(content_widget)
 
@@ -434,6 +454,10 @@ class PawnShopUI(QMainWindow):
         self.customer_info_layout = QGridLayout(self.customer_info_group)
         self.customer_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         self.customer_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        # ทำให้คอลัมน์ input ขยายตัวได้ โดยคอลัมน์ label แคบกว่า
+        self.customer_info_layout.setColumnStretch(0, 0)
+        self.customer_info_layout.setColumnStretch(1, 1)
+        self.customer_info_layout.setColumnStretch(2, 1)
         
         # ชื่อลูกค้า
         self.lbl_borrower_name = QLabel()
@@ -513,7 +537,12 @@ class PawnShopUI(QMainWindow):
         self.other_details_edit.setReadOnly(True)
         self.customer_info_layout.addWidget(self.other_details_edit, 9, 1)
         
-        layout.addWidget(self.customer_info_group)
+        # ใส่ ScrollArea ให้ส่วนข้อมูลลูกค้า
+        customer_scroll = QScrollArea()
+        customer_scroll.setWidget(self.customer_info_group)
+        customer_scroll.setWidgetResizable(True)
+        customer_scroll.setFrameShape(QFrame.NoFrame)
+        layout.addWidget(customer_scroll)
         
         # Customer add form section (initially hidden)
         self.customer_add_group = QGroupBox()
@@ -686,6 +715,9 @@ class PawnShopUI(QMainWindow):
         self.product_info_layout = QGridLayout(self.product_info_group)
         self.product_info_layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
         self.product_info_layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        # ทำให้คอลัมน์ input ขยายตัวได้ โดยคอลัมน์ label แคบกว่า
+        self.product_info_layout.setColumnStretch(0, 0)
+        self.product_info_layout.setColumnStretch(1, 1)
         
         # สินค้าฝากขาย
         self.lbl_pawned_product = QLabel()
@@ -739,13 +771,19 @@ class PawnShopUI(QMainWindow):
         self.product_info_layout.addWidget(self.lbl_product_image, 6, 0)
         self.product_image_display = QLabel()
         self.product_image_display.setMinimumSize(200, 150)
-        self.product_image_display.setMaximumSize(300, 200)
+        # อนุญาตให้รูปภาพขยายตามพื้นที่ โดยไม่ล็อกขนาดสูงสุด
+        self.product_image_display.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.product_image_display.setStyleSheet("border: 2px solid #ccc; background-color: #f9f9f9;")
         self.product_image_display.setAlignment(Qt.AlignCenter)
         self.product_image_display.setText(language_manager.get_text("no_image"))
         self.product_info_layout.addWidget(self.product_image_display, 6, 1)
         
-        layout.addWidget(self.product_info_group)
+        # ใส่ ScrollArea ให้ส่วนข้อมูลสินค้า
+        product_scroll = QScrollArea()
+        product_scroll.setWidget(self.product_info_group)
+        product_scroll.setWidgetResizable(True)
+        product_scroll.setFrameShape(QFrame.NoFrame)
+        layout.addWidget(product_scroll)
         
         # Product add form section (initially hidden)
         self.product_add_group = QGroupBox()
@@ -1006,8 +1044,8 @@ class PawnShopUI(QMainWindow):
         group_box = QGroupBox()
         group_box.setObjectName("TopLeftGroup")
         layout = QGridLayout(group_box)
-        layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
-        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         # เลขที่สัญญา
         self.lbl_contract_number = QLabel()
@@ -1086,8 +1124,8 @@ class PawnShopUI(QMainWindow):
         group_box = QGroupBox()
         group_box.setObjectName("TopMiddleGroup")
         layout = QGridLayout(group_box)
-        layout.setSpacing(10)  # เพิ่มระยะห่างระหว่างแถว
-        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 12, 12, 12)
 
         # ยอดฝาก
         self.lbl_pawn_amount = QLabel()
@@ -1172,8 +1210,8 @@ class PawnShopUI(QMainWindow):
         group_box = QGroupBox()
         group_box.setObjectName("SearchGroup")
         layout = QVBoxLayout(group_box)
-        layout.setSpacing(15)  # เพิ่มระยะห่างระหว่างส่วนต่างๆ
-        layout.setContentsMargins(15, 20, 15, 15)  # เพิ่ม margin รอบๆ
+        layout.setSpacing(8)
+        layout.setContentsMargins(12, 12, 12, 12)
         
         # เลือกประเภทการค้นหา
         search_type_layout = QHBoxLayout()
@@ -1301,7 +1339,6 @@ class PawnShopUI(QMainWindow):
         toolbar = QToolBar("Main Toolbar")
         toolbar.setIconSize(QSize(20, 20))  # ลดขนาด icon ให้เล็กลง
         toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        toolbar.setFixedHeight(75)  # ลดความสูงให้ minimal
         toolbar.setMovable(False)
         toolbar.setFloatable(False)  # ไม่ให้ลอยได้
         toolbar.setAllowedAreas(Qt.BottomToolBarArea)  # จำกัดพื้นที่ให้อยู่ด้านล่างเท่านั้น
@@ -1321,9 +1358,7 @@ class PawnShopUI(QMainWindow):
                 padding: 4px;
                 margin: 1px;
                 min-width: 80px;
-                min-height: 60px;
-                max-width: 80px;
-                max-height: 60px;
+                min-height: 48px;
                 color: #424242;
                 font-size: 9px;
                 font-weight: 500;

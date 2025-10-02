@@ -11,7 +11,8 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(language_manager.get_text("settings_title"))
-        self.setFixedSize(400, 200)
+        self.setMinimumSize(360, 200)
+        self.resize(480, 260)
         self.setModal(True)
         
         # ตั้งค่า UI
