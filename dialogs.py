@@ -19,6 +19,7 @@ from language_manager import language_manager
 from typing import Dict, Optional, List
 from database import PawnShopDatabase
 from utils import PawnShopUtils
+from app_services import copy_product_image as svc_copy_product_image
 
 # เพิ่มคลาสสำหรับการสแกนบัตรประชาชน
 class ThaiIDCardScanner(QThread):
@@ -816,6 +817,10 @@ class CustomerDialog(QDialog):
                 
                 success = self.db.update_customer(self.customer_data['id'], customer_data)
                 if success:
+                    # อัปเดตข้อมูลใน dialog เพื่อให้ภายนอกสามารถอ่านได้
+                    updated = dict(customer_data)
+                    updated['id'] = self.customer_data['id']
+                    self.customer_data = updated
                     QMessageBox.information(self, "สำเร็จ", "อัปเดตข้อมูลลูกค้าเรียบร้อย")
                     self.accept()
                 else:
@@ -829,6 +834,8 @@ class CustomerDialog(QDialog):
                 
                 customer_id = self.db.add_customer(customer_data)
                 customer_data['id'] = customer_id
+                # เก็บข้อมูลลูกค้าที่เพิ่งบันทึกไว้ใน dialog
+                self.customer_data = dict(customer_data)
                 QMessageBox.information(self, "สำเร็จ", "เพิ่มข้อมูลลูกค้าเรียบร้อย")
                 self.accept()
             
@@ -868,6 +875,17 @@ class ProductDialog(QDialog):
         self.serial_edit = QLineEdit()
         self.other_details_edit = QTextEdit()
         self.other_details_edit.setMaximumHeight(80)
+
+        # ส่วนจัดการรูปภาพสินค้า
+        self.image_preview = QLabel()
+        self.image_preview.setFixedSize(160, 120)
+        self.image_preview.setAlignment(Qt.AlignCenter)
+        self.image_preview.setStyleSheet("border: 1px solid #CCC; background: #FAFAFA;")
+        self.image_path_edit = QLineEdit()
+        self.image_path_edit.setReadOnly(True)
+        self.image_browse_btn = QPushButton("เลือกรูปภาพ...")
+        self.image_browse_btn.clicked.connect(self.browse_product_image)
+        self._image_source_path = ""
         
         product_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
         product_layout.addWidget(self.name_edit, 0, 1)
@@ -879,8 +897,16 @@ class ProductDialog(QDialog):
         product_layout.addWidget(self.weight_spin, 3, 1)
         product_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
         product_layout.addWidget(self.serial_edit, 4, 1)
-        product_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 5, 0)
-        product_layout.addWidget(self.other_details_edit, 5, 1)
+        product_layout.addWidget(QLabel("รูปภาพ:"), 5, 0)
+        img_row = QHBoxLayout()
+        img_row.addWidget(self.image_path_edit, 1)
+        img_row.addWidget(self.image_browse_btn)
+        wrapper_img_row = QWidget()
+        wrapper_img_row.setLayout(img_row)
+        product_layout.addWidget(wrapper_img_row, 5, 1)
+        product_layout.addWidget(self.image_preview, 6, 1)
+        product_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 7, 0)
+        product_layout.addWidget(self.other_details_edit, 7, 1)
         
         layout.addWidget(product_group)
         
@@ -904,6 +930,16 @@ class ProductDialog(QDialog):
         self.weight_spin.setValue(self.product_data.get('weight', 0))
         self.serial_edit.setText(self.product_data.get('serial_number', ''))
         self.other_details_edit.setPlainText(self.product_data.get('other_details', ''))
+        # โหลดรูปภาพหากมี
+        image_path = self.product_data.get('image_path', '')
+        if image_path and os.path.exists(image_path):
+            self.image_path_edit.setText(image_path)
+            pix = QPixmap(image_path)
+            if not pix.isNull():
+                self.image_preview.setPixmap(pix.scaled(self.image_preview.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            self.image_path_edit.clear()
+            self.image_preview.setText("ไม่มีรูปภาพ")
     
     def save_product(self):
         """บันทึกข้อมูลสินค้า"""
@@ -919,6 +955,16 @@ class ProductDialog(QDialog):
             'serial_number': self.serial_edit.text().strip(),
             'other_details': self.other_details_edit.toPlainText().strip()
         }
+        # จัดการคัดลอกรูปภาพไปยังโฟลเดอร์ของโปรแกรม
+        try:
+            source_path = getattr(self, '_image_source_path', '') or self.image_path_edit.text().strip()
+            if source_path:
+                new_path = svc_copy_product_image(source_path)
+                product_data['image_path'] = new_path
+        except Exception as _e:
+            # ถ้าคัดลอกไม่ได้ ให้ข้ามและใช้ path เดิม (หรือว่าง)
+            if self.image_path_edit.text().strip():
+                product_data['image_path'] = self.image_path_edit.text().strip()
         
         try:
             if self.product_data:  # แก้ไข
@@ -934,6 +980,10 @@ class ProductDialog(QDialog):
                 
                 success = self.db.update_product(self.product_data['id'], product_data)
                 if success:
+                    # อัปเดตข้อมูลใน dialog เพื่อให้ภายนอกสามารถอ่านได้
+                    updated = dict(product_data)
+                    updated['id'] = self.product_data['id']
+                    self.product_data = updated
                     QMessageBox.information(self, "สำเร็จ", "อัปเดตข้อมูลสินค้าเรียบร้อย")
                     self.accept()
                 else:
@@ -948,11 +998,32 @@ class ProductDialog(QDialog):
                 
                 product_id = self.db.add_product(product_data)
                 product_data['id'] = product_id
+                # เก็บข้อมูลสินค้าไว้ใน dialog
+                self.product_data = dict(product_data)
                 QMessageBox.information(self, "สำเร็จ", "เพิ่มข้อมูลสินค้าเรียบร้อย")
                 self.accept()
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
+
+    def browse_product_image(self):
+        """เลือกไฟล์รูปภาพสินค้าและแสดงตัวอย่าง"""
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "เลือกรูปภาพสินค้า",
+            "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.gif);;All Files (*)",
+            options=options
+        )
+        if file_name:
+            self._image_source_path = file_name
+            self.image_path_edit.setText(file_name)
+            pix = QPixmap(file_name)
+            if not pix.isNull():
+                self.image_preview.setPixmap(pix.scaled(self.image_preview.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            else:
+                self.image_preview.setText("ดูตัวอย่างไม่ได้")
 
 class InterestPaymentDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):

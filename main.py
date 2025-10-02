@@ -442,7 +442,7 @@ class PawnShopUI(QMainWindow):
         search_layout.addWidget(self.customer_search_btn, 0, 2)
         
         self.add_customer_btn = QPushButton()
-        self.add_customer_btn.clicked.connect(self.toggle_customer_mode)
+        self.add_customer_btn.clicked.connect(self.open_customer_dialog)
         self.add_customer_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_customer_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_customer_btn, 0, 3)
@@ -703,7 +703,7 @@ class PawnShopUI(QMainWindow):
         search_layout.addWidget(self.product_search_btn, 0, 2)
         
         self.add_product_btn = QPushButton()
-        self.add_product_btn.clicked.connect(self.toggle_product_mode)
+        self.add_product_btn.clicked.connect(self.open_product_dialog)
         self.add_product_btn.setIcon(QIcon.fromTheme("list-add"))
         self.add_product_btn.setMinimumHeight(32)
         search_layout.addWidget(self.add_product_btn, 0, 3)
@@ -1621,9 +1621,38 @@ class PawnShopUI(QMainWindow):
         
         # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
+    def open_customer_dialog(self):
+        """เปิดหน้าต่างป็อปอัพเพิ่ม/แก้ไขลูกค้า"""
+        try:
+            dialog = CustomerDialog(self)
+            if dialog.exec():
+                if getattr(dialog, 'customer_data', None):
+                    # โหลดลูกค้าที่เพิ่งเพิ่ม/แก้ไข
+                    self.current_customer = dialog.customer_data
+                    self.load_customer_data()
+                    # แสดงรหัสลูกค้าถ้ามี
+                    code = self.current_customer.get('customer_code', '')
+                    if code:
+                        QMessageBox.information(self, "สำเร็จ", f"เพิ่ม/อัปเดตลูกค้าเรียบร้อย\nรหัสลูกค้า: {code}")
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าต่างลูกค้าได้: {str(e)}")
+
+    def open_product_dialog(self):
+        """เปิดหน้าต่างป็อปอัพเพิ่ม/แก้ไขสินค้า"""
+        try:
+            dialog = ProductDialog(self)
+            if dialog.exec():
+                if getattr(dialog, 'product_data', None):
+                    # โหลดสินค้าที่เพิ่งเพิ่ม/แก้ไข
+                    self.current_product = dialog.product_data
+                    self.load_product_data()
+                    QMessageBox.information(self, "สำเร็จ", "เพิ่ม/อัปเดตสินค้าเรียบร้อย")
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าต่างสินค้าได้: {str(e)}")
+
     def add_customer(self):
         """เพิ่มลูกค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
-        self.toggle_customer_mode()
+        self.open_customer_dialog()
         
         # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
@@ -1675,7 +1704,7 @@ class PawnShopUI(QMainWindow):
 
     def add_product(self):
         """เพิ่มสินค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
-        self.toggle_product_mode()
+        self.open_product_dialog()
         
         # ล้างตารางประวัติการต่อดอก
         if hasattr(self, 'renewal_history_table'):
