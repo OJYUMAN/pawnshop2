@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog, QInputDialog,
     QSizePolicy
 )
+from resource_path import resource_path, get_font_path, get_icon_path
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
@@ -1455,7 +1456,8 @@ class PawnShopUI(QMainWindow):
         """สร้าง icon ที่เหมาะสมสำหรับแต่ละปุ่ม"""
         # ใช้ ICON_MAP ที่กำหนดไว้ก่อน
         if icon_name in ICON_MAP:
-            icon = QIcon(ICON_MAP[icon_name])
+            icon_path = get_icon_path(ICON_MAP[icon_name])
+            icon = QIcon(icon_path)
             if not icon.isNull():
                 return icon
         

@@ -28,11 +28,12 @@ class ContractPDFGenerator(QObject):
     def setup_fonts(self):
         """ตั้งค่าฟอนต์ภาษาไทย"""
         try:
-            font_path = 'THSarabun.ttf'
-            bold_font_path = 'THSarabun Bold.ttf'
+            from resource_path import get_font_path
+            font_path = get_font_path('THSarabun.ttf')
+            bold_font_path = get_font_path('THSarabun Bold.ttf')
             
             if not os.path.exists(font_path) or not os.path.exists(bold_font_path):
-                raise FileNotFoundError("ไม่พบไฟล์ฟอนต์ภาษาไทย")
+                raise FileNotFoundError(f"ไม่พบไฟล์ฟอนต์: {font_path} หรือ {bold_font_path}")
             
             pdfmetrics.registerFont(TTFont('THSarabun', font_path))
             pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))

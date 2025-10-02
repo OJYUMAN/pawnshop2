@@ -72,6 +72,20 @@ pyinstaller PawnShopApp.spec --clean --noconfirm
 1. **Missing modules**: เพิ่ม module ใน `hiddenimports` ใน PawnShopApp.spec
 2. **Missing files**: เพิ่มไฟล์ใน `datas` ใน PawnShopApp.spec
 3. **Font issues**: ตรวจสอบว่าไฟล์ฟอนต์ถูก copy ไปด้วย
+4. **Icon ไม่แสดง**: ตรวจสอบว่าโฟลเดอร์ `icons/` ถูก copy ไปด้วย
+5. **PDF สร้างไม่ได้**: ตรวจสอบว่าไฟล์ฟอนต์และ PDF modules ถูก include
+
+### การแก้ไขปัญหาเฉพาะ:
+
+**ปัญหา Icons ไม่แสดง:**
+- ตรวจสอบว่าไฟล์ `resource_path.py` ถูก include
+- ตรวจสอบว่าโฟลเดอร์ `icons/` อยู่ใน `datas` ของ spec file
+- ใช้ฟังก์ชัน `get_icon_path()` แทนการใช้ path โดยตรง
+
+**ปัญหา PDF สร้างไม่ได้:**
+- ตรวจสอบว่าไฟล์ฟอนต์ `THSarabun.ttf` และ `THSarabun Bold.ttf` ถูก include
+- ตรวจสอบว่า modules `pdf.py`, `pdf2.py`, `pdf3.py` ถูก include
+- ใช้ฟังก์ชัน `get_font_path()` แทนการใช้ path โดยตรง
 
 ### คำสั่งเพิ่มเติม:
 

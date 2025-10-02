@@ -22,8 +22,11 @@ import os
 
 # ---------- Font & Date ----------
 def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf'):
+    from resource_path import get_font_path
+    font_path = get_font_path(font_path)
+    bold_font_path = get_font_path(bold_font_path)
     if not (os.path.exists(font_path) and os.path.exists(bold_font_path)):
-        raise FileNotFoundError("กรุณาวาง THSarabun.ttf และ THSarabun Bold.ttf ไว้โฟลเดอร์เดียวกับสคริปต์")
+        raise FileNotFoundError(f"ไม่พบไฟล์ฟอนต์: {font_path} หรือ {bold_font_path}")
     if 'THSarabun' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('THSarabun', font_path))
     if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
