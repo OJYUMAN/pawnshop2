@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Optional
 from PySide6.QtWidgets import QFileDialog, QApplication
 import sys, os
+from shop_config_loader import load_shop_config
 
 
 # ----------------- UI helper -----------------
@@ -123,9 +124,11 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     width, height = A4
 
     # --- shop ---
-    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส')
-    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
-    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+    # Load shop configuration from JSON file
+    default_shop_config = load_shop_config()
+    shop_name = (shop_data or {}).get('name', default_shop_config['name'])
+    shop_branch = (shop_data or {}).get('branch', default_shop_config['branch'])
+    shop_address = (shop_data or {}).get('address', default_shop_config['address'])
 
     # --- original ---
     original_contract_number = original_contract_data.get('contract_number', 'N/A')
@@ -373,9 +376,11 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
     styles = make_styles()
     width, height = A4
 
-    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส')
-    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
-    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+    # Load shop configuration from JSON file
+    default_shop_config = load_shop_config()
+    shop_name = (shop_data or {}).get('name', default_shop_config['name'])
+    shop_branch = (shop_data or {}).get('branch', default_shop_config['branch'])
+    shop_address = (shop_data or {}).get('address', default_shop_config['address'])
 
     contract_number = original_contract_data.get('contract_number', 'N/A')
     extension_days = int(renewal_data.get('extension_days', 0) or 0)

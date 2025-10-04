@@ -20,6 +20,8 @@ from typing import Dict, Optional, List
 from database import PawnShopDatabase
 from utils import PawnShopUtils
 from app_services import copy_product_image as svc_copy_product_image
+from shop_config_loader import load_shop_config
+
 
 # เพิ่มคลาสสำหรับการสแกนบัตรประชาชน
 class ThaiIDCardScanner(QThread):
@@ -1571,6 +1573,18 @@ class RedemptionDialog(QDialog):
                 'province': customer.get('province', '')
             }
             
+            default_shop_config = load_shop_config()
+           # shop_name1 = (shop_data or {}).get('name', default_shop_config['name'])
+          #  shop_branch2 = (shop_data or {}).get('branch', default_shop_config['branch'])
+          #  shop_address3 = (shop_data or {}).get('address', default_shop_config['address'])
+
+               # ข้อมูลร้านค้า
+            shop_data = {
+                'name': default_shop_config['name'],
+                'branch': default_shop_config['branch'],
+                'address': default_shop_config['address']
+            }
+
             # สร้างข้อมูลสินค้าที่ครบถ้วน
             product_data = {
                 'name': product.get('name', ''),
@@ -1582,12 +1596,7 @@ class RedemptionDialog(QDialog):
                 'other_details': product.get('other_details', '')
             }
             
-            # ข้อมูลร้านค้า
-            shop_data = {
-                'name': 'ร้าน ไอโปรโมบายเซอร์วิス',
-                'branch': 'สาขาหล่มสัก',
-                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-            }
+         
             
             # สร้างไฟล์ชั่วคราวสำหรับพรีวิวและให้ผู้ใช้เลือกบันทึก
             contract_number = self.contract_data.get('contract_number', 'unknown')
@@ -2094,12 +2103,8 @@ class RenewalDialog(QDialog):
                 'other_details': product.get('other_details', '')
             }
             
-            # ข้อมูลร้านค้า
-            shop_data = {
-                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
-                'branch': 'สาขาหล่มสัก',
-                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-            }
+            # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf3.py
+            shop_data = None  # ให้ใช้ค่า default จาก pdf3.py
             
             # นำเข้า pdf2.py และสร้างไฟล์ชั่วคราวสำหรับพรีวิว แล้วค่อย Save As
             try:

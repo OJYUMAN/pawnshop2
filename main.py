@@ -3088,12 +3088,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', ''))
             }
             
-            # สร้างข้อมูลร้านค้า
-            shop_data = {
-                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
-                'branch': 'สาขาหล่มสัก',
-                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-            }
+            # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf files
+            shop_data = None  # ให้ใช้ค่า default จาก pdf files
             
             # ดึงข้อมูลการต่อดอกจากฐานข้อมูล
             renewal_data = []
@@ -3376,12 +3372,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'other_details': product.get('other_details', '')
             }
             
-            # ข้อมูลร้านค้า
-            shop_data = {
-                'name': 'ร้าน ไอโปรโมบายเซอร์วิส',
-                'branch': 'สาขาหล่มสัก',
-                'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
-            }
+            # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf files
+            shop_data = None  # ให้ใช้ค่า default จาก pdf files
             
             # นำเข้า pdf2.py
             try:

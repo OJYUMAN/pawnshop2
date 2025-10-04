@@ -176,13 +176,16 @@ class ContractPDFGenerator(QObject):
         c.setFont("THSarabun-Bold", 24)
         c.drawCentredString(width / 2.0, y_pos, "ใบขายฝาก")
         
-        # ชื่อร้าน
+        # ชื่อร้าน - โหลดจาก shop_config.json
+        from shop_config_loader import load_shop_config
+        shop_config = load_shop_config()
+        
         c.setFont("THSarabun-Bold", 16)
-        c.drawCentredString(width / 2.0, y_pos - 30, "ร้าน ไอโปรโมบายเซอร์วิส (สาขาหล่มสัก)")
+        c.drawCentredString(width / 2.0, y_pos - 30, f"{shop_config['name']} ({shop_config['branch']})")
         
         # ที่อยู่ร้าน
         c.setFont("THSarabun", 12)
-        c.drawCentredString(width / 2.0, y_pos - 50, "14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110")
+        c.drawCentredString(width / 2.0, y_pos - 50, shop_config['address'])
     
     def _draw_contract_info(self, c: canvas.Canvas, contract_data: Dict, width: float, y_pos: float) -> float:
         """วาดข้อมูลสัญญา"""

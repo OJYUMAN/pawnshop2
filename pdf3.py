@@ -18,6 +18,7 @@ from reportlab.lib.units import mm
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 import os
+from shop_config_loader import load_shop_config
 
 
 # ---------- Font & Date ----------
@@ -93,10 +94,12 @@ def make_styles():
 
 # ---------- Helpers ----------
 def _shop(shop_data: Optional[Dict]):
+    # Load shop configuration from JSON file
+    default_shop_config = load_shop_config()
     return (
-        (shop_data or {}).get('name', 'ร้าน ไอโปรโมบาย'),
-        (shop_data or {}).get('branch', 'สาขาหล่มสัก'),
-        (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'),
+        (shop_data or {}).get('name', default_shop_config['name']),
+        (shop_data or {}).get('branch', default_shop_config['branch']),
+        (shop_data or {}).get('address', default_shop_config['address']),
     )
 
 def _boxed(tbl, colWidths, header_rows=1, font_size=9.6):
@@ -137,10 +140,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     styles = make_styles()
     PAGE_W = A4[0]  # กว้างเท่าเดิมกับ Half-A4 (210mm)
 
-    # shop_name, shop_branch, shop_address = _shop(shop_data)
-    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบาย')
-    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
-    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+    shop_name, shop_branch, shop_address = _shop(shop_data)
 
 
     # original

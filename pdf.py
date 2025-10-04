@@ -15,6 +15,7 @@ from reportlab.lib.units import mm
 from datetime import datetime
 import os
 from typing import Dict, Optional, List
+from shop_config_loader import load_shop_config
 
 
 # -------- utils --------
@@ -86,9 +87,11 @@ def generate_pawn_ticket_from_data(
     styles.add(ParagraphStyle(name="TH-term", fontName="THSarabun", fontSize=10.2, leading=12))
 
     # ---- data ----
-    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส')
-    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
-    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+    # Load shop configuration from JSON file
+    default_shop_config = load_shop_config()
+    shop_name = (shop_data or {}).get('name', default_shop_config['name'])
+    shop_branch = (shop_data or {}).get('branch', default_shop_config['branch'])
+    shop_address = (shop_data or {}).get('address', default_shop_config['address'])
 
     contract_number = contract_data.get('contract_number', 'N/A')
     start_date = thai_date(contract_data.get('start_date', 'N/A'))
@@ -359,7 +362,7 @@ if __name__ == "__main__":
         "other_details": "สภาพดี มีเคสและฟิล์ม"
     }
     shop = {
-        "name": "ร้าน ไอโปรโมบายเซอร์วิส",
+        "name": "ร้าน ไอโปรโมบาย",
         "branch": "สาขาหล่มสัก",
         "address": "14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110"
     }
