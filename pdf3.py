@@ -94,7 +94,7 @@ def make_styles():
 # ---------- Helpers ----------
 def _shop(shop_data: Optional[Dict]):
     return (
-        (shop_data or {}).get('name', 'ร้าน ไอโปรโมบายเซอร์วิส'),
+        (shop_data or {}).get('name', 'ร้าน ไอโปรโมบาย'),
         (shop_data or {}).get('branch', 'สาขาหล่มสัก'),
         (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'),
     )
@@ -137,7 +137,11 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     styles = make_styles()
     PAGE_W = A4[0]  # กว้างเท่าเดิมกับ Half-A4 (210mm)
 
-    shop_name, shop_branch, shop_address = _shop(shop_data)
+    # shop_name, shop_branch, shop_address = _shop(shop_data)
+    shop_name = (shop_data or {}).get('name', 'ร้าน ไอโปรโมบาย')
+    shop_branch = (shop_data or {}).get('branch', 'สาขาหล่มสัก')
+    shop_address = (shop_data or {}).get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+
 
     # original
     original_contract_number = original_contract_data.get('contract_number', 'N/A')

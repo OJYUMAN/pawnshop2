@@ -67,182 +67,225 @@ class PawnShopUI(QMainWindow):
 
         # Apply modern styles for better UI appearance
         self.setStyleSheet("""
-            QWidget {
-                font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-                font-size: 11px;
-            }
-            QMainWindow {
-                background-color: #F8F9FA;
-            }
-            QGroupBox {
-                margin-top: 15px;
-                border: 2px solid #E9ECEF;
-                border-radius: 8px;
-                font-weight: bold;
-                color: #495057;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 8px;
-                margin-left: 15px;
-                background-color: #F8F9FA;
-                color: #495057;
-            }
-            /* ซ่อนหัวข้อและลบระยะห่างด้านบนสำหรับกล่องหลักทั้ง 6 กล่อง */
-            #TopLeftGroup, #TopMiddleGroup, #SearchGroup {
-                margin-top: 0px;
-            }
-            #TopLeftGroup::title, #TopMiddleGroup::title, #SearchGroup::title {
-                height: 0px;
-                margin: 0;
-                padding: 0;
-                color: transparent;
-            }
-            #TopLeftGroup {
-                background-color: #E8F5E8;
-                border-color: #28A745;
-            }
-            #TopMiddleGroup {
-                background-color: #FFF3CD;
-                border-color: #FFC107;
-            }
-            #SearchGroup {
-                background-color: #D1ECF1;
-                border-color: #17A2B8;
-            }
-            #TabWidget, #TabWidget > QWidget > QWidget{
-                background-color: #F8F9FA;
-            }
-            QTabBar::tab {
-                background: #E9ECEF;
-                padding: 8px 16px;
-                border: 1px solid #DEE2E6;
-                border-bottom: none;
-                margin-right: 2px;
-                border-radius: 4px 4px 0 0;
-                color: #495057;
-            }
-            QTabBar::tab:selected {
-                background: #007BFF;
-                color: white;
-                border-color: #007BFF;
-            }
-            QTabBar::tab:hover {
-                background: #6C757D;
-                color: white;
-            }
-            QTableWidget {
-                background-color: white;
-                gridline-color: #DEE2E6;
-                border: 1px solid #DEE2E6;
-                border-radius: 4px;
-                alternate-background-color: #F8F9FA;
-            }
-            QHeaderView::section {
-                background-color: #F8F9FA;
-                padding: 8px;
-                border: 1px solid #DEE2E6;
-                font-weight: bold;
-                color: #495057;
-            }
-            QPushButton {
-                background-color: #007BFF;
-                color: white;
-                min-height: 32px;
-                border: none;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0056B3;
-            }
-            QPushButton:pressed {
-                background-color: #004085;
-            }
-            QToolButton {
-                background-color: #FFFFFF;
-                color: #424242;
-                border: 1px solid #E0E0E0;
-                border-radius: 6px;
-                margin: 2px;
-                padding: 6px;
-                font-weight: 500;
-                min-width: 60px;
-                min-height: 40px;
-            }
-            QToolButton:hover {
-                background-color: #F5F5F5;
-                border-color: #BDBDBD;
-            }
-            QToolButton:pressed {
-                background-color: #E3F2FD;
-                border-color: #2196F3;
-            }
-            QToolButton:checked {
-                background-color: #E8F5E8;
-                border-color: #4CAF50;
-            }
-            QLineEdit {
-                padding: 8px;
-                border: 2px solid #DEE2E6;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QLineEdit:focus {
-                border-color: #007BFF;
-            }
-            QDateEdit {
-                padding: 8px;
-                border: 2px solid #DEE2E6;
-                border-radius: 4px;
-                background-color: white;
-                background: white;
-            }
-            QDateEdit:focus {
-                border-color: #007BFF;
-            }
-            QSpinBox, QDoubleSpinBox {
-                padding: 8px;
-                border: 2px solid #DEE2E6;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QSpinBox:focus, QDoubleSpinBox:focus {
-                border-color: #007BFF;
-            }
-            QComboBox {
-                padding: 8px;
-                border: 2px solid #DEE2E6;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QComboBox:focus {
-                border-color: #007BFF;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #495057;
-                margin-right: 5px;
-            }
-            QToolBar {
-                background-color: #FAFAFA;
-                border-top: 1px solid #E0E0E0;
-                spacing: 8px;
-                padding: 8px;
-            }
-            QToolBar::separator {
-                background-color: #E0E0E0;
-                width: 1px;
-                margin: 4px;
-            }
+/* ========== THEME: Minimal Pro (Colorful, Clean) ========== */
+/* พาเลตต์มืออาชีพ */
+ /* Surface BG  */  /* #F6F8FB */
+ /* Card BG     */  /* #FFFFFF */
+ /* Border      */  /* #E5EAF2 */
+ /* Text main   */  /* #0F172A */
+ /* Text mute   */  /* #64748B */
+ /* Primary     */  /* #3B82F6 */
+ /* Teal        */  /* #06B6D4 */
+ /* Violet      */  /* #7C3AED */
+ /* Emerald     */  /* #10B981 */
+ /* Amber       */  /* #F59E0B */
+ /* Rose        */  /* #F43F5E */
+
+QWidget {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 12px;
+  color: #0F172A;
+  background: #F6F8FB;
+}
+
+/* ---------------- Card / Group ---------------- */
+QGroupBox {
+  margin-top: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #0F172A;
+  padding-top: 18px;
+}
+QGroupBox::title {
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
+  margin-left: 12px;
+  padding: 0 8px;
+  color: #64748B;
+}
+
+/* ซ่อน title บล็อกบน 3 ใบ แต่คงสีโทนอ่อนให้พอมีชีวิตชีวา */
+#TopLeftGroup, #TopMiddleGroup, #SearchGroup { margin-top: 0; }
+#TopLeftGroup::title, #TopMiddleGroup::title, #SearchGroup::title {
+  height: 0; margin: 0; padding: 0; color: transparent;
+}
+#TopLeftGroup   { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                      stop:0 rgba(16,185,129,0.08), stop:1 #FFFFFF);
+                  border-color: rgba(16,185,129,0.35); }   /* Emerald tint */
+#TopMiddleGroup { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                      stop:0 rgba(245,158,11,0.10), stop:1 #FFFFFF);
+                  border-color: rgba(245,158,11,0.40); }   /* Amber tint */
+#SearchGroup    { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                      stop:0 rgba(59,130,246,0.10), stop:1 #FFFFFF);
+                  border-color: rgba(59,130,246,0.40); }   /* Primary tint */
+
+/* ---------------- Inputs ---------------- */
+QLineEdit, QDateEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+QLineEdit:focus, QDateEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
+  border: 1px solid #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
+  outline: none;
+}
+QComboBox::drop-down { border: none; width: 20px; }
+QComboBox::down-arrow {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #64748B;
+  margin-right: 8px;
+}
+
+/* ---------------- Buttons ---------------- */
+/* ปุ่มหลัก */
+QPushButton {
+  background: #3B82F6;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 700;
+}
+QPushButton:hover   { background: #2563EB; }
+QPushButton:pressed { background: #1D4ED8; }
+QPushButton:disabled{ background: #E5EAF2; color: #94A3B8; }
+
+/* ปุ่มรองแบบเส้น (ตั้ง objectName="OutlineButton") */
+#OutlineButton {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #D7DEEA;
+}
+#OutlineButton:hover   { background: #F2F6FC; }
+#OutlineButton:pressed { background: #E9EEF7; }
+
+/* ปุ่มนุ่ม (ตั้ง objectName="SubtleButton") ใช้พื้นหลังสีจาง */
+#SubtleButton {
+  background: rgba(59,130,246,0.12);
+  color: #1E3A8A;
+  border: 1px solid rgba(59,130,246,0.22);
+}
+#SubtleButton:hover   { background: rgba(59,130,246,0.18); }
+#SubtleButton:pressed { background: rgba(59,130,246,0.24); }
+
+/* ปุ่มสถานะอื่นๆ: ตั้ง objectName ตามนี้ */
+#SuccessButton  { background: #10B981; }
+#SuccessButton:hover  { background: #059669; }
+#WarningButton  { background: #F59E0B; }
+#WarningButton:hover  { background: #D97706; }
+#DangerButton   { background: #F43F5E; }
+#DangerButton:hover   { background: #E11D48; }
+
+/* ---------------- Tool Buttons (แถบล่าง) ---------------- */
+QToolButton {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 70px; min-height: 44px;
+  font-weight: 600;
+}
+QToolButton:hover   { background: #F2F6FC; }
+QToolButton:pressed { background: #E9EEF7; }
+QToolButton:checked {
+  background: rgba(6,182,212,0.14);
+  border-color: rgba(6,182,212,0.35);
+  color: #115E59;
+}
+
+/* ---------------- Tables ---------------- */
+QTableWidget {
+  background: #FFFFFF;
+  border: 1px solid #E5EAF2;
+  border-radius: 12px;
+  gridline-color: #E5EAF2;
+  alternate-background-color: #F8FAFE;
+}
+QHeaderView::section {
+  background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+              stop:0 #F3F6FC, stop:1 #FFFFFF);
+  color: #334155;
+  border: 1px solid #E5EAF2;
+  padding: 9px;
+  font-weight: 800;
+}
+QTableWidget::item:selected {
+  background: rgba(124,58,237,0.14);  /* violet selection */
+  color: #1F2937;
+}
+
+/* ---------------- Tabs ---------------- */
+#TabWidget, #TabWidget > QWidget > QWidget { background: transparent; }
+QTabBar::tab {
+  background: #FFFFFF;
+  color: #334155;
+  border: 1px solid #E5EAF2;
+  border-bottom: none;
+  padding: 9px 14px;
+  margin-right: 6px;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+QTabBar::tab:selected {
+  background: #06B6D4;
+  color: #FFFFFF;
+  border-color: #06B6D4;
+}
+QTabBar::tab:hover { background: #F2F6FC; }
+
+/* ---------------- Toolbar ---------------- */
+QToolBar {
+  background: #FFFFFF;
+  border-top: 1px solid #E5EAF2;
+  padding: 8px;
+  spacing: 8px;
+}
+QToolBar::separator { background: #E5EAF2; width: 1px; margin: 4px; }
+
+/* ---------------- Scrollbar ---------------- */
+QScrollBar:vertical {
+  background: transparent; width: 10px; margin: 4px;
+}
+QScrollBar::handle:vertical {
+  background: #D5DCE7; border-radius: 6px; min-height: 28px;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar:horizontal {
+  background: transparent; height: 10px; margin: 4px;
+}
+QScrollBar::handle:horizontal {
+  background: #D5DCE7; border-radius: 6px; min-width: 28px;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+
+/* ---------------- Badges / Tags (ใส่กับ QLabel) ---------------- */
+/* ใช้: label.setObjectName("TagPrimary") เป็นต้น */
+#TagPrimary, #TagTeal, #TagViolet, #TagSuccess, #TagWarning, #TagDanger {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  color: #0F172A;
+}
+#TagPrimary { background: rgba(59,130,246,0.18);  border-color: rgba(59,130,246,0.28); }
+#TagTeal    { background: rgba(6,182,212,0.18);    border-color: rgba(6,182,212,0.28); }
+#TagViolet  { background: rgba(124,58,237,0.18);  border-color: rgba(124,58,237,0.28); }
+#TagSuccess { background: rgba(16,185,129,0.18);  border-color: rgba(16,185,129,0.28); }
+#TagWarning { background: rgba(245,158,11,0.20);  border-color: rgba(245,158,11,0.32); }
+#TagDanger  { background: rgba(244,63,94,0.18);   border-color: rgba(244,63,94,0.30); }
+
+/* ---------------- Helpers ---------------- */
+*:disabled { color: #94A3B8; }
+.QLabel[hint="true"] { color: #64748B; }
+
+
         """)
 
 
