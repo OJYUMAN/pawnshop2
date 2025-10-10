@@ -816,6 +816,29 @@ class PawnShopDatabase:
                 return [dict(zip(columns, row)) for row in rows]
             return []
     
+    def get_forfeited_contracts(self) -> List[Dict]:
+        """ดึงสัญญาที่หลุดจำนำ (ครบกำหนดแล้วแต่ยังไม่ได้ไถ่ถอน)"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT c.*, cu.first_name, cu.last_name, cu.phone, cu.id_card, 
+                       p.name as product_name, p.brand as product_brand
+                FROM contracts c
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE c.status = 'active' 
+                AND c.end_date < DATE('now')
+                ORDER BY c.end_date DESC
+            ''')
+            
+            rows = cursor.fetchall()
+            
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []
+    
     def get_setting(self, key: str) -> str:
         """ดึงการตั้งค่า"""
         with self.get_connection() as conn:

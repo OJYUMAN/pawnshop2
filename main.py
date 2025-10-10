@@ -350,6 +350,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 
         # --- Initialize UI ---
         self.initialize_ui()
+        
+        # ตรวจสอบสินค้าหลุดจำนำเมื่อเปิดโปรแกรม
+        self.check_forfeited_products_on_startup()
 
     def initialize_ui(self):
         """เริ่มต้น UI"""
@@ -4073,6 +4076,47 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าจอเพิ่มข้อมูลลูกค้าได้: {str(e)}")
+
+    def check_forfeited_products_on_startup(self):
+        """ตรวจสอบสินค้าหลุดจำนำเมื่อเปิดโปรแกรมและแจ้งเตือนเข้าไลน์"""
+        try:
+            from line_config import ENABLE_LINE_NOTIFICATION, SEND_FORFEITURE_NOTIFICATION
+            
+            # ตรวจสอบว่าการแจ้งเตือนเปิดอยู่หรือไม่
+            if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
+                return
+            
+            # ดึงสัญญาที่หลุดจำนำ
+            forfeited_contracts = self.db.get_forfeited_contracts()
+            
+            if forfeited_contracts:
+                # ส่งแจ้งเตือนสำหรับแต่ละสัญญาที่หลุดจำนำ
+                for contract in forfeited_contracts:
+                    try:
+                        # เตรียมข้อมูลสำหรับข้อความ
+                        enriched_contract = {
+                            **contract,
+                            'customer_name': f"{contract.get('first_name', '')} {contract.get('last_name', '')}".strip(),
+                            'timestamp': datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+                        }
+                        
+                        # ส่งแจ้งเตือนเข้าไลน์
+                        self.send_forfeiture_to_line(enriched_contract)
+                        
+                    except Exception as e:
+                        print(f"ไม่สามารถส่งแจ้งเตือนสำหรับสัญญา {contract.get('contract_number', 'N/A')}: {e}")
+                
+                # แสดงข้อความแจ้งเตือนในโปรแกรม
+                QMessageBox.warning(
+                    self, 
+                    "แจ้งเตือนสินค้าหลุดจำนำ", 
+                    f"พบสินค้าหลุดจำนำ {len(forfeited_contracts)} รายการ\n\n"
+                    "ระบบได้ส่งแจ้งเตือนเข้าไลน์เรียบร้อยแล้ว\n"
+                    "กรุณาตรวจสอบและดำเนินการตามความเหมาะสม"
+                )
+            
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการตรวจสอบสินค้าหลุดจำนำ: {e}")
 
     def show_pdf_generation_dialog(self, contract_data):
         """แสดง dialog ให้เลือกสร้าง PDF หลังจากบันทึกสัญญา"""
