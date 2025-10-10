@@ -19,8 +19,9 @@ from language_manager import language_manager
 from typing import Dict, Optional, List
 from database import PawnShopDatabase
 from utils import PawnShopUtils
-from app_services import copy_product_image as svc_copy_product_image
+from app_services import copy_product_image as svc_copy_product_image, send_line_message
 from shop_config_loader import load_shop_config
+from line_config import ENABLE_LINE_NOTIFICATION, SEND_RENEWAL_NOTIFICATION, SEND_REDEMPTION_NOTIFICATION, MESSAGE_TEMPLATE
 
 
 # เพิ่มคลาสสำหรับการสแกนบัตรประชาชน
@@ -1502,6 +1503,9 @@ class RedemptionDialog(QDialog):
             # บันทึกการไถ่ถอน
             redemption_id = self.db.redeem_contract(redemption_data)
             
+            # ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่ถอน
+            self.send_redemption_line_notification(redemption_data)
+            
             # ถามว่าจะสร้างสัญญาไถ่ถอนหรือไม่
             reply = QMessageBox.question(
                 self,
@@ -1519,6 +1523,38 @@ class RedemptionDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+    
+    def send_redemption_line_notification(self, redemption_data):
+        """ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่ถอน"""
+        try:
+            # ตรวจสอบการตั้งค่าการส่งข้อความ
+            if not ENABLE_LINE_NOTIFICATION or not SEND_REDEMPTION_NOTIFICATION:
+                return
+            
+            # ดึงข้อมูลลูกค้าและสัญญา
+            customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
+            if not customer:
+                print("ไม่พบข้อมูลลูกค้าสำหรับส่งข้อความแจ้งเตือน")
+                return
+            
+            # สร้างข้อความแจ้งเตือน
+            message = MESSAGE_TEMPLATE['redemption'].format(
+                contract_number=self.contract_data.get('contract_number', ''),
+                customer_name=f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                redemption_amount=redemption_data['redemption_amount'],
+                redemption_date=redemption_data['redemption_date'],
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            
+            # ส่งข้อความ
+            success = send_line_message(message)
+            if success:
+                print("ส่งข้อความแจ้งเตือนการไถ่ถอนสำเร็จ")
+            else:
+                print("ส่งข้อความแจ้งเตือนการไถ่ถอนไม่สำเร็จ")
+                
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการไถ่ถอน: {str(e)}")
     
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
         """สร้างสัญญาไถ่ถอนเป็น PDF"""
@@ -2023,6 +2059,9 @@ class RenewalDialog(QDialog):
                 renewal_data['new_due_date']
             )
             
+            # ส่งข้อความแจ้งเตือนไลน์เมื่อมีการต่อดอก
+            self.send_renewal_line_notification(renewal_data)
+            
             QMessageBox.information(self, "สำเร็จ", "บันทึกการต่อดอกเรียบร้อย")
             
             # ถามว่าต้องการสร้างใบฝากต่อไหม
@@ -2041,6 +2080,39 @@ class RenewalDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {}".format(str(e)))
+    
+    def send_renewal_line_notification(self, renewal_data):
+        """ส่งข้อความแจ้งเตือนไลน์เมื่อมีการต่อดอก"""
+        try:
+            # ตรวจสอบการตั้งค่าการส่งข้อความ
+            if not ENABLE_LINE_NOTIFICATION or not SEND_RENEWAL_NOTIFICATION:
+                return
+            
+            # ดึงข้อมูลลูกค้าและสัญญา
+            customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
+            if not customer:
+                print("ไม่พบข้อมูลลูกค้าสำหรับส่งข้อความแจ้งเตือน")
+                return
+            
+            # สร้างข้อความแจ้งเตือน
+            message = MESSAGE_TEMPLATE['renewal'].format(
+                contract_number=self.contract_data.get('contract_number', ''),
+                customer_name=f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                original_amount=self.contract_data.get('pawn_amount', 0),
+                renewal_fee=renewal_data['total_amount'],
+                renewal_date=renewal_data['renewal_date'],
+                timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+            
+            # ส่งข้อความ
+            success = send_line_message(message)
+            if success:
+                print("ส่งข้อความแจ้งเตือนการต่อดอกสำเร็จ")
+            else:
+                print("ส่งข้อความแจ้งเตือนการต่อดอกไม่สำเร็จ")
+                
+        except Exception as e:
+            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการต่อดอก: {str(e)}")
     
     def generate_renewal_pdf(self):
         """สร้างใบฝากต่อ PDF"""

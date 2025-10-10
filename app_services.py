@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import shutil
@@ -10,14 +11,14 @@ import requests
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
 
 
-def send_line_message(message: str) -> bool:
+def send_line_message(message):
     """Send a text message to LINE using push API. Returns True on success."""
     try:
         url = "https://api.line.me/v2/bot/message/push"
 
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {LINE_CHANNEL_ACCESS_TOKEN}'
+            'Authorization': 'Bearer {}'.format(LINE_CHANNEL_ACCESS_TOKEN)
         }
 
         payload = {
@@ -34,15 +35,15 @@ def send_line_message(message: str) -> bool:
         if response.status_code == 200:
             return True
         else:
-            print(f"ส่งข้อความไม่สำเร็จ: {response.status_code}")
+            print("ส่งข้อความไม่สำเร็จ: {}".format(response.status_code))
             print(response.text)
             return False
     except Exception as e:
-        print(f"เกิดข้อผิดพลาดในการส่งข้อความ: {str(e)}")
+        print("เกิดข้อผิดพลาดในการส่งข้อความ: {}".format(str(e)))
         return False
 
 
-def open_pdf_external(pdf_path: str) -> None:
+def open_pdf_external(pdf_path):
     """Open a PDF file with the default system viewer (best-effort)."""
     try:
         if platform.system() == "Windows":
@@ -57,7 +58,7 @@ def open_pdf_external(pdf_path: str) -> None:
         pass
 
 
-def copy_product_image(source_path: str, base_dir: str | None = None) -> str:
+def copy_product_image(source_path, base_dir=None):
     """Copy a product image into the application's product_images directory.
 
     Returns the new path, or the original source_path on error.
@@ -74,13 +75,13 @@ def copy_product_image(source_path: str, base_dir: str | None = None) -> str:
         os.makedirs(images_dir, exist_ok=True)
 
         file_ext = os.path.splitext(source_path)[1]
-        new_filename = f"product_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_ext}"
+        new_filename = "product_{}{}".format(datetime.now().strftime('%Y%m%d_%H%M%S'), file_ext)
         new_path = os.path.join(images_dir, new_filename)
 
         shutil.copy2(source_path, new_path)
         return new_path
     except Exception as e:
-        print(f"Error copying image: {e}")
+        print("Error copying image: {}".format(e))
         return source_path
 
 
