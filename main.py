@@ -2292,6 +2292,39 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             if contract_number:
                 self.load_renewal_history(contract_number)
 
+    def load_renewal_history(self, contract_number):
+        """โหลดประวัติการต่อดอกของสัญญา"""
+        try:
+            if not contract_number:
+                return
+            
+            # ดึงข้อมูลการต่อดอกจากฐานข้อมูล
+            renewals = self.db.get_renewals_by_contract(contract_number)
+            
+            # ตรวจสอบว่ามี UI elements สำหรับแสดง renewal history หรือไม่
+            if hasattr(self, 'renewal_history_table'):
+                # ล้างข้อมูลเก่า
+                self.renewal_history_table.setRowCount(0)
+                
+                # แสดงข้อมูลการต่อดอก
+                for renewal in renewals:
+                    row_position = self.renewal_history_table.rowCount()
+                    self.renewal_history_table.insertRow(row_position)
+                    
+                    # ข้อมูลการต่อดอก
+                    self.renewal_history_table.setItem(row_position, 0, QTableWidgetItem(str(renewal.get('renewal_date', ''))))
+                    self.renewal_history_table.setItem(row_position, 1, QTableWidgetItem(f"{renewal.get('interest_amount', 0):,.2f}"))
+                    self.renewal_history_table.setItem(row_position, 2, QTableWidgetItem(f"{renewal.get('fee_amount', 0):,.2f}"))
+                    self.renewal_history_table.setItem(row_position, 3, QTableWidgetItem(f"{renewal.get('total_amount', 0):,.2f}"))
+                    self.renewal_history_table.setItem(row_position, 4, QTableWidgetItem(renewal.get('notes', '')))
+            
+            # อัปเดตข้อมูลใน UI อื่นๆ ที่เกี่ยวข้อง
+            if hasattr(self, 'renewal_count_label'):
+                self.renewal_count_label.setText(f"{len(renewals)} ครั้ง")
+                
+        except Exception as e:
+            print(f"Error loading renewal history: {e}")
+
     def clear_form(self):
         """ล้างฟอร์ม"""
         self.current_customer = None
