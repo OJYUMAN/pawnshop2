@@ -1556,18 +1556,48 @@ class RedemptionDialog(QDialog):
             if not ENABLE_LINE_NOTIFICATION or not SEND_REDEMPTION_NOTIFICATION:
                 return
             
-            # ดึงข้อมูลลูกค้าและสัญญา
+            # ดึงข้อมูลลูกค้าและสินค้า
             customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
             if not customer:
                 print("ไม่พบข้อมูลลูกค้าสำหรับส่งข้อความแจ้งเตือน")
                 return
+                
+            product = self.db.get_product_by_id(self.contract_data.get('product_id'))
+            if not product:
+                print("ไม่พบข้อมูลสินค้าสำหรับส่งข้อความแจ้งเตือน")
+                return
+            
+            # เตรียมข้อมูลสำหรับส่งเข้า Line
+            customer_name = "{} {}".format(
+                customer.get('first_name', ''), 
+                customer.get('last_name', '')
+            ).strip()
+            customer_phone = customer.get('phone', 'ไม่ระบุ')
+            customer_id_card = customer.get('id_card', 'ไม่ระบุ')
+            
+            product_name = product.get('model', '') or product.get('name', 'ไม่ระบุ')
+            product_brand = product.get('brand', 'ไม่ระบุ')
+            product_size = product.get('size', 'ไม่ระบุ')
+            product_serial = product.get('serial_number', 'ไม่ระบุ')
             
             # สร้างข้อความแจ้งเตือน
             message = MESSAGE_TEMPLATE['redemption'].format(
                 contract_number=self.contract_data.get('contract_number', ''),
-                customer_name="{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                customer_name=customer_name,
+                customer_phone=customer_phone,
+                customer_id_card=customer_id_card,
+                product_name=product_name,
+                product_brand=product_brand,
+                product_size=product_size,
+                product_serial=product_serial,
+                pawn_amount=self.contract_data.get('pawn_amount', 0),
+                fee_amount=self.contract_data.get('fee_amount', 0.0),
+                total_paid=self.contract_data.get('total_paid', 0),
                 redemption_amount=redemption_data['redemption_amount'],
+                start_date=self.contract_data.get('start_date', 'ไม่ระบุ'),
+                end_date=self.contract_data.get('end_date', 'ไม่ระบุ'),
                 redemption_date=redemption_data['redemption_date'],
+                days_count=self.contract_data.get('days_count', 0),
                 timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )
             

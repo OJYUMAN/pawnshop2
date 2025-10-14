@@ -51,8 +51,20 @@ MESSAGE_TEMPLATE = {
 💎 การไถ่คืน: {contract_number}
 
 👤 ลูกค้า: {customer_name}
-💰 จำนวนเงินไถ่คืน: {redemption_amount:,.2f} บาท
+📱 เบอร์โทร: {customer_phone}
+🆔 บัตรประชาชน: {customer_id_card}
+
+💍 สินค้า: {product_name}
+🏷️ แบรนด์: {product_brand}
+
+💰 จำนวนเงินกู้: {pawn_amount:,.2f} บาท
+💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
+💎 จำนวนเงินไถ่คืน: {redemption_amount:,.2f} บาท
+📅 วันเริ่มต้น: {start_date}
+📅 วันสิ้นสุด: {end_date}
 📅 วันไถ่คืน: {redemption_date}
+⏰ จำนวนวัน: {days_count} วัน
+
 ⏰ เวลาที่ไถ่คืน: {timestamp}
     """.strip(),
     
