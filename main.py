@@ -37,7 +37,7 @@ from app_services import (
     copy_product_image as svc_copy_product_image,
 )
 from language_manager import language_manager
-
+#hi
 # Icon mapping for toolbar buttons
 ICON_MAP = {
     "document-new":        "icons/file-plus.svg",             # แผ่นกระดาษ + +
