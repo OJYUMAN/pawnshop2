@@ -346,7 +346,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # --- Initialize UI ---
         self.initialize_ui()
         
-        # ตรวจสอบสินค้าหลุดจำนำเมื่อเปิดโปรแกรม
+        # ตรวจสอบสัญญาหมดอายุเมื่อเปิดโปรแกรม
         self.check_forfeited_products_on_startup()
 
     def initialize_ui(self):
@@ -423,7 +423,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """ส่งข้อความเข้า Line (delegate to app_services)"""
         return svc_send_line_message(message)
     def send_forfeiture_to_line(self, contract_data):
-        """ส่งข้อมูลหลุดจำนำเข้า Line"""
+        """ส่งข้อมูลสัญญาหมดอายุเข้า Line"""
         if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
             return
         try:
@@ -438,7 +438,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 end_date_txt = end_date.strftime('%d/%m/%Y')
             else:
                 end_date_txt = str(end_date)
-            line_message = MESSAGE_TEMPLATE.get('forfeiture', "หลุดจำนำ {contract_number}").format(
+            line_message = MESSAGE_TEMPLATE.get('forfeiture', "สัญญาหมดอายุ {contract_number}").format(
                 contract_number=contract_data.get('contract_number', '-'),
                 customer_name=customer_name,
                 product_name=product_name,
@@ -448,7 +448,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             )
             self.send_line_message(line_message)
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อมูลหลุดจำนำเข้า Line: {str(e)}")
+            print(f"เกิดข้อผิดพลาดในการส่งข้อมูลสัญญาหมดอายุเข้า Line: {str(e)}")
 
 
 
@@ -1370,7 +1370,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 icon = QIcon.fromTheme("document-save", QIcon.fromTheme("save", QIcon.fromTheme("floppy")))
             elif "ไถ่คืน" in text:
                 icon = QIcon.fromTheme("go-previous", QIcon.fromTheme("arrow-left", QIcon.fromTheme("back")))
-            elif "หลุดจำนำ" in text:
+            elif "หลุดจำนำ" in text or "หมดอายุ" in text:
                 icon = QIcon.fromTheme("edit-delete", QIcon.fromTheme("delete", QIcon.fromTheme("remove")))
             elif "ในขายฝาก" in text:
                 icon = QIcon.fromTheme("folder-open", QIcon.fromTheme("folder", QIcon.fromTheme("directory")))
@@ -1690,7 +1690,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูลสัญญา: {str(e)}")
 
     def lost_contract(self):
-        """หลุดจำนำ"""
+        """สัญญาหมดอายุ"""
         if not self.current_contract:
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
             return
@@ -1710,7 +1710,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 if hasattr(self, 'lost_radio'):
                     self.lost_radio.setChecked(True)
 
-                # ส่งแจ้งเตือนเข้า Line เมื่อหลุดจำนำ
+                # ส่งแจ้งเตือนเข้า Line เมื่อสัญญาหมดอายุ
                 try:
                     # enrich minimal fields for template
                     customer = self.db.get_customer_by_id(updated_contract.get('customer_id')) if updated_contract else None
@@ -1723,9 +1723,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                     }
                     self.send_forfeiture_to_line(enriched)
                 except Exception as e:
-                    print(f"ส่งแจ้งเตือนหลุดจำนำล้มเหลว: {e}")
+                    print(f"ส่งแจ้งเตือนสัญญาหมดอายุล้มเหลว: {e}")
                 
-            QMessageBox.information(self, "สำเร็จ", "อัปเดตสถานะสัญญาเป็น 'หลุดจำนำ' เรียบร้อย")
+            QMessageBox.information(self, "สำเร็จ", "อัปเดตสถานะสัญญาเป็น 'หมดอายุ' เรียบร้อย")
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการอัปเดตสถานะสัญญา: {str(e)}")
@@ -1768,7 +1768,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                             }
                             self.send_forfeiture_to_line(enriched)
                         except Exception as e:
-                            print(f"ส่งแจ้งเตือนหลุดจำนำล้มเหลว: {e}")
+                            print(f"ส่งแจ้งเตือนสัญญาหมดอายุล้มเหลว: {e}")
                 
                 QMessageBox.information(self, "สำเร็จ", f"อัปเดตสถานะสัญญาเป็น '{status}' เรียบร้อย")
             else:
@@ -3208,7 +3208,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเปิดหน้าจอเพิ่มข้อมูลลูกค้าได้: {str(e)}")
 
     def check_forfeited_products_on_startup(self):
-        """ตรวจสอบสินค้าหลุดจำนำเมื่อเปิดโปรแกรมและแจ้งเตือนเข้าไลน์"""
+        """ตรวจสอบสัญญาหมดอายุเมื่อเปิดโปรแกรมและแจ้งเตือนเข้าไลน์"""
         try:
             from line_config import ENABLE_LINE_NOTIFICATION, SEND_FORFEITURE_NOTIFICATION
             
@@ -3216,11 +3216,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
                 return
             
-            # ดึงสัญญาที่หลุดจำนำ
+            # ดึงสัญญาที่หมดอายุ
             forfeited_contracts = self.db.get_forfeited_contracts()
             
             if forfeited_contracts:
-                # ส่งแจ้งเตือนสำหรับแต่ละสัญญาที่หลุดจำนำ
+                # ส่งแจ้งเตือนสำหรับแต่ละสัญญาที่หมดอายุ
                 for contract in forfeited_contracts:
                     try:
                         # เตรียมข้อมูลสำหรับข้อความ
@@ -3239,14 +3239,14 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 # แสดงข้อความแจ้งเตือนในโปรแกรม
                 QMessageBox.warning(
                     self, 
-                    "แจ้งเตือนสินค้าหลุดจำนำ", 
-                    f"พบสินค้าหลุดจำนำ {len(forfeited_contracts)} รายการ\n\n"
+                    "แจ้งเตือนสัญญาหมดอายุ", 
+                    f"พบสัญญาหมดอายุ {len(forfeited_contracts)} รายการ\n\n"
                     "ระบบได้ส่งแจ้งเตือนเข้าไลน์เรียบร้อยแล้ว\n"
                     "กรุณาตรวจสอบและดำเนินการตามความเหมาะสม"
                 )
             
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการตรวจสอบสินค้าหลุดจำนำ: {e}")
+            print(f"เกิดข้อผิดพลาดในการตรวจสอบสัญญาหมดอายุ: {e}")
 
     def show_pdf_generation_dialog(self, contract_data):
         """แสดง dialog ให้เลือกสร้าง PDF หลังจากบันทึกสัญญา"""

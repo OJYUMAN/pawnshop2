@@ -877,7 +877,7 @@ class PawnShopDatabase:
                 JOIN customers cu ON c.customer_id = cu.id
                 JOIN products p ON c.product_id = p.id
                 WHERE c.status = 'active' 
-                AND c.end_date < DATE('now')
+                AND DATE(c.end_date) < DATE('now')
                 ORDER BY c.end_date DESC
             ''')
             
