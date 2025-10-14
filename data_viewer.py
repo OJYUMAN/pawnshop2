@@ -28,7 +28,7 @@ class DataViewerDialog(QDialog):
         self.setup_ui()
         self.load_data()
     
-    def verify_delete_password(self) -> bool:
+    def verify_delete_password(self):
         """ขอรหัสผ่านก่อนอนุญาตให้ลบข้อมูล"""
         password, ok = QInputDialog.getText(
             self,
@@ -126,10 +126,10 @@ class DataViewerDialog(QDialog):
         
         # ตารางสินค้า
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(8)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
+        self.product_table.setColumnCount(9)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
         self.product_table.setHorizontalHeaderLabels([
-            "ชื่อสินค้า", "ยี่ห้อ/รุ่น", "ขนาด", "น้ำหนัก", 
-            "หมายเลขซีเรียล", "รายละเอียด", "วันที่สร้าง", "การดำเนินการ"
+            "ชื่อสินค้า", "ยี่ห้อ", "IMEI 1", "IMEI 2", "Serial Number", 
+            "สภาพเครื่อง", "อุปกรณ์ที่มาพร้อม", "วันที่สร้าง", "การดำเนินการ"
         ])
         self.product_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.product_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
@@ -230,13 +230,13 @@ class DataViewerDialog(QDialog):
         daily_layout.addWidget(QLabel(today), 0, 1)
         
         daily_layout.addWidget(QLabel("สัญญาใหม่:"), 1, 0)
-        daily_layout.addWidget(QLabel(f"{daily_summary['new_contracts_count']} สัญญา"), 1, 1)
+        daily_layout.addWidget(QLabel("{} สัญญา".format(daily_summary['new_contracts_count'])), 1, 1)
         
         daily_layout.addWidget(QLabel("การไถ่คืน:"), 2, 0)
-        daily_layout.addWidget(QLabel(f"{daily_summary['redemptions_count']} สัญญา"), 2, 1)
+        daily_layout.addWidget(QLabel("{} สัญญา".format(daily_summary['redemptions_count'])), 2, 1)
         
         daily_layout.addWidget(QLabel("การชำระดอกเบี้ย:"), 3, 0)
-        daily_layout.addWidget(QLabel(f"{daily_summary['interest_payments_count']} ครั้ง"), 3, 1)
+        daily_layout.addWidget(QLabel("{} ครั้ง".format(daily_summary['interest_payments_count'])), 3, 1)
         
         layout.addWidget(daily_group)
         
@@ -297,7 +297,7 @@ class DataViewerDialog(QDialog):
                 self.customer_table.setCellWidget(row, 7, delete_button)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลลูกค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลลูกค้า: {}".format(str(e)))
     
     def load_products(self):
         """โหลดข้อมูลสินค้า"""
@@ -319,10 +319,10 @@ class DataViewerDialog(QDialog):
                     product = dict(zip(columns, product_data))
                     self.product_table.setItem(row, 0, QTableWidgetItem(product.get('name', '')))
                     self.product_table.setItem(row, 1, QTableWidgetItem(product.get('brand', '')))
-                    self.product_table.setItem(row, 2, QTableWidgetItem(product.get('size', '')))
-                    self.product_table.setItem(row, 3, QTableWidgetItem(f"{product.get('weight', 0)} กรัม"))
+                    self.product_table.setItem(row, 2, QTableWidgetItem(product.get('imei1', '')))
+                    self.product_table.setItem(row, 3, QTableWidgetItem(product.get('imei2', '')))
                     self.product_table.setItem(row, 4, QTableWidgetItem(product.get('serial_number', '')))
-                    self.product_table.setItem(row, 5, QTableWidgetItem(product.get('other_details', '')))
+                    self.product_table.setItem(row, 5, QTableWidgetItem(product.get('condition', '')))
                     
                     # วันที่สร้าง
                     created_at = product.get('created_at', '')
@@ -334,16 +334,17 @@ class DataViewerDialog(QDialog):
                             date_str = created_at
                     else:
                         date_str = ''
-                    self.product_table.setItem(row, 6, QTableWidgetItem(date_str))
+                    self.product_table.setItem(row, 6, QTableWidgetItem(product.get('accessories', '')))
+                    self.product_table.setItem(row, 7, QTableWidgetItem(date_str))
                     
                     # เพิ่มปุ่มลบ
                     delete_button = QPushButton("ลบ")
                     delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                     delete_button.clicked.connect(lambda checked, row=row: self.delete_product(row))
-                    self.product_table.setCellWidget(row, 7, delete_button)
+                    self.product_table.setCellWidget(row, 8, delete_button)
                     
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสินค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสินค้า: {}".format(str(e)))
     
     def load_contracts(self):
         """โหลดข้อมูลสัญญา"""
@@ -354,12 +355,12 @@ class DataViewerDialog(QDialog):
             for row, contract in enumerate(contracts):
                 self.contract_table.setItem(row, 0, QTableWidgetItem(contract.get('contract_number', '')))
                 
-                customer_name = f"{contract.get('first_name', '')} {contract.get('last_name', '')}"
+                customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
                 self.contract_table.setItem(row, 1, QTableWidgetItem(customer_name))
                 
                 self.contract_table.setItem(row, 2, QTableWidgetItem(contract.get('product_name', '')))
-                self.contract_table.setItem(row, 3, QTableWidgetItem(f"{contract.get('pawn_amount', 0):,.2f}"))
-                self.contract_table.setItem(row, 4, QTableWidgetItem(f"{contract.get('interest_rate', 0):.2f}%"))
+                self.contract_table.setItem(row, 3, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
+                self.contract_table.setItem(row, 4, QTableWidgetItem("{:.2f}%".format(contract.get('interest_rate', 0))))
                 
                 # วันที่เริ่มต้น
                 start_date = contract.get('start_date', '')
@@ -390,7 +391,7 @@ class DataViewerDialog(QDialog):
                 status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
                 self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
                 
-                self.contract_table.setItem(row, 8, QTableWidgetItem(f"{contract.get('total_redemption', 0):,.2f}"))
+                self.contract_table.setItem(row, 8, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 
                 # วันที่สร้าง
                 created_at = contract.get('created_at', '')
@@ -411,7 +412,7 @@ class DataViewerDialog(QDialog):
                 self.contract_table.setCellWidget(row, 10, delete_button)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสัญญา: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสัญญา: {}".format(str(e)))
     
     def load_summary(self):
         """โหลดข้อมูลสรุป"""
@@ -443,17 +444,17 @@ class DataViewerDialog(QDialog):
             # คำนวณยอดฝากรวม
             cursor.execute('SELECT SUM(pawn_amount) FROM contracts')
             total_pawn = cursor.fetchone()[0] or 0
-            self.total_pawn_label.setText(f"{total_pawn:,.2f} บาท")
+            self.total_pawn_label.setText("{:,.2f} บาท".format(total_pawn))
             
             # คำนวณยอดไถ่คืนรวม
             cursor.execute('SELECT SUM(total_redemption) FROM contracts')
             total_redemption = cursor.fetchone()[0] or 0
-            self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
+            self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
             
             conn.close()
             
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสรุป: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสรุป: {}".format(str(e)))
     
     def load_expiring_contracts(self):
         """โหลดสัญญาที่ใกล้ครบกำหนด"""
@@ -464,7 +465,7 @@ class DataViewerDialog(QDialog):
             for row, contract in enumerate(expiring_contracts):
                 self.expiring_table.setItem(row, 0, QTableWidgetItem(contract.get('contract_number', '')))
                 
-                customer_name = f"{contract.get('first_name', '')} {contract.get('last_name', '')}"
+                customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
                 self.expiring_table.setItem(row, 1, QTableWidgetItem(customer_name))
                 
                 self.expiring_table.setItem(row, 2, QTableWidgetItem(contract.get('phone', '')))
@@ -481,10 +482,10 @@ class DataViewerDialog(QDialog):
                     date_str = ''
                 self.expiring_table.setItem(row, 3, QTableWidgetItem(date_str))
                 
-                self.expiring_table.setItem(row, 4, QTableWidgetItem(f"{contract.get('total_redemption', 0):,.2f}"))
+                self.expiring_table.setItem(row, 4, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดสัญญาที่ใกล้ครบกำหนด: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดสัญญาที่ใกล้ครบกำหนด: {}".format(str(e)))
     
     def filter_customers(self):
         """กรองข้อมูลลูกค้า"""
@@ -520,7 +521,7 @@ class DataViewerDialog(QDialog):
                 self.customer_table.setCellWidget(row, 7, delete_button)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลลูกค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลลูกค้า: {}".format(str(e)))
     
     def filter_products(self):
         """กรองข้อมูลสินค้า"""
@@ -550,10 +551,10 @@ class DataViewerDialog(QDialog):
                     product = dict(zip(columns, product_data))
                     self.product_table.setItem(row, 0, QTableWidgetItem(product.get('name', '')))
                     self.product_table.setItem(row, 1, QTableWidgetItem(product.get('brand', '')))
-                    self.product_table.setItem(row, 2, QTableWidgetItem(product.get('size', '')))
-                    self.product_table.setItem(row, 3, QTableWidgetItem(f"{product.get('weight', 0)} กรัม"))
+                    self.product_table.setItem(row, 2, QTableWidgetItem(product.get('imei1', '')))
+                    self.product_table.setItem(row, 3, QTableWidgetItem(product.get('imei2', '')))
                     self.product_table.setItem(row, 4, QTableWidgetItem(product.get('serial_number', '')))
-                    self.product_table.setItem(row, 5, QTableWidgetItem(product.get('other_details', '')))
+                    self.product_table.setItem(row, 5, QTableWidgetItem(product.get('condition', '')))
                     
                     # วันที่สร้าง
                     created_at = product.get('created_at', '')
@@ -565,16 +566,17 @@ class DataViewerDialog(QDialog):
                             date_str = created_at
                     else:
                         date_str = ''
-                    self.product_table.setItem(row, 6, QTableWidgetItem(date_str))
+                    self.product_table.setItem(row, 6, QTableWidgetItem(product.get('accessories', '')))
+                    self.product_table.setItem(row, 7, QTableWidgetItem(date_str))
                     
                     # เพิ่มปุ่มลบ
                     delete_button = QPushButton("ลบ")
                     delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                     delete_button.clicked.connect(lambda checked, row=row: self.delete_product(row))
-                    self.product_table.setCellWidget(row, 7, delete_button)
+                    self.product_table.setCellWidget(row, 8, delete_button)
                     
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลสินค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลสินค้า: {}".format(str(e)))
     
     def filter_contracts(self):
         """กรองข้อมูลสัญญา"""
@@ -595,12 +597,12 @@ class DataViewerDialog(QDialog):
             for row, contract in enumerate(contracts):
                 self.contract_table.setItem(row, 0, QTableWidgetItem(contract.get('contract_number', '')))
                 
-                customer_name = f"{contract.get('first_name', '')} {contract.get('last_name', '')}"
+                customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
                 self.contract_table.setItem(row, 1, QTableWidgetItem(customer_name))
                 
                 self.contract_table.setItem(row, 2, QTableWidgetItem(contract.get('product_name', '')))
-                self.contract_table.setItem(row, 3, QTableWidgetItem(f"{contract.get('pawn_amount', 0):,.2f}"))
-                self.contract_table.setItem(row, 4, QTableWidgetItem(f"{contract.get('interest_rate', 0):.2f}%"))
+                self.contract_table.setItem(row, 3, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
+                self.contract_table.setItem(row, 4, QTableWidgetItem("{:.2f}%".format(contract.get('interest_rate', 0))))
                 
                 # วันที่เริ่มต้น
                 start_date = contract.get('start_date', '')
@@ -631,7 +633,7 @@ class DataViewerDialog(QDialog):
                 status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
                 self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
                 
-                self.contract_table.setItem(row, 8, QTableWidgetItem(f"{contract.get('total_redemption', 0):,.2f}"))
+                self.contract_table.setItem(row, 8, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 
                 # วันที่สร้าง
                 created_at = contract.get('created_at', '')
@@ -652,7 +654,7 @@ class DataViewerDialog(QDialog):
                 self.contract_table.setCellWidget(row, 10, delete_button)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถกรองข้อมูลสัญญา: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลสัญญา: {}".format(str(e)))
     
     def delete_customer(self, row: int):
         """ลบข้อมูลลูกค้า"""
@@ -662,13 +664,13 @@ class DataViewerDialog(QDialog):
                 return
 
             customer_code = self.customer_table.item(row, 0).text()
-            customer_name = f"{self.customer_table.item(row, 1).text()} {self.customer_table.item(row, 2).text()}"
+            customer_name = "{} {}".format(self.customer_table.item(row, 1).text(), self.customer_table.item(row, 2).text())
             
             # ยืนยันการลบ
             reply = QMessageBox.question(
                 self, 
                 "ยืนยันการลบ", 
-                f"คุณต้องการลบข้อมูลลูกค้า {customer_name} (รหัส: {customer_code}) หรือไม่?\n\nการลบนี้จะลบข้อมูลลูกค้าออกจากระบบอย่างถาวร",
+                "คุณต้องการลบข้อมูลลูกค้า {} (รหัส: {}) หรือไม่?\n\nการลบนี้จะลบข้อมูลลูกค้าออกจากระบบอย่างถาวร".format(customer_name, customer_code),
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -679,7 +681,7 @@ class DataViewerDialog(QDialog):
                 if customer_id:
                     # ลบข้อมูลลูกค้า
                     if self.db.delete_customer(customer_id):
-                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลลูกค้า {customer_name} เรียบร้อยแล้ว")
+                        QMessageBox.information(self, "สำเร็จ", "ลบข้อมูลลูกค้า {customer_name} เรียบร้อยแล้ว")
                         self.load_data()  # รีเฟรชข้อมูล
                     else:
                         QMessageBox.warning(self, "ไม่สามารถลบได้", 
@@ -688,7 +690,7 @@ class DataViewerDialog(QDialog):
                     QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลลูกค้าที่ต้องการลบ")
                     
         except Exception as e:
-            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")
+            QMessageBox.critical(self, "ข้อผิดพลาด", "เกิดข้อผิดพลาดในการลบข้อมูล: {}".format(str(e)))
     
     def delete_product(self, row: int):
         """ลบข้อมูลสินค้า"""
@@ -704,7 +706,7 @@ class DataViewerDialog(QDialog):
             reply = QMessageBox.question(
                 self, 
                 "ยืนยันการลบ", 
-                f"คุณต้องการลบข้อมูลสินค้า {product_name} (ซีเรียล: {serial_number}) หรือไม่?\n\nการลบนี้จะลบข้อมูลสินค้าออกจากระบบอย่างถาวร",
+                "คุณต้องการลบข้อมูลสินค้า {product_name} (ซีเรียล: {serial_number}) หรือไม่?\n\nการลบนี้จะลบข้อมูลสินค้าออกจากระบบอย่างถาวร",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -715,7 +717,7 @@ class DataViewerDialog(QDialog):
                 if product_id:
                     # ลบข้อมูลสินค้า
                     if self.db.delete_product(product_id):
-                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลสินค้า {product_name} เรียบร้อยแล้ว")
+                        QMessageBox.information(self, "สำเร็จ", "ลบข้อมูลสินค้า {product_name} เรียบร้อยแล้ว")
                         self.load_data()  # รีเฟรชข้อมูล
                     else:
                         QMessageBox.warning(self, "ไม่สามารถลบได้", 
@@ -724,7 +726,7 @@ class DataViewerDialog(QDialog):
                     QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลสินค้าที่ต้องการลบ")
                     
         except Exception as e:
-            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")
+            QMessageBox.critical(self, "ข้อผิดพลาด", "เกิดข้อผิดพลาดในการลบข้อมูล: {}".format(str(e)))
     
     def delete_contract(self, row: int):
         """ลบข้อมูลสัญญา"""
@@ -740,7 +742,7 @@ class DataViewerDialog(QDialog):
             reply = QMessageBox.question(
                 self, 
                 "ยืนยันการลบ", 
-                f"คุณต้องการลบข้อมูลสัญญา {contract_number} ของ {customer_name} หรือไม่?\n\nการลบนี้จะลบข้อมูลสัญญาออกจากระบบอย่างถาวร",
+                "คุณต้องการลบข้อมูลสัญญา {contract_number} ของ {customer_name} หรือไม่?\n\nการลบนี้จะลบข้อมูลสัญญาออกจากระบบอย่างถาวร",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No
             )
@@ -751,7 +753,7 @@ class DataViewerDialog(QDialog):
                 if contract_id:
                     # ลบข้อมูลสัญญา
                     if self.db.delete_contract(contract_id):
-                        QMessageBox.information(self, "สำเร็จ", f"ลบข้อมูลสัญญา {contract_number} เรียบร้อยแล้ว")
+                        QMessageBox.information(self, "สำเร็จ", "ลบข้อมูลสัญญา {contract_number} เรียบร้อยแล้ว")
                         self.load_data()  # รีเฟรชข้อมูล
                     else:
                         QMessageBox.warning(self, "ไม่สามารถลบได้", "ไม่สามารถลบข้อมูลสัญญาได้")
@@ -759,4 +761,4 @@ class DataViewerDialog(QDialog):
                     QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลสัญญาที่ต้องการลบ")
                     
         except Exception as e:
-            QMessageBox.critical(self, "ข้อผิดพลาด", f"เกิดข้อผิดพลาดในการลบข้อมูล: {str(e)}")
+            QMessageBox.critical(self, "ข้อผิดพลาด", "เกิดข้อผิดพลาดในการลบข้อมูล: {}".format(str(e)))

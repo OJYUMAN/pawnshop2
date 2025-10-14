@@ -326,8 +326,9 @@ class PawnShopDatabase:
             
             cursor.execute('''
                 INSERT INTO products (
-                    name, brand, size, weight, weight_unit, serial_number, other_details, image_path
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    name, brand, size, weight, weight_unit, serial_number, other_details, image_path,
+                    imei1, imei2, condition, accessories
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 product_data['name'],
                 product_data.get('brand', ''),
@@ -336,7 +337,11 @@ class PawnShopDatabase:
                 product_data.get('weight_unit', ''),
                 product_data.get('serial_number', ''),
                 product_data.get('other_details', ''),
-                product_data.get('image_path', '')
+                product_data.get('image_path', ''),
+                product_data.get('imei1', ''),
+                product_data.get('imei2', ''),
+                product_data.get('condition', ''),
+                product_data.get('accessories', '')
             ))
             
             product_id = cursor.lastrowid
@@ -930,7 +935,8 @@ class PawnShopDatabase:
             cursor.execute('''
                 UPDATE products SET
                     name = ?, brand = ?, size = ?, weight = ?, weight_unit = ?,
-                    serial_number = ?, other_details = ?, image_path = ?
+                    serial_number = ?, other_details = ?, image_path = ?,
+                    imei1 = ?, imei2 = ?, condition = ?, accessories = ?
                 WHERE id = ?
             ''', (
                 product_data['name'],
@@ -941,6 +947,10 @@ class PawnShopDatabase:
                 product_data.get('serial_number', ''),
                 product_data.get('other_details', ''),
                 product_data.get('image_path', ''),
+                product_data.get('imei1', ''),
+                product_data.get('imei2', ''),
+                product_data.get('condition', ''),
+                product_data.get('accessories', ''),
                 product_id
             ))
             

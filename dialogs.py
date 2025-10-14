@@ -898,15 +898,7 @@ class ProductDialog(QDialog):
         self.other_details_edit = QTextEdit()
         self.other_details_edit.setMaximumHeight(80)
 
-        # ส่วนจัดการรูปภาพสินค้า
-        self.image_preview = QLabel()
-        self.image_preview.setFixedSize(160, 120)
-        self.image_preview.setAlignment(Qt.AlignCenter)
-        self.image_preview.setStyleSheet("border: 1px solid #CCC; background: #FAFAFA;")
-        self.image_path_edit = QLineEdit()
-        self.image_path_edit.setReadOnly(True)
-        self.image_browse_btn = QPushButton("เลือกรูปภาพ...")
-        self.image_browse_btn.clicked.connect(self.browse_product_image)
+        # ตัวแปรสำหรับจัดการรูปภาพ
         self._image_source_path = ""
         
         # จัดเรียงฟิลด์ตามรูปภาพ
@@ -915,36 +907,53 @@ class ProductDialog(QDialog):
         product_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
         product_layout.addWidget(self.name_edit, 0, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("brand")), 1, 0)
+        product_layout.addWidget(QLabel("ยี่ห้อ:"), 1, 0)
         product_layout.addWidget(self.brand_edit, 1, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("imei1")), 2, 0)
+        product_layout.addWidget(QLabel("IMEI 1:"), 2, 0)
         product_layout.addWidget(self.imei1_edit, 2, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("imei2")), 3, 0)
+        product_layout.addWidget(QLabel("IMEI 2 (ถ้ามี):"), 3, 0)
         product_layout.addWidget(self.imei2_edit, 3, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("serial_number")), 4, 0)
+        product_layout.addWidget(QLabel("Serial Number:"), 4, 0)
         product_layout.addWidget(self.serial_edit, 4, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("condition")), 5, 0)
+        product_layout.addWidget(QLabel("สภาพเครื่อง:"), 5, 0)
         product_layout.addWidget(self.condition_edit, 5, 1)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("accessories")), 6, 0)
+        product_layout.addWidget(QLabel("อุปกรณ์ที่มาพร้อมเครื่อง:"), 6, 0)
         product_layout.addWidget(self.accessories_edit, 6, 1)
         
         # ฟิลด์ที่ยังคงใช้
-        product_layout.addWidget(QLabel(language_manager.get_text("product_image")), 7, 0)
-        img_row = QHBoxLayout()
-        img_row.addWidget(self.image_path_edit, 1)
-        img_row.addWidget(self.image_browse_btn)
-        wrapper_img_row = QWidget()
-        wrapper_img_row.setLayout(img_row)
-        product_layout.addWidget(wrapper_img_row, 7, 1)
-        product_layout.addWidget(self.image_preview, 7, 2)
+        product_layout.addWidget(QLabel("รูปภาพสินค้า:"), 7, 0)
         
-        product_layout.addWidget(QLabel(language_manager.get_text("product_other_details")), 8, 0)
-        product_layout.addWidget(self.other_details_edit, 8, 1)
+        # สร้าง layout สำหรับรูปภาพและปุ่มอัปโหลด
+        image_container = QVBoxLayout()
+        
+        # แสดงรูปภาพตัวอย่าง
+        self.image_preview = QLabel()
+        self.image_preview.setFixedSize(160, 120)
+        self.image_preview.setAlignment(Qt.AlignCenter)
+        self.image_preview.setStyleSheet("border: 1px solid #CCC; background: #FAFAFA;")
+        self.image_preview.setText("ไม่มีรูปภาพ")
+        image_container.addWidget(self.image_preview)
+        
+        # ปุ่มอัปโหลดรูปภาพ
+        self.image_browse_btn = QPushButton("เลือกรูปภาพ...")
+        self.image_browse_btn.clicked.connect(self.browse_product_image)
+        self.image_browse_btn.setMaximumWidth(160)
+        image_container.addWidget(self.image_browse_btn)
+        
+        # ฟิลด์ path (ซ่อนไว้)
+        self.image_path_edit = QLineEdit()
+        self.image_path_edit.setReadOnly(True)
+        self.image_path_edit.hide()  # ซ่อนฟิลด์ path
+        
+        # เพิ่ม container ลงใน layout
+        image_widget = QWidget()
+        image_widget.setLayout(image_container)
+        product_layout.addWidget(image_widget, 7, 1)
         
         layout.addWidget(product_group)
         
@@ -971,9 +980,6 @@ class ProductDialog(QDialog):
         self.condition_edit.setPlainText(self.product_data.get('condition', ''))
         self.accessories_edit.setPlainText(self.product_data.get('accessories', ''))
         
-        # ฟิลด์ที่ยังคงใช้
-        self.other_details_edit.setPlainText(self.product_data.get('other_details', ''))
-        
         # โหลดรูปภาพหากมี
         image_path = self.product_data.get('image_path', '')
         if image_path and os.path.exists(image_path):
@@ -991,19 +997,15 @@ class ProductDialog(QDialog):
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
             return
         
-        if not self.brand_edit.text().strip():
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกยี่ห้อสินค้า")
-            return
         
         product_data = {
             'name': self.name_edit.text().strip(),
             'brand': self.brand_edit.text().strip(),
-            'serial_number': self.serial_edit.text().strip(),
             'imei1': self.imei1_edit.text().strip(),
             'imei2': self.imei2_edit.text().strip(),
+            'serial_number': self.serial_edit.text().strip(),
             'condition': self.condition_edit.toPlainText().strip(),
-            'accessories': self.accessories_edit.toPlainText().strip(),
-            'other_details': self.other_details_edit.toPlainText().strip()
+            'accessories': self.accessories_edit.toPlainText().strip()
         }
         # จัดการคัดลอกรูปภาพไปยังโฟลเดอร์ของโปรแกรม
         try:

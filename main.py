@@ -377,7 +377,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
         try:
             # เตรียมข้อมูลสำหรับส่งเข้า Line
-            customer_name = f"{customer_data.get('first_name', '')} {customer_data.get('last_name', '')}".strip()
+            customer_name = "{} {}".format(
+                customer_data.get('first_name', ''), 
+                customer_data.get('last_name', '')
+            ).strip()
             customer_phone = customer_data.get('phone', 'ไม่ระบุ')
             customer_id_card = customer_data.get('id_card', 'ไม่ระบุ')
             
@@ -416,7 +419,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 print("ส่งข้อมูลสัญญาเข้า Line ไม่สำเร็จ")
                 
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {str(e)}")
+            print("เกิดข้อผิดพลาดในการส่งข้อมูลเข้า Line: {}".format(str(e)))
 
     def send_line_message(self, message):
         """ส่งข้อความเข้า Line (delegate to app_services)"""
@@ -426,7 +429,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         if not ENABLE_LINE_NOTIFICATION or not SEND_FORFEITURE_NOTIFICATION:
             return
         try:
-            customer_name = f"{contract_data.get('first_name', '')} {contract_data.get('last_name', '')}".strip() or "-"
+            customer_name = "{} {}".format(
+                contract_data.get('first_name', ''), 
+                contract_data.get('last_name', '')
+            ).strip() or "-"
             product_name = contract_data.get('product_name', '-') or '-'
             pawn_amount = float(contract_data.get('pawn_amount', 0))
             end_date = contract_data.get('end_date')

@@ -50,10 +50,10 @@ class ProductSearchDialog(QDialog):
         
         # ตารางสินค้า
         self.product_table = QTableWidget()
-        self.product_table.setColumnCount(7)
+        self.product_table.setColumnCount(8)
         self.product_table.setHorizontalHeaderLabels([
-            "ชื่อสินค้า", "ยี่ห้อ/รุ่น", "ขนาด", "น้ำหนัก", 
-            "หมายเลขซีเรียล", "รายละเอียด", "วันที่สร้าง"
+            "ชื่อสินค้า", "ยี่ห้อ", "IMEI 1", "IMEI 2", "Serial Number", 
+            "สภาพเครื่อง", "อุปกรณ์ที่มาพร้อม", "วันที่สร้าง"
         ])
         self.product_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.product_table.itemDoubleClicked.connect(self.select_product)
@@ -76,7 +76,7 @@ class ProductSearchDialog(QDialog):
             products = self.db.search_products("")  # ดึงทั้งหมด
             self.display_products(products)
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถโหลดข้อมูลสินค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสินค้า: {}".format(str(e)))
     
     def search_products(self):
         """ค้นหาสินค้า"""
@@ -89,7 +89,7 @@ class ProductSearchDialog(QDialog):
             products = self.db.search_products(search_term)
             self.display_products(products)
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถค้นหาสินค้า: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถค้นหาสินค้า: {}".format(str(e)))
     
     def filter_products(self):
         """กรองข้อมูลสินค้า"""
@@ -104,10 +104,10 @@ class ProductSearchDialog(QDialog):
         for row, product in enumerate(products):
             self.product_table.setItem(row, 0, QTableWidgetItem(product.get('name', '')))
             self.product_table.setItem(row, 1, QTableWidgetItem(product.get('brand', '')))
-            self.product_table.setItem(row, 2, QTableWidgetItem(product.get('size', '')))
-            self.product_table.setItem(row, 3, QTableWidgetItem(f"{product.get('weight', 0)} กรัม"))
+            self.product_table.setItem(row, 2, QTableWidgetItem(product.get('imei1', '')))
+            self.product_table.setItem(row, 3, QTableWidgetItem(product.get('imei2', '')))
             self.product_table.setItem(row, 4, QTableWidgetItem(product.get('serial_number', '')))
-            self.product_table.setItem(row, 5, QTableWidgetItem(product.get('other_details', '')))
+            self.product_table.setItem(row, 5, QTableWidgetItem(product.get('condition', '')))
             
             # วันที่สร้าง
             created_at = product.get('created_at', '')
@@ -119,7 +119,8 @@ class ProductSearchDialog(QDialog):
                     date_str = created_at
             else:
                 date_str = ''
-            self.product_table.setItem(row, 6, QTableWidgetItem(date_str))
+            self.product_table.setItem(row, 6, QTableWidgetItem(product.get('accessories', '')))
+            self.product_table.setItem(row, 7, QTableWidgetItem(date_str))
     
     def select_product(self):
         """เลือกสินค้า"""
@@ -142,7 +143,7 @@ class ProductSearchDialog(QDialog):
                     QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสินค้า")
                     
             except Exception as e:
-                QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถเลือกสินค้า: {str(e)}")
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถเลือกสินค้า: {}".format(str(e)))
         else:
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสินค้า")
 
