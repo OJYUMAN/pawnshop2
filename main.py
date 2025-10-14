@@ -402,6 +402,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 start_date=contract_data['start_date'],
                 end_date=contract_data['end_date'],
                 days_count=contract_data['days_count'],
+                fee_amount=contract_data.get('fee_amount', 0.0),
                 total_paid=contract_data['total_paid'],
                 total_redemption=contract_data['total_redemption'],
                 timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -956,8 +957,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.lbl_serial.setText(language_manager.get_text("serial_number"))
         self.lbl_imei1.setText("IMEI 1:")
         self.lbl_imei2.setText("IMEI 2:")
-        self.lbl_condition.setText("สภาพเครื่อง:")
-        self.lbl_accessories.setText("อุปกรณ์ที่มาพร้อมเครื่อง:")
+        self.lbl_condition.setText(language_manager.get_text("condition"))
+        self.lbl_accessories.setText(language_manager.get_text("accessories"))
         self.lbl_product_other.setText(language_manager.get_text("product_other_details"))
         self.lbl_product_image.setText(language_manager.get_text("product_image"))
         self.product_image_display.setText(language_manager.get_text("no_image"))

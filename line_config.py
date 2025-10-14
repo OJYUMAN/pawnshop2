@@ -26,14 +26,11 @@ MESSAGE_TEMPLATE = {
 
 💍 สินค้า: {product_name}
 🏷️ แบรนด์: {product_brand}
-📏 ขนาด: {product_size}
-🔢 เลขประจำตัว: {product_serial}
 
 💰 จำนวนเงินกู้: {pawn_amount:,.2f} บาท
 📅 วันเริ่มต้น: {start_date}
 📅 วันสิ้นสุด: {end_date}
 ⏰ จำนวนวัน: {days_count} วัน
-💸 ค่าธรรมเนียม: {fee_amount:,.2f} บาท
 💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
 💎 จำนวนเงินไถ่คืน: {total_redemption:,.2f} บาท
 
