@@ -332,14 +332,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         product_section = self.create_product_tab()
         content_layout.addWidget(product_section, 1, 1)
         
-        # ข้อมูลต่อดอก (1,2)
-        renewal_section = self.create_renewal_tab()
-        content_layout.addWidget(renewal_section, 1, 2)
-        
         # ยืนยันสัดส่วนคอลัมน์เท่ากันและแถวล่างสูงกว่า
         content_layout.setColumnStretch(0, 1)
         content_layout.setColumnStretch(1, 1)
-        content_layout.setColumnStretch(2, 1)
         content_layout.setRowStretch(0, 1)
         content_layout.setRowStretch(1, 2)
         
@@ -984,105 +979,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_save_btn.setText(language_manager.get_text("save"))
         self.product_cancel_btn.setText(language_manager.get_text("cancel"))
 
-    def create_renewal_tab(self):
-        """สร้างส่วนข้อมูลต่อดอก"""
-        # สร้าง GroupBox หลักสำหรับข้อมูลต่อดอก
-        main_group = QGroupBox()
-        main_group.setObjectName("SearchGroup")
-        self.renewal_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
-        layout = QVBoxLayout(main_group)
-        layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
-        layout.setContentsMargins(20, 20, 20, 20)  # เพิ่ม margin รอบๆ
-        
-      
-        
-        # Renewal history table
-        history_group = QGroupBox()
-        history_layout = QVBoxLayout(history_group)
-        history_layout.setContentsMargins(15, 20, 15, 15)
-        
-        # สร้างตารางประวัติการต่อดอก
-        self.renewal_history_table = QTableWidget(0, 8)
-        headers = [
-            language_manager.get_text("renewal_h_seq"),
-            language_manager.get_text("renewal_h_date"),
-            language_manager.get_text("renewal_h_days"),
-            language_manager.get_text("renewal_h_fee"),
-            language_manager.get_text("renewal_h_penalty"),
-            language_manager.get_text("renewal_h_discount"),
-            language_manager.get_text("renewal_h_total"),
-            language_manager.get_text("renewal_h_new_due"),
-        ]
-        self.renewal_history_table.setHorizontalHeaderLabels(headers)
-        
-        # ตั้งค่าความกว้างคอลัมน์
-        header = self.renewal_history_table.horizontalHeader()
-        for i in range(len(headers)):
-            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-        
-        # ตั้งค่าการแสดงผลตาราง
-        self.renewal_history_table.setAlternatingRowColors(True)
-        self.renewal_history_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.renewal_history_table.setEditTriggers(QTableWidget.NoEditTriggers)
-        
-        history_layout.addWidget(self.renewal_history_table)
-        
-        # ปุ่มดำเนินการ
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
-        
-        self.renewal_process_btn = QPushButton()
-        self.renewal_process_btn.clicked.connect(self.process_renewal)
-        self.renewal_process_btn.setIcon(QIcon.fromTheme("view-refresh"))
-        self.renewal_process_btn.setMinimumHeight(32)
-        self.renewal_process_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28A745;
-                color: white;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-        """)
-        button_layout.addWidget(self.renewal_process_btn)
-        
-        self.renewal_clear_form_btn = QPushButton()
-        self.renewal_clear_form_btn.clicked.connect(self.clear_renewal_form)
-        self.renewal_clear_form_btn.setIcon(QIcon.fromTheme("edit-clear"))
-        self.renewal_clear_form_btn.setMinimumHeight(32)
-        button_layout.addWidget(self.renewal_clear_form_btn)
-        
-        history_layout.addLayout(button_layout)
-        layout.addWidget(history_group)
-
-        # ผูกภาษา
-        language_manager.language_changed.connect(self.apply_renewal_language)
-        self.apply_renewal_language()
-        
-        return main_group
-
-    def apply_renewal_language(self, *_args):
-        # ตั้งชื่อ GroupBox หลัก
-        if hasattr(self, "renewal_main_group"):
-            self.renewal_main_group.setTitle(language_manager.get_text("tab_renewal"))
-        
-        # ชื่อกลุ่ม
-        # ค้นหา QGroupBox ใกล้เคียงจากปุ่มในส่วนนี้ไม่ได้ตั้ง objectName ไว้ จึงใช้ข้อความตรงๆจาก layout
-        # อย่างไรก็ตาม เราอัปเดตหัวตารางและปุ่ม ซึ่งครอบคลุมตามภาพ
-        headers = [
-            language_manager.get_text("renewal_h_seq"),
-            language_manager.get_text("renewal_h_date"),
-            language_manager.get_text("renewal_h_days"),
-            language_manager.get_text("renewal_h_fee"),
-            language_manager.get_text("renewal_h_penalty"),
-            language_manager.get_text("renewal_h_discount"),
-            language_manager.get_text("renewal_h_total"),
-            language_manager.get_text("renewal_h_new_due"),
-        ]
-        self.renewal_history_table.setHorizontalHeaderLabels(headers)
-        self.renewal_process_btn.setText(language_manager.get_text("renewal_process"))
-        self.renewal_clear_form_btn.setText(language_manager.get_text("clear_form"))
 
 
 
@@ -1449,8 +1345,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ("tb_clear_form", "edit-clear", self.clear_form),
             ("tb_save_contract", "document-save", self.save_contract),
             ("tb_generate_pawn_pdf", "document-export", self.generate_pawn_contract_pdf),
-            ("tb_extend_interest", "view-refresh", self.extend_interest),
-            ("tb_generate_renewal_pdf", "document-export", self.generate_renewal_contract_pdf),
             ("tb_redeem_contract", "go-previous", self.redeem_contract),
             ("tb_view_all", "folder-open", self.view_contracts),
             ("tb_view_redemptions", "document-properties", self.view_redemptions),
@@ -1519,8 +1413,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 icon = QIcon.fromTheme("edit-clear", QIcon.fromTheme("edit-delete", QIcon.fromTheme("trash")))
             elif "บันทึก" in text or "save" in text:
                 icon = QIcon.fromTheme("document-save", QIcon.fromTheme("save", QIcon.fromTheme("floppy")))
-            elif "ต่อดอก" in text or "ดอก" in text:
-                icon = QIcon.fromTheme("view-refresh", QIcon.fromTheme("reload", QIcon.fromTheme("refresh")))
             elif "ไถ่ถอน" in text:
                 icon = QIcon.fromTheme("go-previous", QIcon.fromTheme("arrow-left", QIcon.fromTheme("back")))
             elif "หลุดจำนำ" in text:
@@ -1618,7 +1510,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # ล้างฟอร์มเพื่อเตรียมข้อมูลใหม่
         self.clear_form()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
         
         # ตั้งค่าวันที่เริ่มต้น
         self.start_date_edit.setDate(QDate.currentDate())
@@ -1635,7 +1526,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         end_date = start_date.addDays(days)
         self.end_date_edit.setText(end_date.toString("dd/MM/yyyy"))
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
@@ -1667,7 +1557,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.total_paid_label.setText("{:,.2f} บาท".format(total_paid))
         self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def open_customer_dialog(self):
         """เปิดหน้าต่างป็อปอัพเพิ่ม/แก้ไขลูกค้า"""
@@ -1702,7 +1591,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """เพิ่มลูกค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.open_customer_dialog()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def search_customer(self):
         """ค้นหาลูกค้า"""
@@ -1719,7 +1607,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         else:
             QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบลูกค้าที่มีรหัสนี้")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_customer_data(self):
         """โหลดข้อมูลลูกค้า"""
@@ -1748,15 +1635,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.province_edit.setText(self.current_customer.get('province', ''))
             self.other_details_edit.setText(self.current_customer.get('other_details', ''))
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def add_product(self):
         """เพิ่มสินค้า (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.open_product_dialog()
         
-        # ล้างตารางประวัติการต่อดอก
-        if hasattr(self, 'renewal_history_table'):
-            self.renewal_history_table.setRowCount(0)
 
     def search_product(self):
         """ค้นหาสินค้า"""
@@ -1773,7 +1656,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         else:
             QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสินค้าที่มีชื่อนี้")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
@@ -1801,38 +1683,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             else:
                 self.product_image_display.setText("ไม่มีรูปภาพ")
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
-    def extend_interest(self):
-        """ต่อดอกเบี้ย"""
-        if not self.current_contract:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
-            return
-        
-        dialog = RenewalDialog(self, self.current_contract)
-        if dialog.exec() == QDialog.Accepted:
-            # รีเฟรชข้อมูลสัญญา
-            self.refresh_contract_data()
-            # แสดงประวัติการต่อดอกของสัญญานี้ทันที
-            try:
-                contract_number = self.current_contract.get('contract_number', '')
-                if contract_number:
-                    renewals = self.db.get_renewals_by_contract(contract_number)
-                    if renewals:
-                        self.show_renewals_table(renewals)
-                    else:
-                        QMessageBox.information(self, "ข้อมูลการต่อดอก", "ไม่พบประวัติการต่อดอกของสัญญานี้")
-                    # อัปเดตตารางประวัติในแท็บต่อดอก (ถ้ามี)
-                    if hasattr(self, 'renewal_history_table'):
-                        self.load_renewal_history(contract_number)
-                    
-                    # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
-                    updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
-                    if updated_contract:
-                        self.current_contract = updated_contract
-                        self.load_contract_data()
-            except Exception as e:
-                QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการต่อดอก: {str(e)}")
     
     def refresh_contract_data(self):
         """รีเฟรชข้อมูลสัญญา"""
@@ -1845,7 +1696,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                     # อัปเดตข้อมูลในฟอร์ม
                     self.load_contract_data()
                     
-                    # อัปเดตประวัติการต่อดอก
                     contract_number = self.current_contract.get('contract_number', '')
                     if contract_number:
                         self.load_renewal_history(contract_number)
@@ -1948,7 +1798,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการอัปเดตสถานะสัญญา: {str(e)}")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def update_contract_status(self):
         """อัปเดตสถานะสัญญาตามที่เลือกในฟอร์ม"""
@@ -2052,7 +1901,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             except Exception as e:
                 print(f"ไม่สามารถส่งข้อมูลเข้า Line ได้: {str(e)}")
             
-            # โหลดประวัติการต่อดอก (ถ้ามี)
             contract_number = contract_data['contract_number']
             if contract_number:
                 self.load_renewal_history(contract_number)
@@ -2069,136 +1917,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         dialog = DataViewerDialog(self)
         dialog.exec()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
-    def view_renewals(self):
-        """ดูข้อมูลการต่อดอก"""
-        try:
-            # ดึงข้อมูลการต่อดอกทั้งหมด
-            renewals = self.db.get_all_renewals()
-            
-            if not renewals:
-                QMessageBox.information(self, "ข้อมูลการต่อดอก", "ไม่พบข้อมูลการต่อดอก")
-                return
-            
-            # สร้างหน้าต่างแสดงข้อมูลการต่อดอก
-            self.show_renewals_table(renewals)
-            
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
-            
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}")
     
-    def show_renewals_table(self, renewals: list):
-        """แสดงตารางข้อมูลการต่อดอก"""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("ข้อมูลการต่อดอก")
-        dialog.setModal(True)
-        dialog.resize(1200, 600)
-        
-        layout = QVBoxLayout(dialog)
-        
-        # สร้างตาราง
-        table = QTableWidget()
-        table.setColumnCount(11)
-        headers = [
-            "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ต่อดอกครั้งที่",
-            "ค่าธรรมเนียม", "ค่าปรับ", "ส่วนลด", "รวม", "วันต่อดอก", "วันครบกำหนดใหม่"
-        ]
-        table.setHorizontalHeaderLabels(headers)
-        
-        # ตั้งค่าความกว้างคอลัมน์
-        header = table.horizontalHeader()
-        for i in range(len(headers)):
-            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-        
-        # เพิ่มข้อมูล
-        table.setRowCount(len(renewals))
-        for row, renewal in enumerate(renewals):
-            # ลำดับ
-            table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
-            
-            # เลขที่สัญญา
-            table.setItem(row, 1, QTableWidgetItem(renewal.get('contract_number', '')))
-            
-            # ชื่อลูกค้า
-            customer_name = "{} {}".format(
-                renewal.get('first_name', ''), 
-                renewal.get('last_name', '')
-            )
-            table.setItem(row, 2, QTableWidgetItem(customer_name))
-            
-            # ชื่อสินค้า
-            table.setItem(row, 3, QTableWidgetItem(renewal.get('product_name', '')))
-            
-            # ต่อดอกครั้งที่
-            table.setItem(row, 4, QTableWidgetItem(str(renewal.get('renewal_count', ''))))
-            
-            # ค่าธรรมเนียม
-            table.setItem(row, 5, QTableWidgetItem(f"{renewal.get('fee_amount', 0):,.2f}"))
-            
-            # ค่าปรับ
-            table.setItem(row, 6, QTableWidgetItem(f"{renewal.get('penalty_amount', 0):,.2f}"))
-            
-            # ส่วนลด
-            table.setItem(row, 7, QTableWidgetItem(f"{renewal.get('discount_amount', 0):,.2f}"))
-            
-            # รวม
-            table.setItem(row, 8, QTableWidgetItem(f"{renewal.get('total_amount', 0):,.2f}"))
-            
-            # วันต่อดอก
-            renewal_date = renewal.get('renewal_date', '')
-            if renewal_date:
-                try:
-                    date_obj = datetime.strptime(renewal_date, "%Y-%m-%d")
-                    formatted_date = date_obj.strftime("%d/%m/%Y")
-                    table.setItem(row, 9, QTableWidgetItem(formatted_date))
-                except:
-                    table.setItem(row, 9, QTableWidgetItem(renewal_date))
-            else:
-                table.setItem(row, 9, QTableWidgetItem(""))
-            
-            # วันครบกำหนดใหม่
-            new_due_date = renewal.get('new_due_date', '')
-            if new_due_date:
-                try:
-                    date_obj = datetime.strptime(new_due_date, "%Y-%m-%d")
-                    formatted_date = date_obj.strftime("%d/%m/%Y")
-                    table.setItem(row, 10, QTableWidgetItem(formatted_date))
-                except:
-                    table.setItem(row, 10, QTableWidgetItem(new_due_date))
-            else:
-                table.setItem(row, 10, QTableWidgetItem(""))
-        
-        # ตั้งค่าการแสดงผลตาราง
-        table.setAlternatingRowColors(True)
-        table.setSelectionBehavior(QTableWidget.SelectRows)
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
-        
-        layout.addWidget(table)
-        
-        # ปุ่มปิด
-        close_button = QPushButton("ปิด")
-        close_button.clicked.connect(dialog.accept)
-        close_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6C757D;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #5A6268;
-            }
-        """)
-        
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(close_button)
-        layout.addLayout(button_layout)
-        
-        dialog.exec()
 
     def view_redemptions(self):
         """ดูข้อมูลการไถ่ถอน"""
@@ -2213,7 +1933,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             # สร้างหน้าต่างแสดงข้อมูลการไถ่ถอน
             self.show_redemptions_table(redemptions)
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}")
@@ -2348,25 +2067,21 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """สรุปขายฝาก"""
         QMessageBox.information(self, "สรุปขายฝาก", "ฟีเจอร์สรุปขายฝาก")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def receive_payment(self):
         """รับเงิน"""
         QMessageBox.information(self, "รับเงิน", "ฟีเจอร์รับเงิน")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def daily_account(self):
         """บัญชีรายวัน"""
         QMessageBox.information(self, "บัญชีรายวัน", "ฟีเจอร์บัญชีรายวัน")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def interest_schedule(self):
         """ตารางดอกเบี้ย"""
         QMessageBox.information(self, "ตารางดอกเบี้ย", "ฟีเจอร์ตารางดอกเบี้ย")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def on_search_type_changed(self):
         """เมื่อเปลี่ยนประเภทการค้นหา"""
@@ -2393,7 +2108,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # ล้างข้อมูลการค้นหา
         self.clear_search_fields()
         
-        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def clear_search_fields(self):
         """ล้างข้อมูลในฟิลด์ค้นหา"""
@@ -2402,7 +2116,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.search_first_name_edit.clear()
         self.search_last_name_edit.clear()
         
-        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def search_contracts(self):
         """ค้นหาสัญญาตามประเภทที่เลือก"""
@@ -2458,7 +2171,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 # โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม
                 self.load_additional_contract_data(contracts[0])
                 
-                # โหลดประวัติการต่อดอก
                 contract_number = contracts[0].get('contract_number', '')
                 if contract_number:
                     self.load_renewal_history(contract_number)
@@ -2477,7 +2189,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.clear_search_fields()
         self.current_contract = None
         
-        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
         
         QMessageBox.information(self, "ล้างการค้นหา", "ล้างการค้นหาเรียบร้อยแล้ว")
 
@@ -2485,7 +2196,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """ค้นหาถัดไป (legacy - เรียกใช้ฟังก์ชันใหม่แทน)"""
         self.search_contracts()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
 
     def search_by_name(self):
@@ -2495,7 +2205,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.on_search_type_changed()
         QMessageBox.information(self, "การค้นหา", "กรุณาเลือกประเภทการค้นหาเป็น 'ชื่อนามสกุล' และกรอกข้อมูล")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
@@ -2655,7 +2364,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.product_add_group.hide()
             self.product_info_group.show()
         
-        # ไม่ล้างประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def generate_new_contract_number(self):
         """สร้างเลขที่สัญญาใหม่"""
@@ -2665,7 +2373,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         contract_number = PawnShopUtils.generate_contract_number(prefix, sequence)
         self.contract_number_edit.setText(contract_number)
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def show_daily_report(self):
         """แสดงรายงานประจำวัน"""
@@ -2695,13 +2402,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         
         QMessageBox.information(self, "รายงานประจำวัน", message)
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def show_monthly_report(self):
         """แสดงรายงานประจำเดือน"""
         QMessageBox.information(self, "รายงานประจำเดือน", "ฟีเจอร์รายงานประจำเดือน")
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
     
     def show_withholding_tax_report(self):
         """แสดงรายงานหัก ณ ที่จ่าย"""
@@ -2730,57 +2435,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", message)
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
     
-    def show_renewals_report(self):
-        """แสดงรายงานการต่อดอก"""
-        try:
-            # ดึงข้อมูลการต่อดอกทั้งหมด
-            renewals = self.db.get_all_renewals()
-            
-            if not renewals:
-                QMessageBox.information(self, "รายงานการต่อดอก", "ไม่พบข้อมูลการต่อดอก")
-                return
-            
-            # สร้างรายงาน
-            total_renewals = len(renewals)
-            total_fees = sum(renewal.get('fee_amount', 0) for renewal in renewals)
-            total_penalties = sum(renewal.get('penalty_amount', 0) for renewal in renewals)
-            total_discounts = sum(renewal.get('discount_amount', 0) for renewal in renewals)
-            total_amount = sum(renewal.get('total_amount', 0) for renewal in renewals)
-            
-            # จัดกลุ่มตามสัญญา
-            contracts_renewed = {}
-            for renewal in renewals:
-                contract_number = renewal.get('contract_number', 'ไม่ทราบ')
-                if contract_number not in contracts_renewed:
-                    contracts_renewed[contract_number] = 0
-                contracts_renewed[contract_number] += 1
-            
-            message = f"""
-รายงานการต่อดอก:
-
-จำนวนการต่อดอกทั้งหมด: {total_renewals} ครั้ง
-จำนวนสัญญาที่ต่อดอก: {len(contracts_renewed)} สัญญา
-
-รายละเอียดยอดเงิน:
-- ค่าธรรมเนียมรวม: {total_fees:,.2f} บาท
-- ค่าปรับรวม: {total_penalties:,.2f} บาท
-- ส่วนลดรวม: {total_discounts:,.2f} บาท
-- ยอดรวม: {total_amount:,.2f} บาท
-
-หมายเหตุ: การต่อดอกจะช่วยให้ลูกค้าสามารถขยายเวลาการไถ่ถอนสินค้าได้
-            """
-            
-            QMessageBox.information(self, "รายงานการต่อดอก", message)
-            
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
-            
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
     
     def calculate_withholding_tax(self):
         """คำนวณหัก ณ ที่จ่าย"""
@@ -2808,9 +2466,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         
         QMessageBox.information(self, "ผลการคำนวณหัก ณ ที่จ่าย", message)
         
-        # ล้างตารางประวัติการต่อดอก
-        if hasattr(self, 'renewal_history_table'):
-            self.renewal_history_table.setRowCount(0)
     
     def update_withholding_tax_rate(self):
         """อัปเดตอัตราหัก ณ ที่จ่าย"""
@@ -2820,9 +2475,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         if self.db.update_withholding_tax_rate(current_rate):
             QMessageBox.information(self, "สำเร็จ", f"อัปเดตอัตราหัก ณ ที่จ่ายเป็น {current_rate:.2f}% เรียบร้อย")
             
-            # ล้างตารางประวัติการต่อดอก
-            if hasattr(self, 'renewal_history_table'):
-                self.renewal_history_table.setRowCount(0)
         else:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตอัตราหัก ณ ที่จ่ายได้")
     
@@ -2837,9 +2489,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # รีเฟรชการคำนวณค่าธรรมเนียมในฟอร์ม
         self.calculate_amounts()
         
-        # ล้างตารางประวัติการต่อดอก
-        if hasattr(self, 'renewal_history_table'):
-            self.renewal_history_table.setRowCount(0)
 
     def toggle_customer_mode(self):
         """สลับโหมดการเพิ่มลูกค้า"""
@@ -2856,7 +2505,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.customer_info_group.show()
             self.customer_info_group.setFocus()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def save_new_customer(self):
         """บันทึกข้อมูลลูกค้าใหม่"""
@@ -2905,7 +2553,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.load_customer_data()
             self.toggle_customer_mode()
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
             QMessageBox.information(self, "สำเร็จ", f"เพิ่มลูกค้าเรียบร้อย\nรหัสลูกค้า: {customer_code}")
         except ValueError as e:
@@ -2930,7 +2577,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.product_info_group.show()
             self.product_info_group.setFocus()
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def save_new_product(self):
         """บันทึกข้อมูลสินค้าใหม่"""
@@ -2965,7 +2611,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             self.load_product_data()
             self.toggle_product_mode()
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             
             QMessageBox.information(self, "สำเร็จ", "เพิ่มสินค้าเรียบร้อย")
         except Exception as e:
@@ -2982,7 +2627,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         customer_code = self.db.get_next_customer_code(prefix)
         self.customer_code_display_edit.setText(customer_code)
         
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def browse_product_image(self):
         """เลือกไฟล์รูปภาพสินค้า"""
@@ -3009,7 +2653,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             else:
                 self.product_image_preview.setText("ไม่สามารถโหลดรูปภาพได้")
             
-            # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def copy_product_image(self, source_path: str) -> str:
         """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม (delegate to app_services)"""
@@ -3094,7 +2737,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf files
             shop_data = None  # ให้ใช้ค่า default จาก pdf files
             
-            # ดึงข้อมูลการต่อดอกจากฐานข้อมูล
             renewal_data = []
             if hasattr(self, 'current_contract') and self.current_contract:
                 contract_id = self.current_contract.get('id')
@@ -3298,132 +2940,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # สร้าง PDF
         doc.build(story)
 
-    def generate_renewal_contract_pdf(self):
-        """สร้างใบฝากต่อ PDF"""
-        if not self.current_contract:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
-            return
-        
-        try:
-            # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
-            contract_id = self.current_contract['id']
-            customer = self.db.get_customer_by_id(self.current_contract.get('customer_id'))
-            product = self.db.get_product_by_id(self.current_contract.get('product_id'))
-            
-            if not customer or not product:
-                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลลูกค้าหรือสินค้า")
-                return
-            
-            # ดึงข้อมูลการต่อดอกล่าสุด
-            renewals = []
-            try:
-                contract_number = self.current_contract.get('contract_number', '')
-                if contract_number:
-                    renewals = self.db.get_renewals_by_contract(contract_number)
-            except:
-                pass
-            
-            if not renewals:
-                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลการต่อดอกของสัญญานี้\nกรุณาต่อดอกก่อนสร้างใบฝากต่อ")
-                return
-            
-            # ใช้ข้อมูลการต่อดอกล่าสุด
-            latest_renewal = renewals[-1]
-            
-            # สร้างข้อมูลการต่อดอกสำหรับ PDF
-            renewal_data = {
-                'renewal_date': latest_renewal.get('renewal_date', ''),
-                'extension_days': latest_renewal.get('deposit_days', 0),
-                'interest_amount': latest_renewal.get('fee_amount', 0),
-                'fee_amount': latest_renewal.get('penalty_amount', 0),
-                'total_amount': latest_renewal.get('total_amount', 0)
-            }
-            
-            # สร้างข้อมูลสัญญาที่ครบถ้วน
-            original_contract_data = {
-                'contract_number': self.current_contract.get('contract_number', ''),
-                'start_date': self.current_contract.get('start_date', ''),
-                'end_date': self.current_contract.get('end_date', ''),
-                'days_count': self.current_contract.get('days_count', 0),
-                'pawn_amount': self.current_contract.get('pawn_amount', 0),
-                'interest_rate': self.current_contract.get('interest_rate', 0),
-                'estimated_value': self.current_contract.get('estimated_value', 0)
-            }
-            
-            # สร้างข้อมูลลูกค้าที่ครบถ้วน
-            customer_data = {
-                'customer_code': customer.get('customer_code', ''),
-                'first_name': customer.get('first_name', ''),
-                'last_name': customer.get('last_name', ''),
-                'phone': customer.get('phone', ''),
-                'id_card': customer.get('id_card', ''),
-                'house_number': customer.get('house_number', ''),
-                'street': customer.get('street', ''),
-                'subdistrict': customer.get('subdistrict', ''),
-                'district': customer.get('district', ''),
-                'province': customer.get('province', '')
-            }
-            
-            # สร้างข้อมูลสินค้าที่ครบถ้วน
-            product_data = {
-                'name': product.get('name', ''),
-                'brand': product.get('brand', ''),
-                'size': product.get('size', ''),
-                'weight': product.get('weight', ''),
-                'weight_unit': product.get('weight_unit', ''),
-                'serial_number': product.get('serial_number', ''),
-                'other_details': product.get('other_details', '')
-            }
-            
-            # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf files
-            shop_data = None  # ให้ใช้ค่า default จาก pdf files
-            
-            # นำเข้า pdf2.py
-            try:
-                from pdf2 import generate_renewal_contract_pdf
-                
-                # สร้างชื่อไฟล์
-                contract_number = self.current_contract.get('contract_number', 'unknown')
-                renewal_date = renewal_data['renewal_date'].replace('-', '') if renewal_data['renewal_date'] else datetime.now().strftime('%Y%m%d')
-                
-                # สร้างไฟล์ชั่วคราวสำหรับพรีวิว และแสดงพรีวิว
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    temp_file = os.path.join(tmpdir, f"renewal_preview_{contract_number}_{renewal_date}.pdf")
-                    result = generate_renewal_contract_pdf(
-                        original_contract_data=original_contract_data,
-                        customer_data=customer_data,
-                        product_data=product_data,
-                        renewal_data=renewal_data,
-                        shop_data=shop_data,
-                        output_file=os.path.basename(temp_file),
-                        output_folder=tmpdir
-                    )
-
-                    if not result:
-                        QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
-                        return
-
-                    # เปิดด้วยโปรแกรมอ่าน PDF ภายนอกเสมอ และให้ตัวเลือกบันทึก
-                    self._open_pdf_external(temp_file)
-
-                    suggested_name = f"renewal_contract_{contract_number}_{renewal_date}.pdf"
-                    save_path, _ = QFileDialog.getSaveFileName(
-                        self,
-                        "บันทึก PDF ใบฝากต่อ",
-                        suggested_name,
-                        "PDF Files (*.pdf)"
-                    )
-                    if save_path:
-                        shutil.copyfile(temp_file, save_path)
-                        QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
-                    
-            except ImportError:
-                QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
-            except Exception as e:
-                QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
-                
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
 
     def fix_database_duplicates(self):
         """แก้ไขปัญหาข้อมูลซ้ำซ้อนในฐานข้อมูล"""
@@ -3443,244 +2959,19 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 
                 QMessageBox.information(self, "สำเร็จ", message)
                 
-                # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
             else:
                 QMessageBox.information(self, "ไม่พบปัญหา", "ไม่พบข้อมูลซ้ำซ้อนในฐานข้อมูล")
                 
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการแก้ไขข้อมูลซ้ำซ้อน: {str(e)}")
 
-    # Methods for renewal tab functionality
-    def search_renewals(self):
-        """ค้นหาการต่อดอกตามเลขที่สัญญา"""
-        contract_number = self.renewal_contract_search_edit.text().strip()
-        if not contract_number:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกเลขที่สัญญา")
-            return
-        
-        try:
-            # ค้นหาสัญญาในฐานข้อมูล
-            contracts = self.db.search_contracts_by_number(contract_number, 'active')
-            if contracts:
-                contract = contracts[0]
-                self.load_renewal_contract_data(contract)
-                self.load_renewal_history(contract_number)
-            else:
-                QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบสัญญาที่มีเลขที่นี้")
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการค้นหา: {str(e)}")
 
-    def load_renewal_contract_data(self, contract: dict):
-        """โหลดข้อมูลสัญญาสำหรับการต่อดอก"""
-        # ข้อมูลสัญญา
-        self.renewal_contract_number_edit.setText(contract.get('contract_number', ''))
-        
-        # ข้อมูลลูกค้า
-        customer_name = "{} {}".format(
-            contract.get('first_name', ''), 
-            contract.get('last_name', '')
-        )
-        self.renewal_customer_name_edit.setText(customer_name)
-        
-        # ข้อมูลสินค้า
-        self.renewal_product_name_edit.setText(contract.get('product_name', ''))
-        
-        # ยอดจำนำ
-        pawn_amount = contract.get('pawn_amount', 0)
-        self.renewal_pawn_amount_edit.setText(f"{pawn_amount:,.2f}")
-        
-        # วันที่ครบกำหนดเดิม
-        end_date = contract.get('end_date', '')
-        if end_date:
-            try:
-                if isinstance(end_date, str):
-                    if '-' in end_date:
-                        date_obj = datetime.strptime(end_date, "%Y-%m-%d")
-                    else:
-                        date_obj = datetime.strptime(end_date, "%d/%m/%Y")
-                    formatted_date = date_obj.strftime("%d/%m/%Y")
-                    self.renewal_original_due_date_edit.setText(formatted_date)
-            except:
-                self.renewal_original_due_date_edit.setText(end_date)
-        
-        # คำนวณวันที่ครบกำหนดใหม่
-        self.calculate_renewal_dates()
-        
-        # โหลดประวัติการต่อดอก
-        contract_number = contract.get('contract_number', '')
-        if contract_number:
-            self.load_renewal_history(contract_number)
 
-    def load_renewal_history(self, contract_number: str):
-        """โหลดประวัติการต่อดอก"""
-        try:
-            renewals = self.db.get_renewals_by_contract(contract_number)
-            self.display_renewal_history(renewals)
-        except Exception as e:
-            print(f"Error loading renewal history: {e}")
 
-    def display_renewal_history(self, renewals: list):
-        """แสดงประวัติการต่อดอกในตาราง"""
-        self.renewal_history_table.setRowCount(len(renewals))
-        
-        for row, renewal in enumerate(renewals):
-            # ลำดับ
-            self.renewal_history_table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
-            
-            # วันที่ต่อดอก
-            renewal_date = renewal.get('renewal_date', '')
-            if renewal_date:
-                try:
-                    date_obj = datetime.strptime(renewal_date, "%Y-%m-%d")
-                    formatted_date = date_obj.strftime("%d/%m/%Y")
-                    self.renewal_history_table.setItem(row, 1, QTableWidgetItem(formatted_date))
-                except:
-                    self.renewal_history_table.setItem(row, 1, QTableWidgetItem(renewal_date))
-            else:
-                self.renewal_history_table.setItem(row, 1, QTableWidgetItem(""))
-            
-            # จำนวนวันต่อ
-            extension_days = renewal.get('deposit_days', 0)
-            self.renewal_history_table.setItem(row, 2, QTableWidgetItem(str(extension_days)))
-            
-            # ค่าธรรมเนียม
-            fee_amount = renewal.get('fee_amount', 0)
-            self.renewal_history_table.setItem(row, 3, QTableWidgetItem(f"{fee_amount:,.2f}"))
-            
-            # ค่าปรับ
-            penalty_amount = renewal.get('penalty_amount', 0)
-            self.renewal_history_table.setItem(row, 4, QTableWidgetItem(f"{penalty_amount:,.2f}"))
-            
-            # ส่วนลด
-            discount_amount = renewal.get('discount_amount', 0)
-            self.renewal_history_table.setItem(row, 5, QTableWidgetItem(f"{discount_amount:,.2f}"))
-            
-            # ยอดรวม
-            total_amount = renewal.get('total_amount', 0)
-            self.renewal_history_table.setItem(row, 6, QTableWidgetItem(f"{total_amount:,.2f}"))
-            
-            # วันที่ครบกำหนดใหม่
-            new_due_date = renewal.get('new_due_date', '')
-            if new_due_date:
-                try:
-                    date_obj = datetime.strptime(new_due_date, "%Y-%m-%d")
-                    formatted_date = date_obj.strftime("%d/%m/%Y")
-                    self.renewal_history_table.setItem(row, 7, QTableWidgetItem(formatted_date))
-                except:
-                    self.renewal_history_table.setItem(row, 7, QTableWidgetItem(new_due_date))
-            else:
-                self.renewal_history_table.setItem(row, 7, QTableWidgetItem(""))
-        
-        # แสดงข้อมูลประวัติการต่อดอกเรียบร้อยแล้ว
 
-    def calculate_renewal_dates(self):
-        """คำนวณวันที่ครบกำหนดใหม่"""
-        try:
-            original_due_date = self.renewal_original_due_date_edit.text()
-            if original_due_date:
-                # แปลงวันที่จาก dd/mm/yyyy เป็น datetime object
-                date_obj = datetime.strptime(original_due_date, "%d/%m/%Y")
-                extension_days = self.renewal_extension_days_spin.value()
-                
-                # คำนวณวันที่ใหม่
-                new_date = date_obj + timedelta(days=extension_days)
-                new_date_str = new_date.strftime("%d/%m/%Y")
-                
-                self.renewal_new_due_date_edit.setText(new_date_str)
-        except Exception as e:
-            print(f"Error calculating renewal dates: {e}")
 
-    def calculate_renewal_total(self):
-        """คำนวณยอดรวมการต่อดอก"""
-        fee_amount = self.renewal_fee_amount_spin.value()
-        penalty_amount = self.renewal_penalty_amount_spin.value()
-        discount_amount = self.renewal_discount_amount_spin.value()
-        
-        total = fee_amount + penalty_amount - discount_amount
-        self.renewal_total_amount_label.setText(f"{total:,.2f} บาท")
 
-    def process_renewal(self):
-        """ดำเนินการต่อดอก"""
-        contract_number = self.renewal_contract_number_edit.text().strip()
-        if not contract_number:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาค้นหาสัญญาก่อนดำเนินการต่อดอก")
-            return
-        
-        # ตรวจสอบข้อมูลที่จำเป็น
-        extension_days = self.renewal_extension_days_spin.value()
-        fee_amount = self.renewal_fee_amount_spin.value()
-        
-        if extension_days <= 0:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาระบุจำนวนวันต่อดอก")
-            return
-        
-        if fee_amount <= 0:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณาระบุค่าธรรมเนียมต่อดอก")
-            return
-        
-        try:
-            # สร้างข้อมูลการต่อดอก
-            renewal_data = {
-                'contract_number': contract_number,
-                'extension_days': extension_days,
-                'fee_amount': fee_amount,
-                'penalty_amount': self.renewal_penalty_amount_spin.value(),
-                'discount_amount': self.renewal_discount_amount_spin.value(),
-                'total_amount': float(self.renewal_total_amount_label.text().replace(' บาท', '').replace(',', '')),
-                'renewal_date': datetime.now().strftime("%Y-%m-%d"),
-                'new_due_date': datetime.strptime(self.renewal_new_due_date_edit.text(), "%d/%m/%Y").strftime("%Y-%m-%d")
-            }
-            
-            # บันทึกการต่อดอกในฐานข้อมูล
-            renewal_id = self.db.add_renewal(renewal_data)
-            
-            if renewal_id:
-                # อัปเดตวันที่ครบกำหนดใหม่ในสัญญา
-                self.db.update_contract_end_date(contract_number, renewal_data['new_due_date'])
-                
-                QMessageBox.information(self, "สำเร็จ", "ดำเนินการต่อดอกเรียบร้อยแล้ว")
-                
-                # รีเฟรชข้อมูล
-                self.load_renewal_history(contract_number)
-                
-                # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
-                if self.current_contract and self.current_contract.get('contract_number') == contract_number:
-                    # โหลดข้อมูลสัญญาใหม่
-                    updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
-                    if updated_contract:
-                        self.current_contract = updated_contract
-                        self.load_contract_data()
-                
-                self.clear_renewal_form()
-            else:
-                QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถดำเนินการต่อดอกได้")
-                
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการดำเนินการต่อดอก: {str(e)}")
 
-    def clear_renewal_search(self):
-        """ล้างการค้นหาการต่อดอก"""
-        self.renewal_contract_search_edit.clear()
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
-        
-        # ล้างฟอร์มการต่อดอก
-        self.clear_renewal_form()
-
-    def clear_renewal_form(self):
-        """ล้างฟอร์มการต่อดอก"""
-        self.renewal_contract_number_edit.clear()
-        self.renewal_customer_name_edit.clear()
-        self.renewal_product_name_edit.clear()
-        self.renewal_pawn_amount_edit.clear()
-        self.renewal_original_due_date_edit.clear()
-        self.renewal_extension_days_spin.setValue(30)
-        self.renewal_new_due_date_edit.clear()
-        self.renewal_fee_amount_spin.setValue(0)
-        self.renewal_penalty_amount_spin.setValue(0)
-        self.renewal_discount_amount_spin.setValue(0)
-        self.renewal_total_amount_label.setText("0.00 บาท")
-        
-        # ไม่ล้างตารางประวัติการต่อดอก เพื่อให้แสดงข้อมูลประวัติ
 
     def load_additional_contract_data(self, contract: dict):
         """โหลดข้อมูลลูกค้าและสินค้าเพิ่มเติม"""
@@ -3768,7 +3059,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'redemptions': 0,
                 'total_interest': 0.0,
                 'total_fees': 0.0,
-                'total_renewal_fees': 0.0,
                 'total_redemption_amount': 0.0,
                 'net_income': 0.0
             }
@@ -3782,14 +3072,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 daily_income['total_interest'] += contract.get('fee_amount', 0)
                 daily_income['total_fees'] += contract.get('fee_amount', 0)
             
-            # นับการต่อดอก
             renewals = self.db.get_renewals_by_date(date)
             daily_income['renewals'] = len(renewals)
             
-            # คำนวณค่าธรรมเนียมการต่อดอก
-            for renewal in renewals:
-                daily_income['total_renewal_fees'] += renewal.get('fee_amount', 0)
-                daily_income['total_fees'] += renewal.get('fee_amount', 0)
             
             # นับการไถ่ถอน
             redemptions = self.db.get_redemptions_by_date(date)
@@ -3839,7 +3124,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ("🔄 การต่อดอก", f"{daily_income['renewals']} ครั้ง"),
             ("💎 การไถ่ถอน", f"{daily_income['redemptions']} ครั้ง"),
             ("💰 ดอกเบี้ยรวม", f"{daily_income['total_interest']:,.2f} บาท"),
-            ("💸 ค่าธรรมเนียมการต่อดอก", f"{daily_income['total_renewal_fees']:,.2f} บาท"),
             ("💵 ค่าธรรมเนียมรวม", f"{daily_income['total_fees']:,.2f} บาท"),
             ("💎 จำนวนเงินไถ่ถอน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
             ("📈 รายได้สุทธิ", f"{daily_income['net_income']:,.2f} บาท")
@@ -3895,7 +3179,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 renewals=daily_income['renewals'],
                 redemptions=daily_income['redemptions'],
                 total_interest=daily_income['total_interest'],
-                total_renewal_fees=daily_income['total_renewal_fees'],
                 total_fees=daily_income['total_fees'],
                 total_redemption_amount=daily_income['total_redemption_amount'],
                 net_income=daily_income['net_income'],
