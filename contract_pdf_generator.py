@@ -254,7 +254,7 @@ class ContractPDFGenerator(QObject):
         c.setFont("THSarabun", 14)
         
         # ชื่อสินค้า
-        product_name = product_data.get('name', '')
+        product_name = product_data.get('model', '') or product_data.get('name', '')
         if product_data.get('brand'):
             product_name += f" {product_data['brand']}"
         c.drawString(left_margin + 15, y_pos, f"ทรัพย์สิน: {product_name}")

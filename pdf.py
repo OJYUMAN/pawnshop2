@@ -165,7 +165,7 @@ def generate_pawn_ticket_from_data(
     
     # ข้อมูลสินค้า
     brand = product_data.get("brand", "")
-    model = product_data.get("name", "")
+    model = product_data.get("model", "") or product_data.get("name", "")
     color = product_data.get("color", "")
     imei1 = product_data.get("imei1") or product_data.get("IMEI1") or ""
     imei2 = product_data.get("imei2") or product_data.get("IMEI2") or ""
@@ -410,7 +410,7 @@ def generate_pawn_contract_html(
 
     # ทรัพย์สิน
     brand = product_data.get("brand", "")
-    model = product_data.get("name", "")
+    model = product_data.get("model", "") or product_data.get("name", "")
     color = product_data.get("color", "")
     imei1 = product_data.get("imei1") or product_data.get("IMEI1") or ""
     imei2 = product_data.get("imei2") or product_data.get("IMEI2") or ""

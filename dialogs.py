@@ -85,27 +85,27 @@ class ThaiIDCardScanner(QThread):
                             
                             # ถ้าเชื่อมต่อสำเร็จ
                             connected = True
-                            print(f"เชื่อมต่อสำเร็จด้วยโปรโตคอล: {protocol_names[i]}")
+                            print("เชื่อมต่อสำเร็จด้วยโปรโตคอล: {}".format(protocol_names[i]))
                             break
                             
                         except CardConnectionException as e:
-                            print(f"โปรโตคอล {protocol_names[i]} ล้มเหลว: {e}")
+                            print("โปรโตคอล {} ล้มเหลว: {}".format(protocol_names[i], e))
                             continue
                         except Exception as e:
-                            print(f"ข้อผิดพลาดกับโปรโตคอล {protocol_names[i]}: {e}")
+                            print("ข้อผิดพลาดกับโปรโตคอล {}: {}".format(protocol_names[i], e))
                             continue
                     
                     if connected:
                         break
                     else:
-                        print(f"ความพยายาม {attempt + 1} ล้มเหลว")
+                        print("ความพยายาม {} ล้มเหลว".format(attempt + 1))
                         if attempt < max_retries - 1:
                             import time
                             time.sleep(2)  # รอ 2 วินาทีก่อนลองใหม่
                         continue
                 
                 except Exception as e:
-                    print(f"ความพยายามเชื่อมต่อ {attempt + 1} ล้มเหลว: {e}")
+                    print("ความพยายามเชื่อมต่อ {} ล้มเหลว: {}".format(attempt + 1, e))
                     if attempt < max_retries - 1:
                         import time
                         time.sleep(2)
@@ -135,7 +135,7 @@ class ThaiIDCardScanner(QThread):
         except NoCardException:
             self.error_occurred.emit("ไม่พบบัตร กรุณาใส่บัตรประชาชนใน card reader")
         except CardConnectionException as e:
-            error_msg = f"ไม่สามารถเชื่อมต่อกับบัตรได้: {str(e)}\n\nวิธีแก้ไข:\n"
+            error_msg = "ไม่สามารถเชื่อมต่อกับบัตรได้: {str(e)}\n\nวิธีแก้ไข:\n"
             error_msg += "1. ตรวจสอบว่าบัตรใส่ในทิศทางที่ถูกต้อง\n"
             error_msg += "2. ลบและใส่บัตรใหม่\n"
             error_msg += "3. ทำความสะอาดหน้าสัมผัสของบัตร\n"
@@ -147,7 +147,7 @@ class ThaiIDCardScanner(QThread):
         except ImportError:
             self.error_occurred.emit("ไม่พบโมดูล smartcard กรุณาติดตั้ง pyscard")
         except Exception as e:
-            self.error_occurred.emit(f"เกิดข้อผิดพลาดที่ไม่คาดคิด: {str(e)}\nกรุณาลองใหม่อีกครั้ง")
+            self.error_occurred.emit("เกิดข้อผิดพลาดที่ไม่คาดคิด: {str(e)}\nกรุณาลองใหม่อีกครั้ง")
     
     def read_thai_id_card(self, connection):
         """อ่านข้อมูลจากบัตรประชาชนไทย"""
@@ -178,17 +178,17 @@ class ThaiIDCardScanner(QThread):
             try:
                 response, sw1, sw2 = connection.transmit(cmd)
                 if sw1 == 0x90 and sw2 == 0x00:
-                    print(f"เลือก applet สำเร็จ (รุ่น {i+1})")
+                    print("เลือก applet สำเร็จ (รุ่น {i+1})")
                     applet_selected = True
                     break
                 elif sw1 == 0x61:  # More data available
-                    print(f"เลือก applet สำเร็จ (รุ่น {i+1}) - มีข้อมูลเพิ่มเติม")
+                    print("เลือก applet สำเร็จ (รุ่น {i+1}) - มีข้อมูลเพิ่มเติม")
                     applet_selected = True
                     break
                 else:
-                    print(f"เลือก applet รุ่น {i+1} ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
+                    print("เลือก applet รุ่น {i+1} ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
             except Exception as e:
-                print(f"ข้อผิดพลาดกับ applet รุ่น {i+1}: {e}")
+                print("ข้อผิดพลาดกับ applet รุ่น {i+1}: {e}")
                 continue
         
         if not applet_selected:
@@ -216,24 +216,24 @@ class ThaiIDCardScanner(QThread):
                     # แปลงข้อมูลจาก TIS-620 เป็น Unicode
                     value = self.thai2unicode(data)
                     card_data[field_name] = value
-                    print(f"✅ {field_name}: {value}")
+                    print("✅ {field_name}: {value}")
                 elif sw1 == 0x61:  # More data available
                     # ใช้คำสั่ง GET RESPONSE เพื่ออ่านข้อมูลเพิ่มเติม
-                    print(f"📖 {field_name}: มีข้อมูลเพิ่มเติม (SW1=61, SW2={sw2:02X})")
+                    print("📖 {field_name}: มีข้อมูลเพิ่มเติม (SW1=61, SW2={sw2:02X})")
                     response_data = self.get_response_data(connection, sw2)
                     if response_data:
                         value = self.thai2unicode(response_data)
                         card_data[field_name] = value
-                        print(f"✅ {field_name}: {value} (จาก GET RESPONSE)")
+                        print("✅ {field_name}: {value} (จาก GET RESPONSE)")
                     else:
-                        print(f"❌ {field_name}: ไม่สามารถอ่านข้อมูลเพิ่มเติมได้")
+                        print("❌ {field_name}: ไม่สามารถอ่านข้อมูลเพิ่มเติมได้")
                         card_data[field_name] = ""
                 else:
-                    print(f"❌ {field_name}: อ่านไม่สำเร็จ (SW1={sw1:02X}, SW2={sw2:02X})")
+                    print("❌ {field_name}: อ่านไม่สำเร็จ (SW1={sw1:02X}, SW2={sw2:02X})")
                     card_data[field_name] = ""
                     
             except Exception as e:
-                print(f"❌ {field_name}: เกิดข้อผิดพลาด - {e}")
+                print("❌ {field_name}: เกิดข้อผิดพลาด - {e}")
                 card_data[field_name] = ""
         
         # ลองใช้คำสั่งแบบอื่นสำหรับบัตรรุ่นใหม่
@@ -248,7 +248,7 @@ class ThaiIDCardScanner(QThread):
                 card_data["photo"] = photo_data
                 print("✅ อ่านรูปภาพสำเร็จ")
         except Exception as e:
-            print(f"❌ อ่านรูปภาพไม่สำเร็จ: {e}")
+            print("❌ อ่านรูปภาพไม่สำเร็จ: {e}")
         
         return card_data
     
@@ -262,11 +262,11 @@ class ThaiIDCardScanner(QThread):
             if sw1 == 0x90 and sw2 == 0x00 and response_data:
                 return response_data
             else:
-                print(f"GET RESPONSE ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
+                print("GET RESPONSE ล้มเหลว: SW1={sw1:02X}, SW2={sw2:02X}")
                 return None
                 
         except Exception as e:
-            print(f"ข้อผิดพลาดในการใช้ GET RESPONSE: {e}")
+            print("ข้อผิดพลาดในการใช้ GET RESPONSE: {e}")
             return None
     
     def try_alternative_commands(self, connection, card_data):
@@ -289,14 +289,14 @@ class ThaiIDCardScanner(QThread):
                         # กำหนดชื่อฟิลด์ที่เหมาะสม
                         if "CID" in field_name:
                             card_data["CID"] = value
-                            print(f"✅ CID (Alt): {value}")
+                            print("✅ CID (Alt): {value}")
                         elif "Name" in field_name:
                             card_data["TH_Fullname"] = value
-                            print(f"✅ ชื่อ (Alt): {value}")
+                            print("✅ ชื่อ (Alt): {value}")
                         break
                         
             except Exception as e:
-                print(f"❌ {field_name}: เกิดข้อผิดพลาด - {e}")
+                print("❌ {field_name}: เกิดข้อผิดพลาด - {e}")
                 continue
     
     def thai2unicode(self, data):
@@ -474,7 +474,7 @@ class CustomerDialog(QDialog):
             self.card_scanner.start()
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถเริ่มการสแกนได้: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถเริ่มการสแกนได้: {str(e)}")
             self.scan_progress.setVisible(False)
     
     def check_card_reader_status(self):
@@ -504,7 +504,7 @@ class CustomerDialog(QDialog):
                         "ไม่พบบัตรใน card reader\n\nกรุณาใส่บัตรประชาชนก่อนคลิกสแกน")
                 else:
                     QMessageBox.warning(self, "แจ้งเตือน", 
-                        f"ไม่สามารถเชื่อมต่อกับ card reader ได้: {str(e)}\n\n"
+                        "ไม่สามารถเชื่อมต่อกับ card reader ได้: {str(e)}\n\n"
                         "กรุณาตรวจสอบการเชื่อมต่อและ driver")
                 return False
                 
@@ -513,7 +513,7 @@ class CustomerDialog(QDialog):
                 "ไม่พบโมดูล smartcard\n\nกรุณาติดตั้งด้วยคำสั่ง:\npip install pyscard")
             return False
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการตรวจสอบ card reader: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการตรวจสอบ card reader: {str(e)}")
             return False
     
     def on_card_data_ready(self, card_data):
@@ -526,13 +526,13 @@ class CustomerDialog(QDialog):
             info_text = "ข้อมูลที่ได้จากบัตร:\n"
             for key, value in card_data.items():
                 if key != "photo" and value:  # ไม่แสดงรูปภาพ
-                    info_text += f"{key}: {value}\n"
+                    info_text += "{key}: {value}\n"
             
             # ถามว่าต้องการใช้ข้อมูลนี้หรือไม่
             reply = QMessageBox.question(
                 self, 
                 "ข้อมูลบัตรประชาชน", 
-                f"{info_text}\nต้องการใช้ข้อมูลนี้หรือไม่?",
+                "{info_text}\nต้องการใช้ข้อมูลนี้หรือไม่?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             
@@ -547,7 +547,7 @@ class CustomerDialog(QDialog):
             QMessageBox.information(self, "สำเร็จ", "อ่านข้อมูลบัตรประชาชนเรียบร้อย")
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการประมวลผลข้อมูล: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการประมวลผลข้อมูล: {str(e)}")
         finally:
             self.scan_progress.setVisible(False)
     
@@ -592,13 +592,13 @@ class CustomerDialog(QDialog):
                     last_name = " ".join(name_parts[1:])
                     # รวมคำนำหน้าเข้ากับชื่อ
                     if prefix:
-                        self.first_name_edit.setText(f"{prefix} {first_name}")
+                        self.first_name_edit.setText("{prefix} {first_name}")
                     else:
                         self.first_name_edit.setText(first_name)
                     self.last_name_edit.setText(last_name)
                 else:
                     if prefix:
-                        self.first_name_edit.setText(f"{prefix} {full_name}")
+                        self.first_name_edit.setText("{prefix} {full_name}")
                     else:
                         self.first_name_edit.setText(full_name)
                     self.last_name_edit.setText("")
@@ -606,7 +606,7 @@ class CustomerDialog(QDialog):
             # กรอกข้อมูลที่อยู่อย่างถูกต้อง
             if card_data.get("Address"):
                 address = card_data["Address"].strip()
-                print(f"ที่อยู่จากบัตร: {address}")
+                print("ที่อยู่จากบัตร: {address}")
                 
                 # แยกที่อยู่เป็นส่วนๆ
                 address_parts = self.parse_thai_address(address)
@@ -630,10 +630,10 @@ class CustomerDialog(QDialog):
                 # เก็บที่อยู่ที่แยกไม่ได้ในรายละเอียดอื่นๆ
                 remaining_address = address_parts.get("remaining", "")
                 if remaining_address:
-                    self.other_details_edit.setPlainText(f"ที่อยู่เพิ่มเติม: {remaining_address}")
+                    self.other_details_edit.setPlainText("ที่อยู่เพิ่มเติม: {remaining_address}")
             
         except Exception as e:
-            print(f"Error filling form: {e}")
+            print("Error filling form: {e}")
     
     def parse_thai_address(self, address):
         """แยกที่อยู่ไทยเป็นส่วนๆ"""
@@ -675,7 +675,7 @@ class CustomerDialog(QDialog):
             if district_match:
                 district_type = district_match.group(1)
                 district_name = district_match.group(2)
-                address_parts["district"] = f"{district_type}{district_name}"
+                address_parts["district"] = "{district_type}{district_name}"
                 # ตัดเขต/อำเภอออกจากที่อยู่
                 address = address.replace(district_match.group(0), "").strip()
             
@@ -684,7 +684,7 @@ class CustomerDialog(QDialog):
             if subdistrict_match:
                 subdistrict_type = subdistrict_match.group(1)
                 subdistrict_name = subdistrict_match.group(2)
-                address_parts["subdistrict"] = f"{subdistrict_type}{subdistrict_name}"
+                address_parts["subdistrict"] = "{subdistrict_type}{subdistrict_name}"
                 # ตัดแขวง/ตำบลออกจากที่อยู่
                 address = address.replace(subdistrict_match.group(0), "").strip()
             
@@ -693,7 +693,7 @@ class CustomerDialog(QDialog):
             if street_match:
                 street_type = street_match.group(1)
                 street_name = street_match.group(2)
-                address_parts["street"] = f"{street_type}{street_name}"
+                address_parts["street"] = "{street_type}{street_name}"
                 # ตัดถนน/ซอยออกจากที่อยู่
                 address = address.replace(street_match.group(0), "").strip()
             
@@ -701,10 +701,10 @@ class CustomerDialog(QDialog):
             if address.strip():
                 address_parts["remaining"] = address.strip()
             
-            print(f"แยกที่อยู่: {address_parts}")
+            print("แยกที่อยู่: {address_parts}")
             
         except Exception as e:
-            print(f"Error parsing address: {e}")
+            print("Error parsing address: {e}")
             # หากแยกไม่ได้ ให้เก็บทั้งหมดใน remaining
             address_parts["remaining"] = address
         
@@ -716,14 +716,14 @@ class CustomerDialog(QDialog):
             if not os.path.exists("product_images"):
                 os.makedirs("product_images")
             
-            photo_filename = f"product_images/{cid}.jpg"
+            photo_filename = "product_images/{cid}.jpg"
             with open(photo_filename, "wb") as f:
                 f.write(photo_data)
             
-            print(f"บันทึกรูปภาพเรียบร้อย: {photo_filename}")
+            print("บันทึกรูปภาพเรียบร้อย: {photo_filename}")
             
         except Exception as e:
-            print(f"Error saving photo: {e}")
+            print("Error saving photo: {e}")
     
     def load_customer_data(self):
         """โหลดข้อมูลลูกค้า"""
@@ -745,9 +745,9 @@ class CustomerDialog(QDialog):
             next_code = self.db.get_next_customer_code()
             self.customer_code_edit.setText(next_code)
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
     
-    def clean_input_data(self, text: str) -> str:
+    def clean_input_data(self, text):
         """ทำความสะอาดข้อมูลที่กรอก"""
         if not text:
             return ""
@@ -765,7 +765,7 @@ class CustomerDialog(QDialog):
                 customer_code = self.db.get_next_customer_code()
                 self.customer_code_edit.setText(customer_code)
             except Exception as e:
-                QMessageBox.warning(self, "แจ้งเตือน", f"ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถสร้างรหัสลูกค้าได้: {str(e)}")
                 return
         
         if not self.first_name_edit.text().strip():
@@ -861,21 +861,40 @@ class ProductDialog(QDialog):
     def setup_ui(self):
         self.setWindowTitle("ข้อมูลสินค้า")
         self.setModal(True)
-        self.resize(500, 400)
+        self.resize(600, 700)
         
         layout = QVBoxLayout(self)
         
         # ข้อมูลสินค้า
         product_group = QGroupBox("ข้อมูลสินค้า")
         product_layout = QGridLayout(product_group)
+        product_layout.setSpacing(10)
         
+        # ฟิลด์ใหม่ตามรูปภาพ
         self.name_edit = QLineEdit()
+        self.name_edit.setPlaceholderText("ชื่อสินค้า เช่น iPhone 15 Pro Max")
+        
         self.brand_edit = QLineEdit()
-        self.size_edit = QLineEdit()
-        self.weight_spin = QDoubleSpinBox()
-        self.weight_spin.setRange(0, 999999)
-        self.weight_spin.setSuffix(" กรัม")
+        self.brand_edit.setPlaceholderText("Apple, Samsung, Oppo")
+        
+        self.imei1_edit = QLineEdit()
+        self.imei1_edit.setPlaceholderText("เลข IMEI เครื่อง")
+        
+        self.imei2_edit = QLineEdit()
+        self.imei2_edit.setPlaceholderText("เลข IMEI 2 (ถ้ามี)")
+        
         self.serial_edit = QLineEdit()
+        self.serial_edit.setPlaceholderText("เลข Serial Number")
+        
+        self.condition_edit = QTextEdit()
+        self.condition_edit.setMaximumHeight(80)
+        self.condition_edit.setPlaceholderText("เช่น ใหม่มาก, มีรอยขนแมวเล็กน้อย, จอแตกมุมขวาบน")
+        
+        self.accessories_edit = QTextEdit()
+        self.accessories_edit.setMaximumHeight(80)
+        self.accessories_edit.setPlaceholderText("เช่น กล่อง, สายชาร์จแท้, อแดปเตอร์, หูฟัง")
+        
+        # ฟิลด์ที่ยังคงใช้
         self.other_details_edit = QTextEdit()
         self.other_details_edit.setMaximumHeight(80)
 
@@ -890,33 +909,49 @@ class ProductDialog(QDialog):
         self.image_browse_btn.clicked.connect(self.browse_product_image)
         self._image_source_path = ""
         
+        # จัดเรียงฟิลด์ตามรูปภาพ
+        from language_manager import language_manager
+        
         product_layout.addWidget(QLabel("ชื่อสินค้า:"), 0, 0)
         product_layout.addWidget(self.name_edit, 0, 1)
-        product_layout.addWidget(QLabel("ยี่ห้อ/รุ่น:"), 1, 0)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("brand")), 1, 0)
         product_layout.addWidget(self.brand_edit, 1, 1)
-        product_layout.addWidget(QLabel("ขนาด:"), 2, 0)
-        product_layout.addWidget(self.size_edit, 2, 1)
-        product_layout.addWidget(QLabel("น้ำหนัก:"), 3, 0)
-        product_layout.addWidget(self.weight_spin, 3, 1)
-        product_layout.addWidget(QLabel("หมายเลขซีเรียล:"), 4, 0)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("imei1")), 2, 0)
+        product_layout.addWidget(self.imei1_edit, 2, 1)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("imei2")), 3, 0)
+        product_layout.addWidget(self.imei2_edit, 3, 1)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("serial_number")), 4, 0)
         product_layout.addWidget(self.serial_edit, 4, 1)
-        product_layout.addWidget(QLabel("รูปภาพ:"), 5, 0)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("condition")), 5, 0)
+        product_layout.addWidget(self.condition_edit, 5, 1)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("accessories")), 6, 0)
+        product_layout.addWidget(self.accessories_edit, 6, 1)
+        
+        # ฟิลด์ที่ยังคงใช้
+        product_layout.addWidget(QLabel(language_manager.get_text("product_image")), 7, 0)
         img_row = QHBoxLayout()
         img_row.addWidget(self.image_path_edit, 1)
         img_row.addWidget(self.image_browse_btn)
         wrapper_img_row = QWidget()
         wrapper_img_row.setLayout(img_row)
-        product_layout.addWidget(wrapper_img_row, 5, 1)
-        product_layout.addWidget(self.image_preview, 6, 1)
-        product_layout.addWidget(QLabel("รายละเอียดอื่นๆ:"), 7, 0)
-        product_layout.addWidget(self.other_details_edit, 7, 1)
+        product_layout.addWidget(wrapper_img_row, 7, 1)
+        product_layout.addWidget(self.image_preview, 7, 2)
+        
+        product_layout.addWidget(QLabel(language_manager.get_text("product_other_details")), 8, 0)
+        product_layout.addWidget(self.other_details_edit, 8, 1)
         
         layout.addWidget(product_group)
         
         # ปุ่ม
         button_layout = QHBoxLayout()
-        save_button = QPushButton("บันทึก")
-        cancel_button = QPushButton("ยกเลิก")
+        save_button = QPushButton(language_manager.get_text("save"))
+        cancel_button = QPushButton(language_manager.get_text("cancel"))
         
         save_button.clicked.connect(self.save_product)
         cancel_button.clicked.connect(self.reject)
@@ -927,12 +962,18 @@ class ProductDialog(QDialog):
     
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
+        # ฟิลด์ใหม่ตามรูปภาพ
         self.name_edit.setText(self.product_data.get('name', ''))
         self.brand_edit.setText(self.product_data.get('brand', ''))
-        self.size_edit.setText(self.product_data.get('size', ''))
-        self.weight_spin.setValue(self.product_data.get('weight', 0))
+        self.imei1_edit.setText(self.product_data.get('imei1', ''))
+        self.imei2_edit.setText(self.product_data.get('imei2', ''))
         self.serial_edit.setText(self.product_data.get('serial_number', ''))
+        self.condition_edit.setPlainText(self.product_data.get('condition', ''))
+        self.accessories_edit.setPlainText(self.product_data.get('accessories', ''))
+        
+        # ฟิลด์ที่ยังคงใช้
         self.other_details_edit.setPlainText(self.product_data.get('other_details', ''))
+        
         # โหลดรูปภาพหากมี
         image_path = self.product_data.get('image_path', '')
         if image_path and os.path.exists(image_path):
@@ -950,12 +991,18 @@ class ProductDialog(QDialog):
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
             return
         
+        if not self.brand_edit.text().strip():
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกยี่ห้อสินค้า")
+            return
+        
         product_data = {
             'name': self.name_edit.text().strip(),
             'brand': self.brand_edit.text().strip(),
-            'size': self.size_edit.text().strip(),
-            'weight': self.weight_spin.value(),
             'serial_number': self.serial_edit.text().strip(),
+            'imei1': self.imei1_edit.text().strip(),
+            'imei2': self.imei2_edit.text().strip(),
+            'condition': self.condition_edit.toPlainText().strip(),
+            'accessories': self.accessories_edit.toPlainText().strip(),
             'other_details': self.other_details_edit.toPlainText().strip()
         }
         # จัดการคัดลอกรูปภาพไปยังโฟลเดอร์ของโปรแกรม
@@ -1415,7 +1462,7 @@ class RedemptionDialog(QDialog):
             self.calculate_amounts()
             
         except Exception as e:
-            print(f"Error calculating days: {e}")
+            print("Error calculating days: {e}")
     
     def calculate_amounts(self):
         """คำนวณจำนวนเงินต่างๆ"""
@@ -1446,14 +1493,14 @@ class RedemptionDialog(QDialog):
             total = principal + fee_amount + penalty - discount
             
             # แสดงผลลัพธ์
-            self.principal_amount_label.setText(f"{principal:,.2f} บาท")
-            self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
-            self.penalty_amount_label.setText(f"{penalty:,.2f} บาท")
-            self.discount_amount_label.setText(f"{discount:,.2f} บาท")
-            self.total_amount_label.setText(f"{total:,.2f} บาท")
+            self.principal_amount_label.setText("{principal:,.2f} บาท")
+            self.fee_amount_label.setText("{fee_amount:,.2f} บาท")
+            self.penalty_amount_label.setText("{penalty:,.2f} บาท")
+            self.discount_amount_label.setText("{discount:,.2f} บาท")
+            self.total_amount_label.setText("{total:,.2f} บาท")
             
         except Exception as e:
-            print(f"Error calculating amounts: {e}")
+            print("Error calculating amounts: {e}")
     
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
@@ -1477,7 +1524,7 @@ class RedemptionDialog(QDialog):
             self.calculate_total_days()
             
         except Exception as e:
-            print(f"Error loading contract data: {e}")
+            print("Error loading contract data: {e}")
     
     def confirm_redemption(self):
         """ยืนยันการไถ่คืน"""
@@ -1522,7 +1569,7 @@ class RedemptionDialog(QDialog):
             self.accept()
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {str(e)}")
     
     def send_redemption_line_notification(self, redemption_data):
         """ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่คืน"""
@@ -1540,7 +1587,7 @@ class RedemptionDialog(QDialog):
             # สร้างข้อความแจ้งเตือน
             message = MESSAGE_TEMPLATE['redemption'].format(
                 contract_number=self.contract_data.get('contract_number', ''),
-                customer_name=f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                customer_name="{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
                 redemption_amount=redemption_data['redemption_amount'],
                 redemption_date=redemption_data['redemption_date'],
                 timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1554,7 +1601,7 @@ class RedemptionDialog(QDialog):
                 print("ส่งข้อความแจ้งเตือนการไถ่คืนไม่สำเร็จ")
                 
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการไถ่คืน: {str(e)}")
+            print("เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการไถ่คืน: {str(e)}")
     
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
         """สร้างสัญญาไถ่คืนเป็น PDF"""
@@ -1637,7 +1684,7 @@ class RedemptionDialog(QDialog):
             # สร้างไฟล์ชั่วคราวสำหรับพรีวิวและให้ผู้ใช้เลือกบันทึก
             contract_number = self.contract_data.get('contract_number', 'unknown')
             with tempfile.TemporaryDirectory() as tmpdir:
-                temp_file = os.path.join(tmpdir, f"redemption_preview_{contract_number}.pdf")
+                temp_file = os.path.join(tmpdir, "redemption_preview_{contract_number}.pd")
 
                 # สร้าง PDF ลงไฟล์ชั่วคราว
                 result = generate_redemption_contract_pdf(
@@ -1666,7 +1713,7 @@ class RedemptionDialog(QDialog):
                         pass
 
                     # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
-                    suggested_name = f"ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    suggested_name = "ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pd"
                     save_path, _ = QFileDialog.getSaveFileName(
                         self,
                         "บันทึก PDF",
@@ -1675,7 +1722,7 @@ class RedemptionDialog(QDialog):
                     )
                     if save_path:
                         shutil.copyfile(result, save_path)
-                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
+                        QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
                         # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
                         if redemption_id is not None:
                             self.print_redemption_contract(save_path)
@@ -1685,7 +1732,7 @@ class RedemptionDialog(QDialog):
         except ImportError:
             QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
     
     def print_redemption_contract(self, pdf_file_path):
         """พิมพ์สัญญาไถ่คืน"""
@@ -1695,7 +1742,7 @@ class RedemptionDialog(QDialog):
             
             # ตรวจสอบว่าไฟล์ PDF มีอยู่จริง
             if not os.path.exists(pdf_file_path):
-                QMessageBox.warning(self, "แจ้งเตือน", f"ไม่พบไฟล์ PDF: {pdf_file_path}")
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบไฟล์ PDF: {pdf_file_path}")
                 return
             
             # พิมพ์ไฟล์ PDF ตามระบบปฏิบัติการ
@@ -1725,7 +1772,7 @@ class RedemptionDialog(QDialog):
                         "เปิดไฟล์แล้ว\nกรุณาเลือกพิมพ์จากเมนู File > Print")
                         
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการพิมพ์: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการพิมพ์: {str(e)}")
     
     def generate_redemption_contract_only(self):
         """สร้างเฉพาะสัญญาไถ่คืนโดยไม่บันทึกการไถ่คืน"""
@@ -1752,7 +1799,7 @@ class RedemptionDialog(QDialog):
             self.generate_redemption_contract_pdf(redemption_data, None)
             
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {str(e)}")
 
 class FolderSelectionDialog(QDialog):
     """Dialog สำหรับเลือกโฟลเดอร์ในการจัดเก็บไฟล์ PDF"""
@@ -2013,7 +2060,7 @@ class RenewalDialog(QDialog):
                 start_date = datetime.strptime(self.contract_data['start_date'], "%Y-%m-%d")
                 current_date = datetime.now()
                 days_diff = (current_date - start_date).days
-                self.days_deposit_label.setText(f"{days_diff} วัน")
+                self.days_deposit_label.setText("{days_diff} วัน")
             except:
                 self.days_deposit_label.setText("0 วัน")
     
@@ -2097,7 +2144,7 @@ class RenewalDialog(QDialog):
             # สร้างข้อความแจ้งเตือน
             message = MESSAGE_TEMPLATE['renewal'].format(
                 contract_number=self.contract_data.get('contract_number', ''),
-                customer_name=f"{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
+                customer_name="{customer.get('first_name', '')} {customer.get('last_name', '')}".strip(),
                 original_amount=self.contract_data.get('pawn_amount', 0),
                 renewal_fee=renewal_data['total_amount'],
                 renewal_date=renewal_data['renewal_date'],
@@ -2112,7 +2159,7 @@ class RenewalDialog(QDialog):
                 print("ส่งข้อความแจ้งเตือนการต่อดอกไม่สำเร็จ")
                 
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการต่อดอก: {str(e)}")
+            print("เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการต่อดอก: {str(e)}")
     
     def generate_renewal_pdf(self):
         """สร้างใบฝากต่อ PDF"""
@@ -2184,7 +2231,7 @@ class RenewalDialog(QDialog):
 
                 contract_number = self.contract_data.get('contract_number', 'unknown')
                 with tempfile.TemporaryDirectory() as tmpdir:
-                    temp_file = os.path.join(tmpdir, f"renewal_preview_{contract_number}.pdf")
+                    temp_file = os.path.join(tmpdir, "renewal_preview_{contract_number}.pd")
 
                     result = generate_renewal_contract_pdf(
                         original_contract_data=original_contract_data,
@@ -2212,7 +2259,7 @@ class RenewalDialog(QDialog):
                             pass
 
                         # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
-                        suggested_name = f"ใบฝากต่อ_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                        suggested_name = "ใบฝากต่อ_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pd"
                         save_path, _ = QFileDialog.getSaveFileName(
                             self,
                             "บันทึก PDF",
@@ -2221,13 +2268,13 @@ class RenewalDialog(QDialog):
                         )
                         if save_path:
                             shutil.copyfile(result, save_path)
-                            QMessageBox.information(self, "สำเร็จ", f"บันทึกใบฝากต่อแล้วที่:\n{save_path}")
+                            QMessageBox.information(self, "สำเร็จ", "บันทึกใบฝากต่อแล้วที่:\n{save_path}")
                     else:
                         QMessageBox.warning(self, "แจ้งเตือน", "สร้างใบฝากต่อไม่สำเร็จ")
             except ImportError:
                 QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf2.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf2.py อยู่ในโฟลเดอร์เดียวกัน")
             except Exception as e:
-                QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
+                QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
                 
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาด: {str(e)}")

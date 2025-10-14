@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import os
 from PySide6.QtWidgets import (
@@ -380,9 +381,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             customer_phone = customer_data.get('phone', 'ไม่ระบุ')
             customer_id_card = customer_data.get('id_card', 'ไม่ระบุ')
             
-            product_name = product_data.get('name', 'ไม่ระบุ')
+            product_name = product_data.get('model', '') or product_data.get('name', 'ไม่ระบุ')
             product_brand = product_data.get('brand', 'ไม่ระบุ')
-            product_size = product_data.get('size', 'ไม่ระบุ')
             product_serial = product_data.get('serial_number', 'ไม่ระบุ')
             
             # ใช้ template จาก config
@@ -729,6 +729,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.lbl_product_name = QLabel()
         search_layout.addWidget(self.lbl_product_name, 0, 0)
         self.product_name_edit = QLineEdit()
+        self.product_name_edit.setPlaceholderText("ยี่ห้อหรือรุ่นสินค้า")
         search_layout.addWidget(self.product_name_edit, 0, 1)
         
         self.product_search_btn = QPushButton()
@@ -768,42 +769,24 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_brand_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.product_brand_edit, 1, 1)
         
-        # ขนาด
-        self.lbl_size = QLabel()
-        self.product_info_layout.addWidget(self.lbl_size, 2, 0)
-        self.product_size_edit = QLineEdit()
-        self.product_size_edit.setReadOnly(True)
-        self.product_info_layout.addWidget(self.product_size_edit, 2, 1)
-        
-        # น้ำหนัก
-        self.lbl_weight = QLabel()
-        self.product_info_layout.addWidget(self.lbl_weight, 3, 0)
-        self.product_weight_combo = QComboBox()
-        self.product_weight_combo.addItems([
-            language_manager.get_text("unit_gram"),
-            language_manager.get_text("unit_kilogram"),
-            language_manager.get_text("unit_baht"),
-        ])
-        self.product_weight_combo.setEnabled(False)
-        self.product_info_layout.addWidget(self.product_weight_combo, 3, 1)
         
         # หมายเลขซีเรียล
         self.lbl_serial = QLabel()
-        self.product_info_layout.addWidget(self.lbl_serial, 4, 0)
+        self.product_info_layout.addWidget(self.lbl_serial, 2, 0)
         self.serial_number_edit = QLineEdit()
         self.serial_number_edit.setReadOnly(True)
-        self.product_info_layout.addWidget(self.serial_number_edit, 4, 1)
+        self.product_info_layout.addWidget(self.serial_number_edit, 2, 1)
         
         # รายละเอียดอื่นๆ
         self.lbl_product_other = QLabel()
-        self.product_info_layout.addWidget(self.lbl_product_other, 5, 0)
+        self.product_info_layout.addWidget(self.lbl_product_other, 3, 0)
         self.product_details_edit = QLineEdit()
         self.product_details_edit.setReadOnly(True)
-        self.product_info_layout.addWidget(self.product_details_edit, 5, 1)
+        self.product_info_layout.addWidget(self.product_details_edit, 3, 1)
         
         # รูปภาพสินค้า
         self.lbl_product_image = QLabel()
-        self.product_info_layout.addWidget(self.lbl_product_image, 6, 0)
+        self.product_info_layout.addWidget(self.lbl_product_image, 4, 0)
         self.product_image_display = QLabel()
         self.product_image_display.setMinimumSize(200, 150)
         # อนุญาตให้รูปภาพขยายตามพื้นที่ โดยไม่ล็อกขนาดสูงสุด
@@ -811,7 +794,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_image_display.setStyleSheet("border: 2px solid #ccc; background-color: #f9f9f9;")
         self.product_image_display.setAlignment(Qt.AlignCenter)
         self.product_image_display.setText(language_manager.get_text("no_image"))
-        self.product_info_layout.addWidget(self.product_image_display, 6, 1)
+        self.product_info_layout.addWidget(self.product_image_display, 4, 1)
         
         # ใส่ ScrollArea ให้ส่วนข้อมูลสินค้า
         product_scroll = QScrollArea()
@@ -937,15 +920,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # Info section
         self.lbl_pawned_product.setText(language_manager.get_text("pawned_product"))
         self.lbl_brand_model.setText(language_manager.get_text("brand_model"))
-        self.lbl_size.setText(language_manager.get_text("size"))
-        self.lbl_weight.setText(language_manager.get_text("weight"))
-        # units combo
-        self.product_weight_combo.clear()
-        self.product_weight_combo.addItems([
-            language_manager.get_text("unit_gram"),
-            language_manager.get_text("unit_kilogram"),
-            language_manager.get_text("unit_baht"),
-        ])
         self.lbl_serial.setText(language_manager.get_text("serial_number"))
         self.lbl_product_other.setText(language_manager.get_text("product_other_details"))
         self.lbl_product_image.setText(language_manager.get_text("product_image"))
@@ -1558,7 +1532,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """ค้นหาสินค้า"""
         product_name = self.product_name_edit.text().strip()
         if not product_name:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อสินค้า")
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกยี่ห้อหรือรุ่นสินค้า")
             return
         
         # ค้นหาสินค้าในฐานข้อมูล
@@ -1573,9 +1547,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
         if self.current_product:
-            self.product_name_display_edit.setText(self.current_product.get('name', ''))
+            self.product_name_display_edit.setText(self.current_product.get('model', '') or self.current_product.get('name', ''))
             self.product_brand_edit.setText(self.current_product.get('brand', ''))
-            self.product_size_edit.setText(self.current_product.get('size', ''))
             self.serial_number_edit.setText(self.current_product.get('serial_number', ''))
             self.product_details_edit.setText(self.current_product.get('other_details', ''))
             
@@ -2250,7 +2223,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_name_edit.clear()
         self.product_name_display_edit.clear()
         self.product_brand_edit.clear()
-        self.product_size_edit.clear()
         self.serial_number_edit.clear()
         self.product_details_edit.clear()
         
@@ -2896,9 +2868,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                     # ตั้งค่า current_product เพื่อใช้ในการสร้าง PDF
                     self.current_product = product
                     
-                    self.product_name_edit.setText(product.get('name', ''))
+                    self.product_name_edit.setText(product.get('model', '') or product.get('name', ''))
                     self.product_brand_edit.setText(product.get('brand', ''))
-                    self.product_size_edit.setText(product.get('size', ''))
                     self.serial_number_edit.setText(product.get('serial_number', ''))
                     self.product_details_edit.setText(product.get('other_details', ''))
                     

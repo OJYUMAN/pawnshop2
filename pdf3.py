@@ -226,7 +226,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
 
     # สินค้า
     brand = product_data.get('brand', '')
-    name = product_data.get('name', 'ทรัพย์สิน')
+    name = product_data.get('model', '') or product_data.get('name', 'ทรัพย์สิน')
     color = product_data.get('color', '')
     imei1 = product_data.get('imei1', '')
     imei2 = product_data.get('imei2', '')
@@ -415,7 +415,7 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     cp = _boxed([
         [Paragraph("<b>ลูกค้า</b>", styles["TH-bold"]), Paragraph("<b>สินค้า</b>", styles["TH-bold"])],
         [Paragraph(f"ชื่อ: {customer_name}<br/>โทร: {phone}", styles["TH"]),
-         Paragraph((product_data.get('brand','') + ' ' if product_data.get('brand') else '') + product_data.get('name','N/A'), styles["TH"])],
+         Paragraph((product_data.get('brand','') + ' ' if product_data.get('brand') else '') + (product_data.get('model','') or product_data.get('name','N/A')), styles["TH"])],
     ], [col_w, col_w], header_rows=1)
     story += [cp, Spacer(1,6)]
 

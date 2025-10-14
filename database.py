@@ -63,10 +63,15 @@ class PawnShopDatabase:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     brand TEXT,
+                    model TEXT,
                     size TEXT,
                     weight REAL,
                     weight_unit TEXT,
                     serial_number TEXT,
+                    imei1 TEXT,
+                    imei2 TEXT,
+                    condition TEXT,
+                    accessories TEXT,
                     other_details TEXT,
                     image_path TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -199,6 +204,20 @@ class PawnShopDatabase:
             if 'image_path' not in columns:
                 cursor.execute('ALTER TABLE products ADD COLUMN image_path TEXT')
                 print("Added image_path column to products table")
+            
+            # เพิ่มคอลัมน์ใหม่สำหรับข้อมูลสินค้าตามฟอร์มใหม่
+            new_columns = [
+                ('model', 'TEXT'),
+                ('imei1', 'TEXT'),
+                ('imei2', 'TEXT'),
+                ('condition', 'TEXT'),
+                ('accessories', 'TEXT')
+            ]
+            
+            for column_name, column_type in new_columns:
+                if column_name not in columns:
+                    cursor.execute(f'ALTER TABLE products ADD COLUMN {column_name} {column_type}')
+                    print(f"Added {column_name} column to products table")
             
             # ตรวจสอบและเพิ่มคอลัมน์ใหม่ในตาราง redemptions
             cursor.execute("PRAGMA table_info(redemptions)")

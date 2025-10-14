@@ -162,7 +162,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     total_redemption = original_pawn_amount + total_amount
 
     # --- product & customer ---
-    product_name = product_data.get('name', 'N/A')
+    product_name = product_data.get('model', '') or product_data.get('name', 'N/A')
     brand = product_data.get('brand', '')
     product_display = f"{brand} {product_name}".strip()
     details_bits = []
