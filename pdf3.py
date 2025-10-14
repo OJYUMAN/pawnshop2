@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-ระบบสร้างสัญญาไถ่คืน/ใบเสร็จ PDF
-กระดาษ = A4 เต็ม แต่เนื้อหาขนาดเดิมเท่าครึ่งแผ่น (วางบนครึ่งบนของหน้า)
+สัญญาไถ่คืน/ใบเสร็จ PDF
+- หน้า A4 เต็ม ระยะขอบ 16mm
+- สัญญาไถ่คืน ใช้เลย์เอาต์ตาม HTML ตัวอย่าง (หัวเรื่อง, meta 2 คอลัมน์, ย่อหน้า, ลายเซ็น 3 ช่อง)
 """
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.lib import colors
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
     KeepInFrame
 )
 from reportlab.lib.units import mm
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional
 import os
 from shop_config_loader import load_shop_config
@@ -33,7 +34,7 @@ def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf')
     if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
         pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
 
-def thai_date(date_str: Optional[str]) -> str:
+def thai_date(date_val: Optional[str]) -> str:
     month_map = {
         'January': 'มกราคม', 'February': 'กุมภาพันธ์', 'March': 'มีนาคม',
         'April': 'เมษายน', 'May': 'พฤษภาคม', 'June': 'มิถุนายน',
@@ -41,88 +42,128 @@ def thai_date(date_str: Optional[str]) -> str:
         'October': 'ตุลาคม', 'November': 'พฤศจิกายน', 'December': 'ธันวาคม'
     }
     try:
-        if not date_str or date_str == 'N/A':
+        if not date_val or date_val == 'N/A':
             return 'N/A'
-        if isinstance(date_str, datetime):
-            dt = date_str
+        if isinstance(date_val, datetime):
+            dt = date_val
         else:
-            s = str(date_str)
+            s = str(date_val)
             dt = datetime.strptime(s, '%Y-%m-%d') if '-' in s else datetime.strptime(s, '%d/%m/%Y')
         out = dt.strftime('%d %B %Y')
-        for eng, th in month_map.items():
-            out = out.replace(eng, th)
+        for e, t in month_map.items():
+            out = out.replace(e, t)
+        # เพิ่มปี พ.ศ. ถ้าต้องการสามารถบวก 543 ที่นี่
         return out
     except Exception:
-        return str(date_str) if date_str else 'N/A'
+        return str(date_val) if date_val else 'N/A'
 
 
-# ---------- A4 (Top Half) Doc ----------
-class A4TopHalfDoc(BaseDocTemplate):
+# ---------- A4 Doc (margin 16mm) ----------
+class A4Doc(BaseDocTemplate):
     """
-    กำหนดหน้า A4 เต็ม แต่สร้าง Frame เท่ากับ 'พื้นที่ครึ่งแผ่น' ที่ครึ่งบนของหน้า
-    เพื่อให้เนื้อหาขนาดเท่าเดิม (แบบครึ่งแผ่น) ไม่ถูกขยาย
+    หน้า A4 เต็ม ระยะขอบ 16mm ตาม @page { margin: 16mm }
     """
     def __init__(self, filename, pagesize=A4, **kwargs):
         super().__init__(filename, pagesize=pagesize, **kwargs)
         width, height = pagesize
-        margin_lr = 8 * mm
-        margin_tb = 6 * mm
-        # วางกรอบบนครึ่งบน: เริ่มที่ y = height/2 + margin_tb
-        # ความสูงกรอบ = (height/2) - 2*margin_tb  (เท่ากับตอนใช้หน้า Half-A4)
-        self.frame = Frame(
-            margin_lr,
-            (height / 2.0) + margin_tb,
-            width - 2 * margin_lr,
-            (height / 2.0) - 2 * margin_tb,
+        margin = 16 * mm
+        frame = Frame(
+            margin, margin,
+            width - 2 * margin,
+            height - 2 * margin,
             leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
             showBoundary=0
         )
-        self.addPageTemplates(PageTemplate(id='A4TopHalf', frames=[self.frame]))
+        self.addPageTemplates(PageTemplate(id='A4Full', frames=[frame]))
 
 
-# ---------- Styles (compact) ----------
+# ---------- Styles ----------
 def make_styles():
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=9.6, leading=11))
-    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=9.6, leading=11))
-    styles.add(ParagraphStyle(name="TH-h", fontName="THSarabun-Bold", fontSize=16, leading=18, alignment=TA_CENTER))
-    styles.add(ParagraphStyle(name="TH-sub", fontName="THSarabun-Bold", fontSize=11, leading=12.5, alignment=TA_CENTER))
-    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=9.6, leading=11, alignment=TA_RIGHT))
-    styles.add(ParagraphStyle(name="TH-mini", fontName="THSarabun", fontSize=8.6, leading=10))
+    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_JUSTIFY))
+    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=13.5, leading=16.2))
+    styles.add(ParagraphStyle(name="TH-h1", fontName="THSarabun-Bold", fontSize=20, leading=23, alignment=TA_CENTER, spaceAfter=6))
+    styles.add(ParagraphStyle(name="TH-meta", fontName="THSarabun", fontSize=12, leading=14.2))
+    styles.add(ParagraphStyle(name="TH-section", fontName="THSarabun-Bold", fontSize=13.5, leading=16.2, spaceBefore=6, spaceAfter=2))
+    styles.add(ParagraphStyle(name="TH-indent", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_JUSTIFY, leftIndent=12*mm))
+    styles.add(ParagraphStyle(name="TH-mini", fontName="THSarabun", fontSize=10.5, leading=12.2, textColor=colors.black))
+    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_RIGHT))
     return styles
 
 
 # ---------- Helpers ----------
 def _shop(shop_data: Optional[Dict]):
-    # Load shop configuration from JSON file
-    default_shop_config = load_shop_config()
+    cfg = load_shop_config()
     return (
-        (shop_data or {}).get('name', default_shop_config['name']),
-        (shop_data or {}).get('branch', default_shop_config['branch']),
-        (shop_data or {}).get('address', default_shop_config['address']),
+        (shop_data or {}).get('name', cfg['name']),
+        (shop_data or {}).get('branch', cfg['branch']),
+        (shop_data or {}).get('address', cfg['address']),
     )
 
-def _boxed(tbl, colWidths, header_rows=1, font_size=9.6):
-    t = Table(tbl, colWidths=colWidths)
+def _meta_row(left_text: str, right_text: str, styles, col_gap_mm=10):
+    """
+    แถว meta ตามดีไซน์: 2 คอลัมน์ ชิดซ้าย-ขวา มีช่องว่างระหว่างคอลัมน์
+    """
+    page_w = A4[0]
+    margin = 16*mm
+    usable = page_w - 2*margin
+    gap = col_gap_mm * mm
+    # แบ่งครึ่งแบบหยาบ ๆ ให้เหมือน HTML (flex space-between)
+    col_w = (usable - gap) / 2.0
+    t = Table(
+        [[Paragraph(left_text, styles["TH-meta"]), Paragraph(right_text, styles["TH-meta"])]],
+        colWidths=[col_w, col_w]
+    )
     t.setStyle(TableStyle([
-        ('FONT', (0,0), (-1,-1), 'THSarabun', font_size),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),
-        ('BOX', (0,0), (-1,-1), 0.25, colors.grey),
-        ('INNERGRID', (0,header_rows), (-1,-1), 0.25, colors.grey),
-        ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
-        ('LEFTPADDING',(0,0),(-1,-1),2),
-        ('RIGHTPADDING',(0,0),(-1,-1),2),
-        ('TOPPADDING',(0,0),(-1,-1),1),
-        ('BOTTOMPADDING',(0,0),(-1,-1),1),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+    ]))
+    return t
+
+def _signatures_block(names: Dict[str, str], styles):
+    """
+    บล็อกลายเซ็น 3 ช่อง: ผู้ไถ่คืน / ผู้รับไถ่คืน / พยาน
+    names = {"redeemer": "...", "receiver": "...", "witness": "..."}
+    """
+    labels = [("ผู้ไถ่คืน", names.get("redeemer", "")),
+              ("ผู้รับไถ่คืน", names.get("receiver", "")),
+              ("พยาน", names.get("witness", ""))]
+    cells = []
+    for label, name in labels:
+        cell = [
+            Paragraph("ลงชื่อ ______________________________", styles["TH"]),
+            Paragraph(f"( {name or '_________________'} )", styles["TH"]),
+            Paragraph(label, styles["TH"])
+        ]
+        cells.append(cell)
+
+    page_w = A4[0]
+    margin = 16*mm
+    usable = page_w - 2*margin
+    col_w = usable / 3.0
+    t = Table([cells], colWidths=[col_w, col_w, col_w])
+    t.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]))
     return t
 
 
-# ================= CONTRACT =================
+# ================= CONTRACT (HTML layout) =================
 def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
                                     product_data: Dict, original_contract_data: Dict,
                                     shop_data: Optional[Dict] = None,
                                     output_file: Optional[str] = None, output_folder: Optional[str] = None) -> str:
+    """
+    เรนเดอร์สัญญาไถ่คืน ด้วยรูปแบบเอกสารตาม HTML ตัวอย่าง
+    """
     try:
         ensure_fonts()
     except Exception as e:
@@ -138,21 +179,19 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         output_file = os.path.join(output_folder, output_file)
 
     styles = make_styles()
-    PAGE_W = A4[0]  # กว้างเท่าเดิมกับ Half-A4 (210mm)
+    doc = A4Doc(output_file, pagesize=A4)
 
+    # ---------- Extract & normalize data ----------
     shop_name, shop_branch, shop_address = _shop(shop_data)
 
-
-    # original
+    # สัญญาเดิม
     original_contract_number = original_contract_data.get('contract_number', 'N/A')
-    original_start_date = thai_date(original_contract_data.get('start_date', 'N/A'))
-    original_end_date = thai_date(original_contract_data.get('end_date', 'N/A'))
-    original_pawn_amount = float(original_contract_data.get('pawn_amount', 0) or 0)
+    original_contract_date = thai_date(original_contract_data.get('start_date', 'N/A'))
 
-    # redemption
-    thai_redemption_date = thai_date(redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d')))
-    deposit_date = thai_date(redemption_data.get('deposit_date', 'N/A'))
-    due_date = thai_date(redemption_data.get('due_date', 'N/A'))
+    # ไถ่คืน
+    redemption_count = redemption_data.get('redemption_count', 1)
+    thai_redemption_date_full = thai_date(redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d')))
+    redemption_time = redemption_data.get('redemption_time', '15:00 น.')
     total_days = int(redemption_data.get('total_days', 0) or 0)
 
     principal_amount = float(redemption_data.get('principal_amount', 0) or 0)
@@ -161,135 +200,141 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     discount_amount = float(redemption_data.get('discount_amount', 0) or 0)
     total_redemption = float(redemption_data.get('redemption_amount', 0) or 0)
 
-    # customer
+    # ลูกค้า
     first_name = customer_data.get('first_name', '')
     last_name = customer_data.get('last_name', '')
-    customer_name = f"{first_name} {last_name}".strip()
-    customer_code = customer_data.get('customer_code', '')
-    phone = customer_data.get('phone', 'N/A')
-    id_card = customer_data.get('id_card', 'N/A')
+    customer_name = f"{first_name} {last_name}".strip() or "_________________"
+    id_card = customer_data.get('id_card', '_________________')
+    age = customer_data.get('age', '')
+    age_str = f"อายุ {age} ปี " if age else ""
+    phone = customer_data.get('phone', '_________________')
+
+    # ที่อยู่ลูกค้า
     addr_parts = []
     if customer_data.get('house_number'): addr_parts.append(customer_data['house_number'])
     if customer_data.get('street'): addr_parts.append(customer_data['street'])
-    if customer_data.get('subdistrict'): addr_parts.append(f"ต.{customer_data['subdistrict']}")
-    if customer_data.get('district'): addr_parts.append(f"อ.{customer_data['district']}")
+    if customer_data.get('subdistrict'): addr_parts.append(f"แขวง/ตำบล{customer_data['subdistrict']}")
+    if customer_data.get('district'): addr_parts.append(f"เขต/อำเภอ{customer_data['district']}")
     if customer_data.get('province'): addr_parts.append(f"จ.{customer_data['province']}")
-    address = " ".join(addr_parts) if addr_parts else "N/A"
+    if customer_data.get('zipcode'): addr_parts.append(str(customer_data['zipcode']))
+    address = " ".join(addr_parts) if addr_parts else "_________________"
 
-    # product
-    product_name = product_data.get('name', 'N/A')
+    # ร้านค้า/ผู้รับไถ่คืน
+    shop_tax_id = (shop_data or {}).get('tax_id', '_________________')
+    shop_phone = (shop_data or {}).get('phone', '_________________')
+    authorized_person = (shop_data or {}).get('authorized_person', '_________________')
+
+    # สินค้า
     brand = product_data.get('brand', '')
-    product_display = f"{brand} {product_name}".strip()
-    details_bits = []
-    if product_data.get('size'): details_bits.append(f"ขนาด {product_data.get('size')}")
-    if product_data.get('weight'):
-        w = str(product_data.get('weight')); wu = product_data.get('weight_unit') or ''
-        details_bits.append(f"น้ำหนัก {w}{(' '+wu) if wu else ''}")
-    if product_data.get('serial_number'): details_bits.append(f"S/N {product_data.get('serial_number')}")
-    other_details = product_data.get('other_details', '')
-    estimated_value = float(original_contract_data.get('estimated_value', 0) or 0)
+    name = product_data.get('name', 'ทรัพย์สิน')
+    color = product_data.get('color', '')
+    imei1 = product_data.get('imei1', '')
+    imei2 = product_data.get('imei2', '')
+    serial = product_data.get('serial_number', '')
+    accessories = product_data.get('accessories', '')  # รายการอุปกรณ์
+    # วันที่ในสัญญาเดิม (ใช้แสดงอ้างอิง)
+    orig_ref_date = thai_date(original_contract_data.get('start_date', 'N/A'))
 
-    # ---------- story ----------
-    story = [
-        Paragraph("สัญญาไถ่คืน", styles["TH-h"]),
-        Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
-        Paragraph(shop_address, styles["TH"]),
-        Spacer(1, 2),
-    ]
+    # ---------- Build story ----------
+    story = []
 
-    # top two columns (ขนาดเท่าเดิม)
-    col_w = (PAGE_W - 16*mm) / 2.0
-    left = [
-        [Paragraph("<b>สัญญาเดิม</b>", styles["TH-bold"]), ""],
-        [Paragraph("เลขที่", styles["TH"]), Paragraph(original_contract_number, styles["TH-right"])],
-        [Paragraph("เริ่ม", styles["TH"]), Paragraph(original_start_date, styles["TH-right"])],
-        [Paragraph("ครบเดิม", styles["TH"]), Paragraph(original_end_date, styles["TH-right"])],
-        [Paragraph("ยอดฝากเดิม", styles["TH"]), Paragraph(f"{original_pawn_amount:,.2f} บาท", styles["TH-right"])],
-    ]
-    right = [
-        [Paragraph("<b>การไถ่คืน</b>", styles["TH-bold"]), ""],
-        [Paragraph("วันที่ไถ่คืน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
-        [Paragraph("วันที่รับฝาก", styles["TH"]), Paragraph(deposit_date, styles["TH-right"])],
-        [Paragraph("ครบกำหนด", styles["TH"]), Paragraph(due_date, styles["TH-right"])],
-        [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
-    ]
-    left_t  = _boxed(left,  [30*mm, col_w-30*mm])
-    right_t = _boxed(right, [30*mm, col_w-30*mm])
-    two_col = Table([[left_t, right_t]], colWidths=[col_w, col_w])
-    two_col.setStyle(TableStyle([
-        ('VALIGN',(0,0),(-1,-1),'TOP'),
-        ('LEFTPADDING',(0,0),(-1,-1),1),
-        ('RIGHTPADDING',(0,0),(-1,-1),1),
-        ('TOPPADDING',(0,0),(-1,-1),0),
-        ('BOTTOMPADDING',(0,0),(-1,-1),0),
-    ]))
-    story += [two_col, Spacer(1,2)]
+    # Title
+    story.append(Paragraph("สัญญาไถ่คืนทรัพย์สิน (โทรศัพท์มือถือ)", styles["TH-h1"]))
+    story.append(Spacer(1, 6))
 
-    # customer + product
-    cust_prod = [
-        [Paragraph("<b>ผู้ไถ่คืน</b>", styles["TH-bold"]), Paragraph("<b>ทรัพย์สิน</b>", styles["TH-bold"])],
-        [Paragraph(f"รหัส: {customer_code} | โทร: {phone}<br/>ชื่อ: {customer_name}<br/>บัตร: {id_card}<br/>ที่อยู่: {address}", styles["TH"]),
-         Paragraph(f"{product_display}"
-                   + (f"<br/>{' | '.join(details_bits)}" if details_bits else "")
-                   + (f"<br/>รายละเอียด: {other_details}" if other_details else "")
-                   + (f"<br/>ประเมิน: {estimated_value:,.2f} บาท" if estimated_value>0 else ""), styles["TH"])],
-    ]
-    cust_prod_t = _boxed(cust_prod, [col_w, col_w], header_rows=1)
-    story += [cust_prod_t, Spacer(1,2)]
+    # Meta rows (2 แถว)
+    story.append(_meta_row(
+        f"อ้างอิงสัญญาขายฝากเดิม: {original_contract_number}",
+        f"ฉบับไถ่คืน: {redemption_count}", styles
+    ))
+    story.append(_meta_row(
+        f"ทำที่: {shop_name} สาขา{shop_branch}",
+        f"วันที่ไถ่คืน: {thai_redemption_date_full} เวลา {redemption_time}", styles
+    ))
+    story.append(Spacer(1, 6))
 
-    # money summary
-    money = [
-        [Paragraph("เงินต้น", styles["TH"]), Paragraph(f"{principal_amount:,.2f}", styles["TH-right"]),
-         Paragraph("ค่าธรรมเนียม", styles["TH"]), Paragraph(f"{fee_amount:,.2f}", styles["TH-right"])],
-        [Paragraph("ค่าปรับ", styles["TH"]), Paragraph(f"{penalty_amount:,.2f}", styles["TH-right"]),
-         Paragraph("ส่วนลด", styles["TH"]), Paragraph(f"{discount_amount:,.2f}", styles["TH-right"])],
-        [Paragraph("<b>ยอดไถ่คืนรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"]),
-         Paragraph("", styles["TH"]), Paragraph("", styles["TH"])],
-    ]
-    money_t = _boxed(money, [28*mm, 28*mm, 28*mm, (PAGE_W-16*mm)-84*mm], header_rows=0)
-    story += [money_t, Spacer(1,2)]
-
-    # terms
-    terms_text = (
-        f"• ไถ่คืนวันที่ {thai_redemption_date} • ฝาก {total_days} วัน • ยอดไถ่คืน {total_redemption:,.2f} บาท "
-        "• หลังไถ่คืนถือว่าสัญญาขายฝากสิ้นสุด • ตรวจสอบสินค้าให้เรียบร้อยก่อนรับมอบ"
+    # Section: คู่สัญญา
+    story.append(Paragraph("คู่สัญญา", styles["TH-section"]))
+    p1 = (
+        f"ระหว่าง {customer_name} {age_str}เลขบัตรประจำตัวประชาชน {id_card} "
+        f"ที่อยู่ {address} โทร {phone} ซึ่งต่อไปนี้เรียกว่า "
+        f"“<b>ผู้ไถ่คืน</b>” ฝ่ายหนึ่ง กับ {shop_name} สาขา{shop_branch} "
+        f"เลขประจำตัวผู้เสียภาษี {shop_tax_id} ที่ตั้ง {shop_address} โทร {shop_phone} "
+        f"โดย{authorized_person} เป็นผู้มีอำนาจลงนาม ซึ่งต่อไปนี้เรียกว่า "
+        f"“<b>ผู้รับไถ่คืน</b>” อีกฝ่ายหนึ่ง"
     )
-    terms_t = _boxed([[Paragraph(terms_text, styles["TH-mini"])]], [PAGE_W-16*mm], header_rows=0)
-    story += [terms_t, Spacer(1,2)]
+    story.append(Paragraph(p1, styles["TH-indent"]))
 
-    # signatures
-    sig = Table([
-        [Paragraph("ลงชื่อ ____________________ ผู้รับฝาก", styles["TH"]),
-         Paragraph("ลงชื่อ ____________________ ผู้ไถ่คืน", styles["TH"])],
-        [Paragraph("( นาย/นาง/นางสาว _________________ )", styles["TH"]),
-         Paragraph(f"( {customer_name} )", styles["TH"])],
-        [Paragraph("วันที่: _________________", styles["TH"]),
-         Paragraph(f"วันที่: {thai_redemption_date}", styles["TH"])],
-    ], colWidths=[col_w, col_w])
-    sig.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
-        ('VALIGN',(0,0),(-1,-1),'TOP'),
-        ('LEFTPADDING',(0,0),(-1,-1),2),
-        ('RIGHTPADDING',(0,0),(-1,-1),2),
-        ('TOPPADDING',(0,0),(-1,-1),1),
-        ('BOTTOMPADDING',(0,0),(-1,-1),1),
-    ]))
-    story += [sig, Spacer(1,1)]
-    story += [Paragraph(
-        f"เอกสารไถ่คืนสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+    # Section: รายการทรัพย์สินที่ไถ่คืน
+    story.append(Paragraph("รายการทรัพย์สินที่ไถ่คืน", styles["TH-section"]))
+    prod_line = f"โทรศัพท์มือถือยี่ห้อ {brand} รุ่น {name}"
+    if color: prod_line += f" สี{color}"
+    detail_line = []
+    if imei1: detail_line.append(f"หมายเลข IMEI 1: {imei1}")
+    if imei2: detail_line.append(f"IMEI 2: {imei2}")
+    if serial: detail_line.append(f"Serial Number: {serial}")
+    detail_join = ", ".join(detail_line) if detail_line else ""
+    acc_line = f"อุปกรณ์ที่รับคืนพร้อมกัน: {accessories}" if accessories else ""
+    ref_line = f"ตามที่เคยระบุไว้ในสัญญาขายฝากเดิมเลขที่ {original_contract_number} ลงวันที่ {orig_ref_date}"
+    p2 = f"{prod_line} {detail_join} {acc_line} {ref_line}".strip()
+    story.append(Paragraph(p2, styles["TH-indent"]))
+
+    # Section: ข้อความไถ่คืน
+    story.append(Paragraph("ข้อความไถ่คืน", styles["TH-section"]))
+    p3 = (
+        f"ผู้ไถ่คืนได้ชำระเงินจำนวน <b>{total_redemption:,.0f} บาทถ้วน</b> ให้แก่ผู้รับไถ่คืน "
+        f"ครบถ้วนถูกต้องตามที่กำหนด ภายในกำหนดไถ่ถอน {total_days} วันนับแต่วันที่ทำสัญญาขายฝากเดิม "
+        f"ทั้งนี้ ผู้รับไถ่คืนได้รับเงินไว้แล้วและยินยอมคืนทรัพย์สินพร้อมอุปกรณ์ตามรายการข้างต้น "
+        f"ให้แก่ผู้ไถ่คืนโดยเรียบร้อย"
+    )
+    p4 = (
+        "นับแต่เวลาที่ระบุในสัญญานี้ กรรมสิทธิ์ในทรัพย์สินดังกล่าวกลับเป็นของผู้ไถ่คืนโดยสมบูรณ์ "
+        "ผู้รับไถ่คืนไม่มีสิทธิครอบครองหรือเรียกร้องสิทธิใด ๆ อันเกี่ยวกับทรัพย์สินดังกล่าวอีกต่อไป "
+        "และตกลงว่าการขายฝากตามสัญญาเดิมเป็นอันสิ้นผลโดยสมบูรณ์"
+    )
+    story.append(Paragraph(p3, styles["TH-indent"]))
+    story.append(Paragraph(p4, styles["TH-indent"]))
+
+    # Section: การตรวจสอบและรับคืน
+    story.append(Paragraph("การตรวจสอบและรับคืน", styles["TH-section"]))
+    p5 = (
+        "คู่สัญญาได้ทำการตรวจรับทรัพย์สินร่วมกันแล้ว พบว่าสภาพทรัพย์สินเป็นไปตามที่ระบุในสัญญาขายฝากเดิม "
+        "ผู้ไถ่คืนยืนยันว่ารับทรัพย์สินและอุปกรณ์ครบถ้วนถูกต้อง และผู้รับไถ่คืนยืนยันการส่งมอบเรียบร้อย"
+    )
+    story.append(Paragraph(p5, styles["TH-indent"]))
+
+    # Section: การยืนยันคู่สัญญา
+    story.append(Paragraph("การยืนยันคู่สัญญา", styles["TH-section"]))
+    p6 = (
+        f"คู่สัญญาได้อ่านและเข้าใจข้อความในสัญญาฉบับนี้โดยตลอดดีแล้ว จึงได้ตกลงลงนามและยอมรับผูกพันตามสัญญานี้ทุกประการ "
+        f"ทำขึ้น ณ {shop_name} สาขา{shop_branch} เมื่อวันที่ {thai_redemption_date_full}"
+    )
+    story.append(Paragraph(p6, styles["TH-indent"]))
+    story.append(Spacer(1, 8))
+
+    # Signatures (3 columns)
+    sig_names = {
+        "redeemer": customer_name,
+        "receiver": authorized_person,
+        "witness": (redemption_data.get('witness_name') or "_________________")
+    }
+    story.append(_signatures_block(sig_names, styles))
+    story.append(Spacer(1, 8))
+
+    # Footer mini
+    footer = Paragraph(
+        f"เอกสารสร้างโดยระบบ | อ้างอิงสัญญาเดิม: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         styles["TH-mini"]
-    )]
+    )
+    story.append(footer)
 
-    # build (A4 เต็ม / ใช้เฉพาะกรอบครึ่งบน)
-    doc = A4TopHalfDoc(output_file, pagesize=A4)
-    _frame = getattr(doc, "frame", doc.pageTemplates[0].frames[0])
-    story = [KeepInFrame(_frame._width, _frame._height, story, mode='shrink')]
+    # Build
     doc.build(story)
     print(f"Successfully created redemption contract '{output_file}'")
     return output_file
 
 
-# ================= RECEIPT =================
+# ================= RECEIPT (เดิม, ปรับย่อส่วนได้ตามต้องการ) =================
 def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
                                     product_data: Dict, original_contract_data: Dict,
                                     shop_data: Optional[Dict] = None,
@@ -323,20 +368,38 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     customer_name = f"{first_name} {last_name}".strip()
     phone = customer_data.get('phone', 'N/A')
 
+    # ใช้หน้า A4 เต็ม (margin 16mm)
+    doc = A4Doc(output_file, pagesize=A4)
     story = [
-        Paragraph("ใบเสร็จการไถ่คืน", styles["TH-h"]),
-        Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
+        Paragraph("ใบเสร็จการไถ่คืน", styles["TH-h1"]),
+        Paragraph(f"{shop_name} ({shop_branch})", styles["TH"]),
         Paragraph(shop_address, styles["TH"]),
-        Spacer(1, 2),
+        Spacer(1, 6),
     ]
+
+    # กล่องข้อมูล & ชำระ
+    def _boxed(tbl, colWidths, header_rows=1, font_size=13.5):
+        t = Table(tbl, colWidths=colWidths)
+        t.setStyle(TableStyle([
+            ('FONT', (0,0), (-1,-1), 'THSarabun', font_size),
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('BOX', (0,0), (-1,-1), 0.25, colors.grey),
+            ('INNERGRID', (0,header_rows), (-1,-1), 0.25, colors.grey),
+            ('BACKGROUND', (0,0), (-1,0), colors.whitesmoke),
+            ('LEFTPADDING',(0,0),(-1,-1),3),
+            ('RIGHTPADDING',(0,0),(-1,-1),3),
+            ('TOPPADDING',(0,0),(-1,-1),2),
+            ('BOTTOMPADDING',(0,0),(-1,-1),2),
+        ]))
+        return t
 
     info = _boxed([
         [Paragraph("<b>รายละเอียดการไถ่คืน</b>", styles["TH-bold"]), ""],
         [Paragraph("เลขที่สัญญา", styles["TH"]), Paragraph(contract_number, styles["TH-right"])],
         [Paragraph("วันที่ไถ่คืน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
         [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
-    ], [60*mm, (PAGE_W-16*mm)-60*mm], header_rows=1)
-    story += [info, Spacer(1,2)]
+    ], [60*mm, (PAGE_W-32*mm)-60*mm], header_rows=1)
+    story += [info, Spacer(1,6)]
 
     pay = _boxed([
         [Paragraph("<b>รายละเอียดการชำระ</b>", styles["TH-bold"]), ""],
@@ -345,25 +408,22 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
         [Paragraph("ค่าปรับ", styles["TH"]), Paragraph(f"{penalty_amount:,.2f}", styles["TH-right"])],
         [Paragraph("ส่วนลด", styles["TH"]), Paragraph(f"{discount_amount:,.2f}", styles["TH-right"])],
         [Paragraph("<b>ยอดรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"])],
-    ], [60*mm, (PAGE_W-16*mm)-60*mm], header_rows=1)
-    story += [pay, Spacer(1,2)]
+    ], [60*mm, (PAGE_W-32*mm)-60*mm], header_rows=1)
+    story += [pay, Spacer(1,6)]
 
-    col_w = (PAGE_W - 16*mm)/2
+    col_w = (PAGE_W - 32*mm)/2
     cp = _boxed([
         [Paragraph("<b>ลูกค้า</b>", styles["TH-bold"]), Paragraph("<b>สินค้า</b>", styles["TH-bold"])],
         [Paragraph(f"ชื่อ: {customer_name}<br/>โทร: {phone}", styles["TH"]),
          Paragraph((product_data.get('brand','') + ' ' if product_data.get('brand') else '') + product_data.get('name','N/A'), styles["TH"])],
     ], [col_w, col_w], header_rows=1)
-    story += [cp, Spacer(1,1)]
+    story += [cp, Spacer(1,6)]
 
     story += [Paragraph(
         f"เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         styles["TH-mini"]
     )]
 
-    doc = A4TopHalfDoc(output_file, pagesize=A4)
-    _frame = getattr(doc, "frame", doc.pageTemplates[0].frames[0])
-    story = [KeepInFrame(_frame._width, _frame._height, story, mode='shrink')]
     doc.build(story)
     print(f"Successfully created redemption receipt '{output_file}'")
     return output_file
@@ -371,4 +431,4 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
 
 # --- Main ---
 if __name__ == "__main__":
-    print("A4 full page; content sized like half-page (top half).")
+    print("Ready: A4 full-page layouts (contract = HTML style, receipt = compact).")
