@@ -783,16 +783,46 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.serial_number_edit.setReadOnly(True)
         self.product_info_layout.addWidget(self.serial_number_edit, 2, 1)
         
+        # IMEI 1
+        self.lbl_imei1 = QLabel()
+        self.product_info_layout.addWidget(self.lbl_imei1, 3, 0)
+        self.product_imei1_edit = QLineEdit()
+        self.product_imei1_edit.setReadOnly(True)
+        self.product_info_layout.addWidget(self.product_imei1_edit, 3, 1)
+        
+        # IMEI 2
+        self.lbl_imei2 = QLabel()
+        self.product_info_layout.addWidget(self.lbl_imei2, 4, 0)
+        self.product_imei2_edit = QLineEdit()
+        self.product_imei2_edit.setReadOnly(True)
+        self.product_info_layout.addWidget(self.product_imei2_edit, 4, 1)
+        
+        # สภาพเครื่อง
+        self.lbl_condition = QLabel()
+        self.product_info_layout.addWidget(self.lbl_condition, 5, 0)
+        self.product_condition_edit = QTextEdit()
+        self.product_condition_edit.setReadOnly(True)
+        self.product_condition_edit.setMaximumHeight(80)
+        self.product_info_layout.addWidget(self.product_condition_edit, 5, 1)
+        
+        # อุปกรณ์ที่มาพร้อมเครื่อง
+        self.lbl_accessories = QLabel()
+        self.product_info_layout.addWidget(self.lbl_accessories, 6, 0)
+        self.product_accessories_edit = QTextEdit()
+        self.product_accessories_edit.setReadOnly(True)
+        self.product_accessories_edit.setMaximumHeight(80)
+        self.product_info_layout.addWidget(self.product_accessories_edit, 6, 1)
+        
         # รายละเอียดอื่นๆ
         self.lbl_product_other = QLabel()
-        self.product_info_layout.addWidget(self.lbl_product_other, 3, 0)
+        self.product_info_layout.addWidget(self.lbl_product_other, 7, 0)
         self.product_details_edit = QLineEdit()
         self.product_details_edit.setReadOnly(True)
-        self.product_info_layout.addWidget(self.product_details_edit, 3, 1)
+        self.product_info_layout.addWidget(self.product_details_edit, 7, 1)
         
         # รูปภาพสินค้า
         self.lbl_product_image = QLabel()
-        self.product_info_layout.addWidget(self.lbl_product_image, 4, 0)
+        self.product_info_layout.addWidget(self.lbl_product_image, 8, 0)
         self.product_image_display = QLabel()
         self.product_image_display.setMinimumSize(200, 150)
         # อนุญาตให้รูปภาพขยายตามพื้นที่ โดยไม่ล็อกขนาดสูงสุด
@@ -800,7 +830,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_image_display.setStyleSheet("border: 2px solid #ccc; background-color: #f9f9f9;")
         self.product_image_display.setAlignment(Qt.AlignCenter)
         self.product_image_display.setText(language_manager.get_text("no_image"))
-        self.product_info_layout.addWidget(self.product_image_display, 4, 1)
+        self.product_info_layout.addWidget(self.product_image_display, 8, 1)
         
         # ใส่ ScrollArea ให้ส่วนข้อมูลสินค้า
         product_scroll = QScrollArea()
@@ -927,6 +957,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.lbl_pawned_product.setText(language_manager.get_text("pawned_product"))
         self.lbl_brand_model.setText(language_manager.get_text("brand_model"))
         self.lbl_serial.setText(language_manager.get_text("serial_number"))
+        self.lbl_imei1.setText("IMEI 1:")
+        self.lbl_imei2.setText("IMEI 2:")
+        self.lbl_condition.setText("สภาพเครื่อง:")
+        self.lbl_accessories.setText("อุปกรณ์ที่มาพร้อมเครื่อง:")
         self.lbl_product_other.setText(language_manager.get_text("product_other_details"))
         self.lbl_product_image.setText(language_manager.get_text("product_image"))
         self.product_image_display.setText(language_manager.get_text("no_image"))
@@ -1553,9 +1587,20 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def load_product_data(self):
         """โหลดข้อมูลสินค้า"""
         if self.current_product:
+            # ข้อมูลพื้นฐาน
             self.product_name_display_edit.setText(self.current_product.get('model', '') or self.current_product.get('name', ''))
             self.product_brand_edit.setText(self.current_product.get('brand', ''))
             self.serial_number_edit.setText(self.current_product.get('serial_number', ''))
+            
+            # ข้อมูล IMEI
+            self.product_imei1_edit.setText(self.current_product.get('imei1', ''))
+            self.product_imei2_edit.setText(self.current_product.get('imei2', ''))
+            
+            # ข้อมูลสภาพเครื่องและอุปกรณ์
+            self.product_condition_edit.setPlainText(self.current_product.get('condition', ''))
+            self.product_accessories_edit.setPlainText(self.current_product.get('accessories', ''))
+            
+            # รายละเอียดอื่นๆ
             self.product_details_edit.setText(self.current_product.get('other_details', ''))
             
             # แสดงรูปภาพสินค้า
