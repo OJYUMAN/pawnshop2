@@ -363,18 +363,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def load_settings(self):
         """โหลดการตั้งค่า"""
         try:
-            default_interest_rate = float(self.db.get_setting('default_interest_rate'))
             default_days = int(self.db.get_setting('default_contract_days'))
-            default_withholding_tax_rate = float(self.db.get_setting('default_withholding_tax_rate'))
-            
-            self.interest_rate_spin.setValue(default_interest_rate)
             self.days_spin.setValue(default_days)
-            self.withholding_tax_rate_spin.setValue(default_withholding_tax_rate)
         except:
             # ใช้ค่าเริ่มต้นถ้าไม่มีการตั้งค่า
-            self.interest_rate_spin.setValue(3.0)
             self.days_spin.setValue(30)
-            self.withholding_tax_rate_spin.setValue(3.0)
 
     def send_contract_to_line(self, contract_data, customer_data, product_data):
         """ส่งข้อมูลสัญญาเข้า Line"""
@@ -1078,58 +1071,13 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.pawn_amount_spin.setSuffix(" บาท")
         layout.addWidget(self.pawn_amount_spin, 0, 1)
 
-        # อัตราดอกเบี้ย
-        self.lbl_interest_rate = QLabel()
-        layout.addWidget(self.lbl_interest_rate, 1, 0)
-        self.interest_rate_spin = QDoubleSpinBox()
-        self.interest_rate_spin.setRange(0, 100)
-        self.interest_rate_spin.setSuffix(" %")
-        layout.addWidget(self.interest_rate_spin, 1, 1)
-
-        # ค่าธรรมเนียม
-        self.lbl_fee_amount = QLabel()
-        layout.addWidget(self.lbl_fee_amount, 2, 0)
-        self.fee_amount_label = QLabel("0.00 บาท")
-        layout.addWidget(self.fee_amount_label, 2, 1)
-        
-        # อัตราหัก ณ ที่จ่าย
-        self.lbl_withholding_rate = QLabel()
-        layout.addWidget(self.lbl_withholding_rate, 3, 0)
-        self.withholding_tax_rate_spin = QDoubleSpinBox()
-        self.withholding_tax_rate_spin.setRange(0, 100)
-        self.withholding_tax_rate_spin.setSuffix(" %")
-        self.withholding_tax_rate_spin.setValue(3.0)
-        layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
-        
-        # ปุ่มอัปเดตอัตราหัก ณ ที่จ่าย
-        self.update_tax_rate_btn = QPushButton()
-        self.update_tax_rate_btn.clicked.connect(self.update_withholding_tax_rate)
-        self.update_tax_rate_btn.setMaximumWidth(80)
-        self.update_tax_rate_btn.setIcon(QIcon.fromTheme("view-refresh"))
-        layout.addWidget(self.update_tax_rate_btn, 3, 2)
-        
-        # ยอดหัก ณ ที่จ่าย
-        self.lbl_withholding_amount = QLabel()
-        layout.addWidget(self.lbl_withholding_amount, 4, 0)
-        self.withholding_tax_amount_label = QLabel("0.00 บาท")
-        layout.addWidget(self.withholding_tax_amount_label, 4, 1)
-        
-        # ยอดจ่าย
-        self.lbl_total_paid = QLabel()
-        layout.addWidget(self.lbl_total_paid, 5, 0)
-        self.total_paid_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_paid_label, 5, 1)
-
         # ยอดไถ่คืน
         self.lbl_total_redemption = QLabel()
-        layout.addWidget(self.lbl_total_redemption, 6, 0)
-        self.total_redemption_label = QLabel("0.00 บาท")
-        layout.addWidget(self.total_redemption_label, 6, 1)
-
-        # เชื่อมต่อสัญญาณ
-        self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
-        self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
-        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
+        layout.addWidget(self.lbl_total_redemption, 1, 0)
+        self.total_redemption_spin = QDoubleSpinBox()
+        self.total_redemption_spin.setRange(0, 999999)
+        self.total_redemption_spin.setSuffix(" บาท")
+        layout.addWidget(self.total_redemption_spin, 1, 1)
 
         # เชื่อมภาษา
         language_manager.language_changed.connect(self.apply_results_language)
@@ -1141,12 +1089,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         if (w := self.findChild(QGroupBox, "TopMiddleGroup")) is not None:
             w.setTitle(language_manager.get_text("results_group"))
         self.lbl_pawn_amount.setText(language_manager.get_text("pawn_amount"))
-        self.lbl_interest_rate.setText(language_manager.get_text("interest_rate"))
-        self.lbl_fee_amount.setText(language_manager.get_text("fee_amount"))
-        self.lbl_withholding_rate.setText(language_manager.get_text("withholding_rate"))
-        self.update_tax_rate_btn.setText(language_manager.get_text("update"))
-        self.lbl_withholding_amount.setText(language_manager.get_text("withholding_rate"))
-        self.lbl_total_paid.setText(language_manager.get_text("total_paid"))
         self.lbl_total_redemption.setText(language_manager.get_text("total_redemption"))
 
     def create_search_group(self):
@@ -1527,35 +1469,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.end_date_edit.setText(end_date.toString("dd/MM/yyyy"))
         
 
-    def calculate_amounts(self):
-        """คำนวณยอดต่างๆ"""
-        pawn_amount = self.pawn_amount_spin.value()
-        interest_rate = self.interest_rate_spin.value()
-        days = self.days_spin.value()
-        withholding_tax_rate = self.withholding_tax_rate_spin.value()
-        
-        # คำนวณดอกเบี้ย
-        interest_amount = PawnShopUtils.calculate_interest(pawn_amount, interest_rate, days)
-        
-        # ค่าธรรมเนียมจากฐานข้อมูล
-        fee_amount = self.db.calculate_fee_amount(pawn_amount, days)
-        
-        # คำนวณหัก ณ ที่จ่าย (หักจากดอกเบี้ย)
-        withholding_tax_amount = interest_amount * (withholding_tax_rate / 100)
-        
-        # ยอดจ่าย (ยอดฝาก - หัก ณ ที่จ่าย)
-        total_paid = pawn_amount - withholding_tax_amount
-        
-        # ยอดไถ่คืน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
-        total_redemption = PawnShopUtils.calculate_redemption_with_tax(
-            pawn_amount, interest_amount, fee_amount, withholding_tax_amount
-        )
-        
-        # แสดงผล
-        self.fee_amount_label.setText("{:,.2f} บาท".format(fee_amount))
-        self.withholding_tax_amount_label.setText("{:,.2f} บาท".format(withholding_tax_amount))
-        self.total_paid_label.setText("{:,.2f} บาท".format(total_paid))
-        self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
         
 
     def open_customer_dialog(self):
@@ -1861,12 +1774,12 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             'customer_id': self.current_customer['id'],
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
-            'interest_rate': self.interest_rate_spin.value(),
-            'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
-            'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
-            'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
-            'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
-            'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
+            'interest_rate': 0.0,  # ไม่ใช้แล้ว
+            'fee_amount': 0.0,  # ไม่ใช้แล้ว
+            'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
+            'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
+            'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
+            'total_redemption': self.total_redemption_spin.value(),  # ใช้ยอดที่ผู้ใช้กรอก
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
             'end_date': self.end_date_edit.text(),
             'days_count': self.days_spin.value(),
@@ -2221,18 +2134,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             # โหลดข้อมูลสัญญาเพิ่มเติม
             self.pawn_amount_spin.setValue(self.current_contract.get('pawn_amount', 0))
-            self.interest_rate_spin.setValue(self.current_contract.get('interest_rate', 3.0))
-            
-            # อัปเดตค่าธรรมเนียมใน label
-            fee_amount = self.current_contract.get('fee_amount', 0)
-            self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
-            
-            # อัปเดตยอดจ่ายและยอดไถ่คืนใน label
-            total_paid = self.current_contract.get('total_paid', 0)
-            self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
-            
-            total_redemption = self.current_contract.get('total_redemption', 0)
-            self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
+            self.total_redemption_spin.setValue(self.current_contract.get('total_redemption', 0))
             
             # โหลดวันที่
             start_date = self.current_contract.get('start_date', '')
@@ -2382,8 +2284,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         
         # ล้างยอด
         self.pawn_amount_spin.setValue(0)
-        self.withholding_tax_rate_spin.setValue(3.0)
-        self.calculate_amounts()
+        self.total_redemption_spin.setValue(0)
         
         # รีเซ็ตสถานะสัญญา
         if hasattr(self, 'active_radio'):
@@ -2473,43 +2374,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
     
     
-    def calculate_withholding_tax(self):
-        """คำนวณหัก ณ ที่จ่าย"""
-        if not self.current_contract and not self.pawn_amount_spin.value():
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกยอดฝากก่อน")
-            return
-        
-        # คำนวณหัก ณ ที่จ่ายใหม่
-        self.calculate_amounts()
-        
-        # แสดงผลลัพธ์
-        withholding_tax_amount = float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', ''))
-        total_paid = float(self.total_paid_label.text().replace(' บาท', '').replace(',', ''))
-        
-        message = f"""
-การคำนวณหัก ณ ที่จ่าย:
-
-ยอดฝาก: {self.pawn_amount_spin.value():,.2f} บาท
-อัตราหัก ณ ที่จ่าย: {self.withholding_tax_rate_spin.value():.2f}%
-ยอดหัก ณ ที่จ่าย: {withholding_tax_amount:,.2f} บาท
-ยอดจ่ายจริง: {total_paid:,.2f} บาท
-
-หัก ณ ที่จ่ายจะถูกหักจากดอกเบี้ยที่ลูกค้าต้องจ่าย
-        """
-        
-        QMessageBox.information(self, "ผลการคำนวณหัก ณ ที่จ่าย", message)
-        
-    
-    def update_withholding_tax_rate(self):
-        """อัปเดตอัตราหัก ณ ที่จ่าย"""
-        current_rate = self.withholding_tax_rate_spin.value()
-        
-        # อัปเดตในฐานข้อมูล
-        if self.db.update_withholding_tax_rate(current_rate):
-            QMessageBox.information(self, "สำเร็จ", f"อัปเดตอัตราหัก ณ ที่จ่ายเป็น {current_rate:.2f}% เรียบร้อย")
-            
-        else:
-            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตอัตราหัก ณ ที่จ่ายได้")
     
     def show_fee_management(self):
         """แสดงหน้าต่างจัดการค่าธรรมเนียม"""
@@ -2759,12 +2623,12 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'end_date': self.end_date_edit.text(),
                 'days_count': self.days_spin.value(),
                 'pawn_amount': self.pawn_amount_spin.value(),
-                'interest_rate': self.interest_rate_spin.value(),
-                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
-                'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
-                'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
-                'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
-                'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', ''))
+                'interest_rate': 0.0,  # ไม่ใช้แล้ว
+                'fee_amount': 0.0,  # ไม่ใช้แล้ว
+                'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
+                'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
+                'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
+                'total_redemption': self.total_redemption_spin.value()  # ใช้ยอดที่ผู้ใช้กรอก
             }
             
             # ข้อมูลร้านค้า - ใช้ข้อมูลจาก pdf files
@@ -2915,12 +2779,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         story.append(Paragraph("ข้อมูลการเงิน", heading_style))
         financial_data = [
             ["ยอดฝาก:", f"{self.pawn_amount_spin.value():,.2f} บาท"],
-            ["อัตราดอกเบี้ย:", f"{self.interest_rate_spin.value()}%"],
-            ["ค่าธรรมเนียม:", self.fee_amount_label.text()],
-            ["อัตราหัก ณ ที่จ่าย:", f"{self.withholding_tax_rate_spin.value()}%"],
-            ["ยอดหัก ณ ที่จ่าย:", self.withholding_tax_amount_label.text()],
-            ["ยอดจ่าย:", self.total_paid_label.text()],
-            ["ยอดไถ่คืน:", self.total_redemption_label.text()]
+            ["ยอดไถ่คืน:", f"{self.total_redemption_spin.value():,.2f} บาท"]
         ]
         
         financial_table = Table(financial_data, colWidths=[4*cm, 8*cm])
