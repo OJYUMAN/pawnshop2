@@ -1120,7 +1120,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.total_paid_label = QLabel("0.00 บาท")
         layout.addWidget(self.total_paid_label, 5, 1)
 
-        # ยอดไถ่ถอน
+        # ยอดไถ่คืน
         self.lbl_total_redemption = QLabel()
         layout.addWidget(self.lbl_total_redemption, 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
@@ -1413,7 +1413,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 icon = QIcon.fromTheme("edit-clear", QIcon.fromTheme("edit-delete", QIcon.fromTheme("trash")))
             elif "บันทึก" in text or "save" in text:
                 icon = QIcon.fromTheme("document-save", QIcon.fromTheme("save", QIcon.fromTheme("floppy")))
-            elif "ไถ่ถอน" in text:
+            elif "ไถ่คืน" in text:
                 icon = QIcon.fromTheme("go-previous", QIcon.fromTheme("arrow-left", QIcon.fromTheme("back")))
             elif "หลุดจำนำ" in text:
                 icon = QIcon.fromTheme("edit-delete", QIcon.fromTheme("delete", QIcon.fromTheme("remove")))
@@ -1546,7 +1546,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # ยอดจ่าย (ยอดฝาก - หัก ณ ที่จ่าย)
         total_paid = pawn_amount - withholding_tax_amount
         
-        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
+        # ยอดไถ่คืน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
         total_redemption = PawnShopUtils.calculate_redemption_with_tax(
             pawn_amount, interest_amount, fee_amount, withholding_tax_amount
         )
@@ -1594,18 +1594,18 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 
     def search_customer(self):
         """ค้นหาลูกค้า"""
-        customer_code = self.customer_code_edit.text().strip()
-        if not customer_code:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกรหัสลูกค้า")
+        search_term = self.customer_code_edit.text().strip()
+        if not search_term:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกชื่อลูกค้า, นามสกุล, เลขบัตร, หรือรหัสลูกค้า")
             return
         
-        # ค้นหาลูกค้าในฐานข้อมูล
-        customers = self.db.search_customers(customer_code)
+        # ค้นหาลูกค้าในฐานข้อมูล (ค้นหาจากชื่อก่อน)
+        customers = self.db.search_customers(search_term)
         if customers:
             self.current_customer = customers[0]
             self.load_customer_data()
         else:
-            QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบลูกค้าที่มีรหัสนี้")
+            QMessageBox.information(self, "ไม่พบข้อมูล", "ไม่พบลูกค้าที่ตรงกับคำค้นหา")
         
 
     def load_customer_data(self):
@@ -1703,7 +1703,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             print(f"Error refreshing contract data: {e}")
 
     def redeem_contract(self):
-        """ไถ่ถอนสัญญา"""
+        """ไถ่คืนสัญญา"""
         if not self.current_contract:
             QMessageBox.warning(self, "แจ้งเตือน", "กรุณาเลือกสัญญาก่อน")
             return
@@ -1730,16 +1730,16 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             dialog = RedemptionDialog(self, full_contract_data)
             if dialog.exec() == QDialog.Accepted:
-                # หลังจากไถ่ถอนสำเร็จ ให้แสดงประวัติการไถ่ถอน
+                # หลังจากไถ่คืนสำเร็จ ให้แสดงประวัติการไถ่คืน
                 try:
-                    # ดึงข้อมูลการไถ่ถอนของสัญญานี้
+                    # ดึงข้อมูลการไถ่คืนของสัญญานี้
                     redemptions = self.db.get_redemptions_by_contract(contract_id)
                     
                     if redemptions:
-                        # แสดงประวัติการไถ่ถอนเฉพาะสัญญานี้
+                        # แสดงประวัติการไถ่คืนเฉพาะสัญญานี้
                         self.show_redemptions_table(redemptions, contract_specific=True)
                     else:
-                        QMessageBox.information(self, "ข้อมูลการไถ่ถอน", "ไม่พบข้อมูลการไถ่ถอนของสัญญานี้")
+                        QMessageBox.information(self, "ข้อมูลการไถ่คืน", "ไม่พบข้อมูลการไถ่คืนของสัญญานี้")
                     
                     # อัปเดตข้อมูลสัญญาปัจจุบันในฟอร์มหลัก
                     updated_contract = self.db.get_contract_by_id(self.current_contract['id'])
@@ -1752,7 +1752,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                             self.redeemed_radio.setChecked(True)
                         
                 except Exception as e:
-                    QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่ถอน: {str(e)}")
+                    QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดประวัติการไถ่คืน: {str(e)}")
                     
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูลสัญญา: {str(e)}")
@@ -1921,16 +1921,16 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     
 
     def view_redemptions(self):
-        """ดูข้อมูลการไถ่ถอน"""
+        """ดูข้อมูลการไถ่คืน"""
         try:
-            # ดึงข้อมูลการไถ่ถอนทั้งหมด
+            # ดึงข้อมูลการไถ่คืนทั้งหมด
             redemptions = self.db.get_all_redemptions()
             
             if not redemptions:
-                QMessageBox.information(self, "ข้อมูลการไถ่ถอน", "ไม่พบข้อมูลการไถ่ถอน")
+                QMessageBox.information(self, "ข้อมูลการไถ่คืน", "ไม่พบข้อมูลการไถ่คืน")
                 return
             
-            # สร้างหน้าต่างแสดงข้อมูลการไถ่ถอน
+            # สร้างหน้าต่างแสดงข้อมูลการไถ่คืน
             self.show_redemptions_table(redemptions)
             
             
@@ -1938,15 +1938,15 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการโหลดข้อมูล: {str(e)}")
     
     def show_redemptions_table(self, redemptions: list, contract_specific: bool = False):
-        """แสดงตารางข้อมูลการไถ่ถอน"""
+        """แสดงตารางข้อมูลการไถ่คืน"""
         if contract_specific:
             dialog = QDialog(self)
-            dialog.setWindowTitle("ประวัติการไถ่ถอน - สัญญาเฉพาะ")
+            dialog.setWindowTitle("ประวัติการไถ่คืน - สัญญาเฉพาะ")
             dialog.setModal(True)
             dialog.resize(1200, 500)
         else:
             dialog = QDialog(self)
-            dialog.setWindowTitle("ข้อมูลการไถ่ถอน")
+            dialog.setWindowTitle("ข้อมูลการไถ่คืน")
             dialog.setModal(True)
             dialog.resize(1400, 600)
         
@@ -1958,14 +1958,14 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             table.setColumnCount(12)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
-                "วันที่รับฝาก", "วันที่ครบกำหนด", "วันที่ไถ่ถอน", "จำนวนวันที่ฝาก",
-                "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่ถอน"
+                "วันที่รับฝาก", "วันที่ครบกำหนด", "วันที่ไถ่คืน", "จำนวนวันที่ฝาก",
+                "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่คืน"
             ]
         else:
             table.setColumnCount(10)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
-                "วันที่ไถ่ถอน", "จำนวนวันที่ฝาก", "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่ถอน"
+                "วันที่ไถ่คืน", "จำนวนวันที่ฝาก", "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่คืน"
             ]
         table.setHorizontalHeaderLabels(headers)
         
@@ -2002,7 +2002,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 due_date = redemption.get('due_date', '')
                 table.setItem(row, 5, QTableWidgetItem(due_date))
                 
-                # วันที่ไถ่ถอน
+                # วันที่ไถ่คืน
                 redemption_date = redemption.get('redemption_date', '')
                 table.setItem(row, 6, QTableWidgetItem(redemption_date))
                 
@@ -2022,11 +2022,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 penalty_amount = redemption.get('penalty_amount', 0)
                 table.setItem(row, 10, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
-                # ยอดไถ่ถอน
+                # ยอดไถ่คืน
                 redemption_amount = redemption.get('redemption_amount', 0)
                 table.setItem(row, 11, QTableWidgetItem(f"{redemption_amount:,.2f}"))
             else:
-                # วันที่ไถ่ถอน
+                # วันที่ไถ่คืน
                 redemption_date = redemption.get('redemption_date', '')
                 table.setItem(row, 4, QTableWidgetItem(redemption_date))
                 
@@ -2046,7 +2046,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 penalty_amount = redemption.get('penalty_amount', 0)
                 table.setItem(row, 8, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
-                # ยอดไถ่ถอน
+                # ยอดไถ่คืน
                 redemption_amount = redemption.get('redemption_amount', 0)
                 table.setItem(row, 9, QTableWidgetItem(f"{redemption_amount:,.2f}"))
         
@@ -2227,7 +2227,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             fee_amount = self.current_contract.get('fee_amount', 0)
             self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
             
-            # อัปเดตยอดจ่ายและยอดไถ่ถอนใน label
+            # อัปเดตยอดจ่ายและยอดไถ่คืนใน label
             total_paid = self.current_contract.get('total_paid', 0)
             self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
             
@@ -2383,7 +2383,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             message = """
 รายงานประจำวัน: {}
 สัญญาใหม่: {} สัญญา ({:,.2f} บาท)
-การไถ่ถอน: {} สัญญา ({:,.2f} บาท)
+การไถ่คืน: {} สัญญา ({:,.2f} บาท)
 การชำระดอกเบี้ย: {} ครั้ง ({:,.2f} บาท)
 การต่อดอก: {} ครั้ง ({:,.2f} บาท)
             """.format(
@@ -2887,7 +2887,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ["อัตราหัก ณ ที่จ่าย:", f"{self.withholding_tax_rate_spin.value()}%"],
             ["ยอดหัก ณ ที่จ่าย:", self.withholding_tax_amount_label.text()],
             ["ยอดจ่าย:", self.total_paid_label.text()],
-            ["ยอดไถ่ถอน:", self.total_redemption_label.text()]
+            ["ยอดไถ่คืน:", self.total_redemption_label.text()]
         ]
         
         financial_table = Table(financial_data, colWidths=[4*cm, 8*cm])
@@ -2908,7 +2908,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         terms = [
             "1. ลูกค้าต้องชำระดอกเบี้ยและค่าธรรมเนียมตามกำหนดเวลา",
             "2. หากไม่ชำระภายในกำหนด สินค้าจะตกเป็นของร้าน",
-            "3. ลูกค้าสามารถไถ่ถอนสินค้าได้ตลอดเวลาก่อนครบกำหนด",
+            "3. ลูกค้าสามารถไถ่คืนสินค้าได้ตลอดเวลาก่อนครบกำหนด",
             "4. ร้านจะเก็บรักษาสินค้าให้อย่างดีและปลอดภัย",
             "5. หากสินค้าเสียหายจากเหตุสุดวิสัย ร้านไม่รับผิดชอบ"
         ]
@@ -3076,11 +3076,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             daily_income['renewals'] = len(renewals)
             
             
-            # นับการไถ่ถอน
+            # นับการไถ่คืน
             redemptions = self.db.get_redemptions_by_date(date)
             daily_income['redemptions'] = len(redemptions)
             
-            # คำนวณจำนวนเงินไถ่ถอน
+            # คำนวณจำนวนเงินไถ่คืน
             for redemption in redemptions:
                 daily_income['total_redemption_amount'] += redemption.get('amount', 0)
             
@@ -3122,10 +3122,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         summary_data = [
             ("📋 สัญญาใหม่", f"{daily_income['new_contracts']} สัญญา"),
             ("🔄 การต่อดอก", f"{daily_income['renewals']} ครั้ง"),
-            ("💎 การไถ่ถอน", f"{daily_income['redemptions']} ครั้ง"),
+            ("💎 การไถ่คืน", f"{daily_income['redemptions']} ครั้ง"),
             ("💰 ดอกเบี้ยรวม", f"{daily_income['total_interest']:,.2f} บาท"),
             ("💵 ค่าธรรมเนียมรวม", f"{daily_income['total_fees']:,.2f} บาท"),
-            ("💎 จำนวนเงินไถ่ถอน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
+            ("💎 จำนวนเงินไถ่คืน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
             ("📈 รายได้สุทธิ", f"{daily_income['net_income']:,.2f} บาท")
         ]
         

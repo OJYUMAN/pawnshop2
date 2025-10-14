@@ -164,7 +164,7 @@ class DataViewerDialog(QDialog):
         self.contract_table.setHorizontalHeaderLabels([
             "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ยอดฝาก", 
             "อัตราดอกเบี้ย", "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
-            "สถานะ", "ยอดไถ่ถอน", "วันที่สร้าง", "การดำเนินการ"
+            "สถานะ", "ยอดไถ่คืน", "วันที่สร้าง", "การดำเนินการ"
         ])
         self.contract_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.contract_table.horizontalHeader().setSectionResizeMode(10, QHeaderView.Fixed)
@@ -202,8 +202,8 @@ class DataViewerDialog(QDialog):
         self.active_contract_label = QLabel("0")
         summary_layout.addWidget(self.active_contract_label, 3, 1)
         
-        # สัญญาที่ไถ่ถอน
-        summary_layout.addWidget(QLabel("สัญญาที่ไถ่ถอน:"), 4, 0)
+        # สัญญาที่ไถ่คืน
+        summary_layout.addWidget(QLabel("สัญญาที่ไถ่คืน:"), 4, 0)
         self.redeemed_contract_label = QLabel("0")
         summary_layout.addWidget(self.redeemed_contract_label, 4, 1)
         
@@ -212,8 +212,8 @@ class DataViewerDialog(QDialog):
         self.total_pawn_label = QLabel("0.00 บาท")
         summary_layout.addWidget(self.total_pawn_label, 5, 1)
         
-        # ยอดไถ่ถอนรวม
-        summary_layout.addWidget(QLabel("ยอดไถ่ถอนรวม:"), 6, 0)
+        # ยอดไถ่คืนรวม
+        summary_layout.addWidget(QLabel("ยอดไถ่คืนรวม:"), 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
         summary_layout.addWidget(self.total_redemption_label, 6, 1)
         
@@ -232,7 +232,7 @@ class DataViewerDialog(QDialog):
         daily_layout.addWidget(QLabel("สัญญาใหม่:"), 1, 0)
         daily_layout.addWidget(QLabel(f"{daily_summary['new_contracts_count']} สัญญา"), 1, 1)
         
-        daily_layout.addWidget(QLabel("การไถ่ถอน:"), 2, 0)
+        daily_layout.addWidget(QLabel("การไถ่คืน:"), 2, 0)
         daily_layout.addWidget(QLabel(f"{daily_summary['redemptions_count']} สัญญา"), 2, 1)
         
         daily_layout.addWidget(QLabel("การชำระดอกเบี้ย:"), 3, 0)
@@ -247,7 +247,7 @@ class DataViewerDialog(QDialog):
         self.expiring_table = QTableWidget()
         self.expiring_table.setColumnCount(5)
         self.expiring_table.setHorizontalHeaderLabels([
-            "เลขที่สัญญา", "ชื่อลูกค้า", "เบอร์โทรศัพท์", "วันที่ครบกำหนด", "ยอดไถ่ถอน"
+            "เลขที่สัญญา", "ชื่อลูกค้า", "เบอร์โทรศัพท์", "วันที่ครบกำหนด", "ยอดไถ่คืน"
         ])
         self.expiring_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         expiring_layout.addWidget(self.expiring_table)
@@ -387,7 +387,7 @@ class DataViewerDialog(QDialog):
                 
                 # สถานะ
                 status = contract.get('status', '')
-                status_text = "เปิด" if status == 'active' else "ไถ่ถอน" if status == 'redeemed' else status
+                status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
                 self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
                 
                 self.contract_table.setItem(row, 8, QTableWidgetItem(f"{contract.get('total_redemption', 0):,.2f}"))
@@ -436,7 +436,7 @@ class DataViewerDialog(QDialog):
             active_contracts = self.db.search_contracts("", "active")
             self.active_contract_label.setText(str(len(active_contracts)))
             
-            # นับสัญญาที่ไถ่ถอน
+            # นับสัญญาที่ไถ่คืน
             redeemed_contracts = self.db.search_contracts("", "redeemed")
             self.redeemed_contract_label.setText(str(len(redeemed_contracts)))
             
@@ -445,7 +445,7 @@ class DataViewerDialog(QDialog):
             total_pawn = cursor.fetchone()[0] or 0
             self.total_pawn_label.setText(f"{total_pawn:,.2f} บาท")
             
-            # คำนวณยอดไถ่ถอนรวม
+            # คำนวณยอดไถ่คืนรวม
             cursor.execute('SELECT SUM(total_redemption) FROM contracts')
             total_redemption = cursor.fetchone()[0] or 0
             self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
@@ -628,7 +628,7 @@ class DataViewerDialog(QDialog):
                 
                 # สถานะ
                 status = contract.get('status', '')
-                status_text = "เปิด" if status == 'active' else "ไถ่ถอน" if status == 'redeemed' else status
+                status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
                 self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
                 
                 self.contract_table.setItem(row, 8, QTableWidgetItem(f"{contract.get('total_redemption', 0):,.2f}"))

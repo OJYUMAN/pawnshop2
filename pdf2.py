@@ -272,7 +272,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         [cell_para("ดอกเบี้ยต่อดอก", "TH"), cell_para(f"{interest_amount:,.2f}", "TH-right"),
          cell_para("ค่าธรรมเนียม", "TH"), cell_para(f"{fee_amount:,.2f}", "TH-right")],
         [cell_para("<b>รวมต่อดอก</b>", "TH-bold"), cell_para(f"<b>{total_amount:,.2f}</b>", "TH-right"),
-         cell_para("<b>ยอดไถ่ถอนรวม</b>", "TH-bold"), cell_para(f"<b>{total_redemption:,.2f}</b>", "TH-right")],
+         cell_para("<b>ยอดไถ่คืนรวม</b>", "TH-bold"), cell_para(f"<b>{total_redemption:,.2f}</b>", "TH-right")],
     ]
     money_t = Table(money, colWidths=[28*mm, 28*mm, 28*mm, (width-16*mm) - 84*mm])
     money_t.setStyle(TableStyle([
@@ -289,8 +289,8 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
 
     # Terms (ย่อเป็นย่อหน้าเดียว)
     terms_text = (
-        f"• ต่อเพิ่ม {extension_days} วัน | ครบใหม่ {thai_new_end_date} | ไถ่ถอนรวม {total_redemption:,.2f} บาท "
-        "• หากไม่ไถ่ถอนตามกำหนด ทรัพย์สินตกเป็นของร้าน • ต่อได้อีกโดยชำระดอก/ค่าธรรมเนียม • มูลค่าประเมินเดิมไม่เปลี่ยน"
+        f"• ต่อเพิ่ม {extension_days} วัน | ครบใหม่ {thai_new_end_date} | ไถ่คืนรวม {total_redemption:,.2f} บาท "
+        "• หากไม่ไถ่คืนตามกำหนด ทรัพย์สินตกเป็นของร้าน • ต่อได้อีกโดยชำระดอก/ค่าธรรมเนียม • มูลค่าประเมินเดิมไม่เปลี่ยน"
     )
     terms = Table([[cell_para(terms_text, "TH-mini")]], colWidths=[width-16*mm])
     terms.setStyle(TableStyle([

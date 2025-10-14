@@ -222,7 +222,7 @@ def generate_pawn_ticket_from_data(
     ]))
 
     highlight = Table([[Paragraph(
-        f"<b>ยอดไถ่ถอนรวม: {total_redemption:,.2f} บาท</b>  |  <b>กำหนดไถ่ถอน: {end_date}</b>",
+        f"<b>ยอดไถ่คืนรวม: {total_redemption:,.2f} บาท</b>  |  <b>กำหนดไถ่คืน: {end_date}</b>",
         styles["TH-bold"]
     )]], colWidths=[right_w])
     highlight.setStyle(TableStyle([
@@ -234,8 +234,8 @@ def generate_pawn_ticket_from_data(
 
     # เงื่อนไขสำคัญ (ตัดข้อความเกี่ยวกับดอกเบี้ย/ค่าธรรมเนียม/หัก ณ ที่จ่าย ออก)
     terms = [
-        f"• ไถ่ถอนภายใน <b>{end_date}</b> มิฉะนั้นทรัพย์จะตกเป็นของร้าน",
-        f"• ยอดไถ่ถอนรวม <b>{total_redemption:,.2f} บาท</b>",
+        f"• ไถ่คืนภายใน <b>{end_date}</b> มิฉะนั้นทรัพย์จะตกเป็นของร้าน",
+        f"• ยอดไถ่คืนรวม <b>{total_redemption:,.2f} บาท</b>",
     ]
     if renewal_data:
         terms += renewal_lines

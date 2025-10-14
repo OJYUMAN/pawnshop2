@@ -20,9 +20,9 @@ _TRANSLATIONS = {
         "tb_generate_pawn_pdf": "สร้างใบขายฝาก",
         "tb_extend_interest": "ต่อดอก",
         "tb_generate_renewal_pdf": "สร้างใบฝากต่อ",
-        "tb_redeem_contract": "ไถ่ถอน",
+        "tb_redeem_contract": "ไถ่คืน",
         "tb_view_all": "ดูข้อมูลทั้งหมด",
-        "tb_view_redemptions": "ดูประวัติการไถ่ถอน",
+        "tb_view_redemptions": "ดูประวัติการไถ่คืน",
         "tb_daily_income": "สรุปรายได้รายวัน",
         "tb_fee_management": "ค่าธรรมเนียม",
         "tb_scan_id": "สแกนบัตรประชาชน",
@@ -30,7 +30,7 @@ _TRANSLATIONS = {
 
         # Customer Tab
         "customer_search_group": "ค้นหาลูกค้า",
-        "customer_code": "รหัสลูกค้า:",
+        "customer_code": "ชื่อลูกค้า:",
         "search": "ค้นหา",
         "add_new_customer": "เพิ่มลูกค้าใหม่",
         "customer_info_group": "ข้อมูลลูกค้า",
@@ -87,7 +87,7 @@ _TRANSLATIONS = {
         "end_date": "วันที่สิ้นสุด:",
         "contract_status": "สถานะสัญญา:",
         "status_active": "สัญญาเปิด",
-        "status_redeemed": "ไถ่ถอนแล้ว",
+        "status_redeemed": "ไถ่คืนแล้ว",
         "status_lost": "สูญหาย",
         "update_status": "อัปเดตสถานะ",
 
@@ -99,7 +99,7 @@ _TRANSLATIONS = {
         "withholding_rate": "อัตราหัก ณ ที่จ่าย",
         "update": "อัปเดต",
         "total_paid": "ยอดจ่าย",
-        "total_redemption": "ยอดไถ่ถอน",
+        "total_redemption": "ยอดไถ่คืน",
 
         # Search Group
         "search_group": "ค้นหาสัญญา",
@@ -169,10 +169,10 @@ _TRANSLATIONS = {
         "no": "ไม่ใช่",
 
         # Redemption Dialog
-        "redemption_title": "ไถ่ถอน",
+        "redemption_title": "ไถ่คืน",
         "redemption_date_group": "ข้อมูลวันที่",
         "redemption_deposit_or_extend": "วันที่รับฝาก / ผากต่อ:",
-        "redemption_date": "วันที่ไถ่ถอน:",
+        "redemption_date": "วันที่ไถ่คืน:",
         "redemption_due_date": "วันที่ครบกำหนด:",
         "redemption_total_days": "รวมวันที่ฝากไว้:",
         "redemption_amount_group": "ข้อมูลจำนวนเงิน",
@@ -181,7 +181,7 @@ _TRANSLATIONS = {
         "redemption_penalty": "ค่าปรับ:",
         "redemption_discount": "ส่วนลด:",
         "redemption_total": "รวม:",
-        "redemption_confirm": "ต้องการไถ่ถอนสัญญานี้ใช่หรือไม่",
+        "redemption_confirm": "ต้องการไถ่คืนสัญญานี้ใช่หรือไม่",
     },
     "en": {
         # Common
@@ -208,7 +208,7 @@ _TRANSLATIONS = {
 
         # Customer Tab
         "customer_search_group": "Search Customer",
-        "customer_code": "Customer Code:",
+        "customer_code": "Customer Name:",
         "search": "Search",
         "add_new_customer": "Add New Customer",
         "customer_info_group": "Customer Information",
@@ -386,7 +386,7 @@ _TRANSLATIONS = {
 
         # Customer Tab
         "customer_search_group": "ຄົ້ນຫາລູກຄ້າ",
-        "customer_code": "ລະຫັດລູກຄ້າ:",
+        "customer_code": "ຊື່ລູກຄ້າ:",
         "search": "ຄົ້ນຫາ",
         "add_new_customer": "ເພີ່ມລູກຄ້າໃໝ່",
         "customer_info_group": "ຂໍ້ມູນລູກຄ້າ",
@@ -564,7 +564,7 @@ _TRANSLATIONS = {
 
         # Customer Tab
         "customer_search_group": "ဈေးသည်ရှာဖွေ",
-        "customer_code": "ဈေးသည်ကုဒ်:",
+        "customer_code": "ဈေးသည်အမည်:",
         "search": "ရှာဖွေ",
         "add_new_customer": "ဈေးသည်အသစ်ထည့်",
         "customer_info_group": "ဈေးသည်အချက်အလက်",

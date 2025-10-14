@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ระบบสร้างสัญญาไถ่ถอน/ใบเสร็จ PDF
+ระบบสร้างสัญญาไถ่คืน/ใบเสร็จ PDF
 กระดาษ = A4 เต็ม แต่เนื้อหาขนาดเดิมเท่าครึ่งแผ่น (วางบนครึ่งบนของหน้า)
 """
 
@@ -191,7 +191,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
 
     # ---------- story ----------
     story = [
-        Paragraph("สัญญาไถ่ถอน", styles["TH-h"]),
+        Paragraph("สัญญาไถ่คืน", styles["TH-h"]),
         Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
         Paragraph(shop_address, styles["TH"]),
         Spacer(1, 2),
@@ -207,8 +207,8 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         [Paragraph("ยอดฝากเดิม", styles["TH"]), Paragraph(f"{original_pawn_amount:,.2f} บาท", styles["TH-right"])],
     ]
     right = [
-        [Paragraph("<b>การไถ่ถอน</b>", styles["TH-bold"]), ""],
-        [Paragraph("วันที่ไถ่ถอน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
+        [Paragraph("<b>การไถ่คืน</b>", styles["TH-bold"]), ""],
+        [Paragraph("วันที่ไถ่คืน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
         [Paragraph("วันที่รับฝาก", styles["TH"]), Paragraph(deposit_date, styles["TH-right"])],
         [Paragraph("ครบกำหนด", styles["TH"]), Paragraph(due_date, styles["TH-right"])],
         [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
@@ -227,7 +227,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
 
     # customer + product
     cust_prod = [
-        [Paragraph("<b>ผู้ไถ่ถอน</b>", styles["TH-bold"]), Paragraph("<b>ทรัพย์สิน</b>", styles["TH-bold"])],
+        [Paragraph("<b>ผู้ไถ่คืน</b>", styles["TH-bold"]), Paragraph("<b>ทรัพย์สิน</b>", styles["TH-bold"])],
         [Paragraph(f"รหัส: {customer_code} | โทร: {phone}<br/>ชื่อ: {customer_name}<br/>บัตร: {id_card}<br/>ที่อยู่: {address}", styles["TH"]),
          Paragraph(f"{product_display}"
                    + (f"<br/>{' | '.join(details_bits)}" if details_bits else "")
@@ -243,7 +243,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
          Paragraph("ค่าธรรมเนียม", styles["TH"]), Paragraph(f"{fee_amount:,.2f}", styles["TH-right"])],
         [Paragraph("ค่าปรับ", styles["TH"]), Paragraph(f"{penalty_amount:,.2f}", styles["TH-right"]),
          Paragraph("ส่วนลด", styles["TH"]), Paragraph(f"{discount_amount:,.2f}", styles["TH-right"])],
-        [Paragraph("<b>ยอดไถ่ถอนรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"]),
+        [Paragraph("<b>ยอดไถ่คืนรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_redemption:,.2f}</b>", styles["TH-right"]),
          Paragraph("", styles["TH"]), Paragraph("", styles["TH"])],
     ]
     money_t = _boxed(money, [28*mm, 28*mm, 28*mm, (PAGE_W-16*mm)-84*mm], header_rows=0)
@@ -251,8 +251,8 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
 
     # terms
     terms_text = (
-        f"• ไถ่ถอนวันที่ {thai_redemption_date} • ฝาก {total_days} วัน • ยอดไถ่ถอน {total_redemption:,.2f} บาท "
-        "• หลังไถ่ถอนถือว่าสัญญาขายฝากสิ้นสุด • ตรวจสอบสินค้าให้เรียบร้อยก่อนรับมอบ"
+        f"• ไถ่คืนวันที่ {thai_redemption_date} • ฝาก {total_days} วัน • ยอดไถ่คืน {total_redemption:,.2f} บาท "
+        "• หลังไถ่คืนถือว่าสัญญาขายฝากสิ้นสุด • ตรวจสอบสินค้าให้เรียบร้อยก่อนรับมอบ"
     )
     terms_t = _boxed([[Paragraph(terms_text, styles["TH-mini"])]], [PAGE_W-16*mm], header_rows=0)
     story += [terms_t, Spacer(1,2)]
@@ -260,7 +260,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     # signatures
     sig = Table([
         [Paragraph("ลงชื่อ ____________________ ผู้รับฝาก", styles["TH"]),
-         Paragraph("ลงชื่อ ____________________ ผู้ไถ่ถอน", styles["TH"])],
+         Paragraph("ลงชื่อ ____________________ ผู้ไถ่คืน", styles["TH"])],
         [Paragraph("( นาย/นาง/นางสาว _________________ )", styles["TH"]),
          Paragraph(f"( {customer_name} )", styles["TH"])],
         [Paragraph("วันที่: _________________", styles["TH"]),
@@ -276,7 +276,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     ]))
     story += [sig, Spacer(1,1)]
     story += [Paragraph(
-        f"เอกสารไถ่ถอนสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        f"เอกสารไถ่คืนสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         styles["TH-mini"]
     )]
 
@@ -324,16 +324,16 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     phone = customer_data.get('phone', 'N/A')
 
     story = [
-        Paragraph("ใบเสร็จการไถ่ถอน", styles["TH-h"]),
+        Paragraph("ใบเสร็จการไถ่คืน", styles["TH-h"]),
         Paragraph(f"{shop_name} ({shop_branch})", styles["TH-sub"]),
         Paragraph(shop_address, styles["TH"]),
         Spacer(1, 2),
     ]
 
     info = _boxed([
-        [Paragraph("<b>รายละเอียดการไถ่ถอน</b>", styles["TH-bold"]), ""],
+        [Paragraph("<b>รายละเอียดการไถ่คืน</b>", styles["TH-bold"]), ""],
         [Paragraph("เลขที่สัญญา", styles["TH"]), Paragraph(contract_number, styles["TH-right"])],
-        [Paragraph("วันที่ไถ่ถอน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
+        [Paragraph("วันที่ไถ่คืน", styles["TH"]), Paragraph(thai_redemption_date, styles["TH-right"])],
         [Paragraph("จำนวนวันที่ฝาก", styles["TH"]), Paragraph(f"{total_days} วัน", styles["TH-right"])],
     ], [60*mm, (PAGE_W-16*mm)-60*mm], header_rows=1)
     story += [info, Spacer(1,2)]

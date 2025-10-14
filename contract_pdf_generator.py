@@ -160,7 +160,7 @@ class ContractPDFGenerator(QObject):
         y_pos = self._draw_notes(c, width, y_pos)
         y_pos -= 15
         
-        # --- ข้อมูลการไถ่ถอน ---
+        # --- ข้อมูลการไถ่คืน ---
         y_pos = self._draw_redemption_info(c, contract_data, width, y_pos)
         y_pos -= 60
         
@@ -327,7 +327,7 @@ class ContractPDFGenerator(QObject):
             "กรณีสินค้าหายหรือสูญหายซึ่งพิสูจน์ได้ว่าถูกโจรกรรม หรือเนื่องจากภัยธรรมชาติ",
             "ทางร้านไม่ต้องชดใช้หรือรับผิดชอบใดๆทั้งสิ้น",
             "",
-            "หากเกินกำหนดเวลาไถ่ถอน ถือว่าท่านสละสิทธิ์ในทรัพย์สินนี้ให้ตกเป็นของทางร้านโดยสมบูรณ์"
+            "หากเกินกำหนดเวลาไถ่คืน ถือว่าท่านสละสิทธิ์ในทรัพย์สินนี้ให้ตกเป็นของทางร้านโดยสมบูรณ์"
         ]
         
         for note in notes:
@@ -338,12 +338,12 @@ class ContractPDFGenerator(QObject):
         return y_pos
     
     def _draw_redemption_info(self, c: canvas.Canvas, contract_data: Dict, width: float, y_pos: float) -> float:
-        """วาดข้อมูลการไถ่ถอน"""
+        """วาดข้อมูลการไถ่คืน"""
         left_margin = 50
         
         c.setFont("THSarabun-Bold", 16)
         total_redemption = contract_data['total_redemption']
-        c.drawString(left_margin, y_pos, f"ยอดไถ่ถอน: {total_redemption:,.2f} บาท")
+        c.drawString(left_margin, y_pos, f"ยอดไถ่คืน: {total_redemption:,.2f} บาท")
         y_pos -= 25
         
         # แปลงวันที่สิ้นสุด

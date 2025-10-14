@@ -37,7 +37,7 @@ class CustomerSearchDialog(QDialog):
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(QLabel("ค้นหา:"))
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("ชื่อ, เลขบัตร, รหัสลูกค้า")
+        self.search_edit.setPlaceholderText("ชื่อลูกค้า, นามสกุล, เลขบัตร, รหัสลูกค้า")
         self.search_edit.textChanged.connect(self.filter_customers)
         filter_layout.addWidget(self.search_edit)
         
@@ -125,11 +125,24 @@ class CustomerSearchDialog(QDialog):
         """เลือกลูกค้า"""
         current_row = self.customer_table.currentRow()
         if current_row >= 0:
-            # ดึงข้อมูลลูกค้าที่เลือก
-            customer_code = self.customer_table.item(current_row, 0).text()
-            customers = self.db.search_customers(customer_code)
+            # ดึงข้อมูลลูกค้าที่เลือกโดยใช้ชื่อและนามสกุล
+            first_name = self.customer_table.item(current_row, 1).text()
+            last_name = self.customer_table.item(current_row, 2).text()
+            customer_name = f"{first_name} {last_name}".strip()
+            
+            # ค้นหาลูกค้าด้วยชื่อ
+            customers = self.db.search_customers(customer_name)
             
             if customers:
+                # หาลูกค้าที่ตรงกับชื่อและนามสกุลที่เลือก
+                for customer in customers:
+                    if (customer.get('first_name', '') == first_name and 
+                        customer.get('last_name', '') == last_name):
+                        self.selected_customer = customer
+                        self.accept()
+                        return
+                
+                # ถ้าไม่เจอที่ตรงกัน ให้ใช้ลูกค้าคนแรกที่เจอ
                 self.selected_customer = customers[0]
                 self.accept()
             else:

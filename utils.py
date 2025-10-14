@@ -39,19 +39,19 @@ class PawnShopUtils:
     @staticmethod
     def calculate_total_redemption(pawn_amount: float, interest_amount: float, 
                                  penalty_amount: float = 0, discount_amount: float = 0) -> float:
-        """คำนวณยอดไถ่ถอนรวม"""
+        """คำนวณยอดไถ่คืนรวม"""
         return pawn_amount + interest_amount + penalty_amount - discount_amount
     
     @staticmethod
     def calculate_redemption_with_tax(pawn_amount: float, interest_amount: float, 
                                     fee_amount: float, withholding_tax_amount: float) -> float:
-        """คำนวณยอดไถ่ถอนรวม (รวมหัก ณ ที่จ่าย)"""
+        """คำนวณยอดไถ่คืนรวม (รวมหัก ณ ที่จ่าย)"""
         return pawn_amount + interest_amount + fee_amount - withholding_tax_amount
     
     @staticmethod
     def calculate_redemption_without_tax(pawn_amount: float, interest_amount: float, 
                                        fee_amount: float) -> float:
-        """คำนวณยอดไถ่ถอนรวม (ไม่รวมหัก ณ ที่จ่าย)"""
+        """คำนวณยอดไถ่คืนรวม (ไม่รวมหัก ณ ที่จ่าย)"""
         return pawn_amount + interest_amount + fee_amount
     
     @staticmethod
@@ -213,7 +213,7 @@ class PawnShopUtils:
             WHERE strftime('%Y-%m', start_date) = ?
         ''', (f"{year:04d}-{month:02d}",)).fetchone()
         
-        # การไถ่ถอน
+        # การไถ่คืน
         redemptions = db.execute('''
             SELECT COUNT(*), SUM(redemption_amount) FROM redemptions 
             WHERE strftime('%Y-%m', redemption_date) = ?

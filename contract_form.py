@@ -163,8 +163,8 @@ class NewContractDialog(QDialog):
         self.total_paid_label = QLabel("0.00 บาท")
         finance_layout.addWidget(self.total_paid_label, 5, 1)
         
-        # ยอดไถ่ถอน
-        finance_layout.addWidget(QLabel("ยอดไถ่ถอน:"), 6, 0)
+        # ยอดไถ่คืน
+        finance_layout.addWidget(QLabel("ยอดไถ่คืน:"), 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
         finance_layout.addWidget(self.total_redemption_label, 6, 1)
         
@@ -605,7 +605,7 @@ class NewContractDialog(QDialog):
         # ยอดจ่าย
         total_paid = pawn_amount
         
-        # ยอดไถ่ถอน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
+        # ยอดไถ่คืน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
         total_redemption = PawnShopUtils.calculate_redemption_with_tax(
             pawn_amount, interest_amount, fee_amount, withholding_tax_amount
         )

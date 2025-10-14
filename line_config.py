@@ -11,7 +11,7 @@ LINE_USER_ID = "U2b2ca0d3bbe61e7dadc5a393ec8d5e9c"
 ENABLE_LINE_NOTIFICATION = True  # เปิด/ปิดการส่งข้อความเข้า Line
 SEND_CONTRACT_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อบันทึกสัญญา
 SEND_RENEWAL_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อต่อดอก
-SEND_REDEMPTION_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อไถ่ถอน
+SEND_REDEMPTION_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อไถ่คืน
 SEND_DAILY_INCOME_NOTIFICATION = True  # ส่งการแจ้งเตือนสรุปรายได้รายวัน
 SEND_FORFEITURE_NOTIFICATION = True  # ส่งการแจ้งเตือนเมื่อสินค้าหลุดจำนำ
 
@@ -37,7 +37,7 @@ MESSAGE_TEMPLATE = {
 💸 ค่าธรรมเนียม: {fee_amount:,.2f} บาท
 🏦 ภาษีหัก ณ ที่จ่าย: {withholding_tax_amount:,.2f} บาท
 💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
-💎 จำนวนเงินไถ่ถอน: {total_redemption:,.2f} บาท
+💎 จำนวนเงินไถ่คืน: {total_redemption:,.2f} บาท
 
 ⏰ เวลาที่บันทึก: {timestamp}
     """.strip(),
@@ -53,12 +53,12 @@ MESSAGE_TEMPLATE = {
     """.strip(),
     
     'redemption': """
-💎 การไถ่ถอน: {contract_number}
+💎 การไถ่คืน: {contract_number}
 
 👤 ลูกค้า: {customer_name}
-💰 จำนวนเงินไถ่ถอน: {redemption_amount:,.2f} บาท
-📅 วันไถ่ถอน: {redemption_date}
-⏰ เวลาที่ไถ่ถอน: {timestamp}
+💰 จำนวนเงินไถ่คืน: {redemption_amount:,.2f} บาท
+📅 วันไถ่คืน: {redemption_date}
+⏰ เวลาที่ไถ่คืน: {timestamp}
     """.strip(),
     
     'forfeiture': """
@@ -76,12 +76,12 @@ MESSAGE_TEMPLATE = {
 
 📋 สัญญาใหม่: {new_contracts} สัญญา
 🔄 การต่อดอก: {renewals} ครั้ง
-💎 การไถ่ถอน: {redemptions} ครั้ง
+💎 การไถ่คืน: {redemptions} ครั้ง
 
 💰 ดอกเบี้ยรวม: {total_interest:,.2f} บาท
 💸 ค่าธรรมเนียมการต่อดอก: {total_renewal_fees:,.2f} บาท
 💵 ค่าธรรมเนียมรวม: {total_fees:,.2f} บาท
-💎 จำนวนเงินไถ่ถอน: {total_redemption_amount:,.2f} บาท
+💎 จำนวนเงินไถ่คืน: {total_redemption_amount:,.2f} บาท
 
 📈 รายได้สุทธิ: {net_income:,.2f} บาท
 

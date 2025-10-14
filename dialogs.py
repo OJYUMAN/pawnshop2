@@ -1404,7 +1404,7 @@ class RedemptionDialog(QDialog):
             deposit_date = self.deposit_date_edit.date()
             redemption_date = self.redemption_date_edit.date()
             
-            # คำนวณจำนวนวันระหว่างวันที่รับฝากกับวันที่ไถ่ถอน
+            # คำนวณจำนวนวันระหว่างวันที่รับฝากกับวันที่ไถ่คืน
             days = deposit_date.daysTo(redemption_date)
             if days < 0:
                 days = 0
@@ -1470,7 +1470,7 @@ class RedemptionDialog(QDialog):
                 end_date = QDate.fromString(self.contract_data['end_date'], "yyyy-MM-dd")
                 self.due_date_edit.setDate(end_date)
             
-            # ตั้งค่าวันที่ไถ่ถอนเป็นวันปัจจุบัน
+            # ตั้งค่าวันที่ไถ่คืนเป็นวันปัจจุบัน
             self.redemption_date_edit.setDate(QDate.currentDate())
             
             # คำนวณจำนวนวันและจำนวนเงิน
@@ -1480,13 +1480,13 @@ class RedemptionDialog(QDialog):
             print(f"Error loading contract data: {e}")
     
     def confirm_redemption(self):
-        """ยืนยันการไถ่ถอน"""
+        """ยืนยันการไถ่คืน"""
         try:
             if not self.contract_data:
                 QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
                 return
             
-            # สร้างข้อมูลการไถ่ถอน
+            # สร้างข้อมูลการไถ่คืน
             redemption_data = {
                 'contract_id': self.contract_data['id'],
                 'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
@@ -1500,32 +1500,32 @@ class RedemptionDialog(QDialog):
                 'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
             
-            # บันทึกการไถ่ถอน
+            # บันทึกการไถ่คืน
             redemption_id = self.db.redeem_contract(redemption_data)
             
-            # ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่ถอน
+            # ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่คืน
             self.send_redemption_line_notification(redemption_data)
             
-            # ถามว่าจะสร้างสัญญาไถ่ถอนหรือไม่
+            # ถามว่าจะสร้างสัญญาไถ่คืนหรือไม่
             reply = QMessageBox.question(
                 self,
-                "สร้างสัญญาไถ่ถอน",
-                "ต้องการจะสร้างสัญญาไถ่ถอนหรือไม่?",
+                "สร้างสัญญาไถ่คืน",
+                "ต้องการจะสร้างสัญญาไถ่คืนหรือไม่?",
                 QMessageBox.Yes | QMessageBox.No,
                 QMessageBox.Yes
             )
             if reply == QMessageBox.Yes:
                 self.generate_redemption_contract_pdf(redemption_data, redemption_id)
-                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย\nสร้างสัญญาไถ่ถอนเรียบร้อยแล้ว")
+                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่คืนเรียบร้อย\nสร้างสัญญาไถ่คืนเรียบร้อยแล้ว")
             else:
-                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่ถอนเรียบร้อย")
+                QMessageBox.information(self, "สำเร็จ", "บันทึกการไถ่คืนเรียบร้อย")
             self.accept()
             
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
     
     def send_redemption_line_notification(self, redemption_data):
-        """ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่ถอน"""
+        """ส่งข้อความแจ้งเตือนไลน์เมื่อมีการไถ่คืน"""
         try:
             # ตรวจสอบการตั้งค่าการส่งข้อความ
             if not ENABLE_LINE_NOTIFICATION or not SEND_REDEMPTION_NOTIFICATION:
@@ -1549,15 +1549,15 @@ class RedemptionDialog(QDialog):
             # ส่งข้อความ
             success = send_line_message(message)
             if success:
-                print("ส่งข้อความแจ้งเตือนการไถ่ถอนสำเร็จ")
+                print("ส่งข้อความแจ้งเตือนการไถ่คืนสำเร็จ")
             else:
-                print("ส่งข้อความแจ้งเตือนการไถ่ถอนไม่สำเร็จ")
+                print("ส่งข้อความแจ้งเตือนการไถ่คืนไม่สำเร็จ")
                 
         except Exception as e:
-            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการไถ่ถอน: {str(e)}")
+            print(f"เกิดข้อผิดพลาดในการส่งข้อความแจ้งเตือนการไถ่คืน: {str(e)}")
     
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
-        """สร้างสัญญาไถ่ถอนเป็น PDF"""
+        """สร้างสัญญาไถ่คืนเป็น PDF"""
         try:
             # นำเข้า pdf3.py
             from pdf3 import generate_redemption_contract_pdf
@@ -1571,7 +1571,7 @@ class RedemptionDialog(QDialog):
                 QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลลูกค้าหรือสินค้า")
                 return
             
-            # สร้างข้อมูลการไถ่ถอนสำหรับ PDF
+            # สร้างข้อมูลการไถ่คืนสำหรับ PDF
             redemption_pdf_data = {
                 'redemption_date': redemption_data['redemption_date'],
                 'deposit_date': redemption_data['deposit_date'],
@@ -1666,7 +1666,7 @@ class RedemptionDialog(QDialog):
                         pass
 
                     # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
-                    suggested_name = f"ใบไถ่ถอน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                    suggested_name = f"ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                     save_path, _ = QFileDialog.getSaveFileName(
                         self,
                         "บันทึก PDF",
@@ -1675,12 +1675,12 @@ class RedemptionDialog(QDialog):
                     )
                     if save_path:
                         shutil.copyfile(result, save_path)
-                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่ถอนแล้วที่:\n{save_path}")
-                        # ในกรณีเป็นการไถ่ถอนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
+                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
+                        # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
                         if redemption_id is not None:
                             self.print_redemption_contract(save_path)
                 else:
-                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่ถอนไม่สำเร็จ")
+                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่คืนไม่สำเร็จ")
                 
         except ImportError:
             QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")
@@ -1688,7 +1688,7 @@ class RedemptionDialog(QDialog):
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง PDF: {str(e)}")
     
     def print_redemption_contract(self, pdf_file_path):
-        """พิมพ์สัญญาไถ่ถอน"""
+        """พิมพ์สัญญาไถ่คืน"""
         try:
             import subprocess
             import platform
@@ -1728,13 +1728,13 @@ class RedemptionDialog(QDialog):
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการพิมพ์: {str(e)}")
     
     def generate_redemption_contract_only(self):
-        """สร้างเฉพาะสัญญาไถ่ถอนโดยไม่บันทึกการไถ่ถอน"""
+        """สร้างเฉพาะสัญญาไถ่คืนโดยไม่บันทึกการไถ่คืน"""
         try:
             if not self.contract_data:
                 QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
                 return
             
-            # สร้างข้อมูลการไถ่ถอนสำหรับ PDF
+            # สร้างข้อมูลการไถ่คืนสำหรับ PDF
             redemption_data = {
                 'contract_id': self.contract_data['id'],
                 'redemption_date': self.redemption_date_edit.date().toString("yyyy-MM-dd"),
@@ -1748,7 +1748,7 @@ class RedemptionDialog(QDialog):
                 'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
             
-            # สร้างสัญญาไถ่ถอน PDF
+            # สร้างสัญญาไถ่คืน PDF
             self.generate_redemption_contract_pdf(redemption_data, None)
             
         except Exception as e:

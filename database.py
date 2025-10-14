@@ -145,7 +145,7 @@ class PawnShopDatabase:
                 )
             ''')
             
-            # ตารางการไถ่ถอน
+            # ตารางการไถ่คืน
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS redemptions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -400,20 +400,32 @@ class PawnShopDatabase:
             return None
     
     def search_customers(self, search_term: str) -> List[Dict]:
-        """ค้นหาลูกค้า"""
+        """ค้นหาลูกค้า - ค้นหาจากชื่อก่อน แล้วตามด้วยนามสกุล, เลขบัตร, และรหัสลูกค้า"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
+            # ค้นหาจากชื่อก่อน (first_name) แล้วตามด้วยนามสกุล, เลขบัตร, และรหัสลูกค้า
             cursor.execute('''
-                SELECT * FROM customers 
+                SELECT *, 
+                CASE 
+                    WHEN first_name LIKE ? THEN 1
+                    WHEN last_name LIKE ? THEN 2
+                    WHEN id_card LIKE ? THEN 3
+                    WHEN customer_code LIKE ? THEN 4
+                    ELSE 5
+                END as search_priority
+                FROM customers 
                 WHERE first_name LIKE ? OR last_name LIKE ? OR id_card LIKE ? OR customer_code LIKE ?
-            ''', (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
+                ORDER BY search_priority, first_name, last_name
+            ''', (f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', f'%{search_term}%',
+                  f'%{search_term}%', f'%{search_term}%', f'%{search_term}%', f'%{search_term}%'))
             
             rows = cursor.fetchall()
             
             if rows:
                 columns = [description[0] for description in cursor.description]
-                return [dict(zip(columns, row)) for row in rows]
+                # ลบ search_priority column ออกจากผลลัพธ์
+                return [dict(zip(columns[:-1], row[:-1])) for row in rows]
             return []
     
     def search_products(self, search_term: str) -> List[Dict]:
@@ -716,11 +728,11 @@ class PawnShopDatabase:
             return renewals
     
     def redeem_contract(self, redemption_data: Dict) -> int:
-        """ไถ่ถอนสัญญา"""
+        """ไถ่คืนสัญญา"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
-            # เพิ่มข้อมูลการไถ่ถอน
+            # เพิ่มข้อมูลการไถ่คืน
             cursor.execute('''
                 INSERT INTO redemptions (
                     contract_id, redemption_date, redemption_amount,
@@ -761,7 +773,7 @@ class PawnShopDatabase:
             ''', (date,))
             new_contracts = cursor.fetchone()
             
-            # การไถ่ถอน
+            # การไถ่คืน
             cursor.execute('''
                 SELECT COUNT(*), SUM(redemption_amount) FROM redemptions 
                 WHERE DATE(redemption_date) = ?
@@ -817,7 +829,7 @@ class PawnShopDatabase:
             return []
     
     def get_forfeited_contracts(self) -> List[Dict]:
-        """ดึงสัญญาที่หลุดจำนำ (ครบกำหนดแล้วแต่ยังไม่ได้ไถ่ถอน)"""
+        """ดึงสัญญาที่หลุดจำนำ (ครบกำหนดแล้วแต่ยังไม่ได้ไถ่คืน)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -1408,7 +1420,7 @@ class PawnShopDatabase:
             return False
 
     def get_all_redemptions(self) -> List[Dict]:
-        """ดึงข้อมูลการไถ่ถอนทั้งหมด"""
+        """ดึงข้อมูลการไถ่คืนทั้งหมด"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -1429,7 +1441,7 @@ class PawnShopDatabase:
             return []
 
     def get_redemptions_by_contract(self, contract_id: int) -> List[Dict]:
-        """ดึงข้อมูลการไถ่ถอนตาม contract_id"""
+        """ดึงข้อมูลการไถ่คืนตาม contract_id"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
@@ -1498,7 +1510,7 @@ class PawnShopDatabase:
             return []
 
     def get_redemptions_by_date(self, date: str) -> List[Dict]:
-        """ดึงข้อมูลการไถ่ถอนตามวันที่ไถ่ถอน"""
+        """ดึงข้อมูลการไถ่คืนตามวันที่ไถ่คืน"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
