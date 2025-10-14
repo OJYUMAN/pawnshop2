@@ -131,42 +131,15 @@ class NewContractDialog(QDialog):
         self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
         finance_layout.addWidget(self.pawn_amount_spin, 0, 1)
         
-        # อัตราดอกเบี้ย
-        finance_layout.addWidget(QLabel("อัตราดอกเบี้ย:"), 1, 0)
-        self.interest_rate_spin = QDoubleSpinBox()
-        self.interest_rate_spin.setRange(0, 100)
-        self.interest_rate_spin.setSuffix(" %")
-        self.interest_rate_spin.valueChanged.connect(self.calculate_amounts)
-        finance_layout.addWidget(self.interest_rate_spin, 1, 1)
-        
-        # ค่าธรรมเนียม
-        finance_layout.addWidget(QLabel("ค่าธรรมเนียม:"), 2, 0)
-        self.fee_amount_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.fee_amount_label, 2, 1)
-        
-        # อัตราหัก ณ ที่จ่าย
-        finance_layout.addWidget(QLabel("อัตราหัก ณ ที่จ่าย:"), 3, 0)
-        self.withholding_tax_rate_spin = QDoubleSpinBox()
-        self.withholding_tax_rate_spin.setRange(0, 100)
-        self.withholding_tax_rate_spin.setValue(3.0)
-        self.withholding_tax_rate_spin.setSuffix(" %")
-        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
-        finance_layout.addWidget(self.withholding_tax_rate_spin, 3, 1)
-        
-        # จำนวนหัก ณ ที่จ่าย
-        finance_layout.addWidget(QLabel("หัก ณ ที่จ่าย:"), 4, 0)
-        self.withholding_tax_amount_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.withholding_tax_amount_label, 4, 1)
-        
         # ยอดจ่าย
-        finance_layout.addWidget(QLabel("ยอดจ่าย:"), 5, 0)
+        finance_layout.addWidget(QLabel("ยอดจ่าย:"), 1, 0)
         self.total_paid_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.total_paid_label, 5, 1)
+        finance_layout.addWidget(self.total_paid_label, 1, 1)
         
         # ยอดไถ่คืน
-        finance_layout.addWidget(QLabel("ยอดไถ่คืน:"), 6, 0)
+        finance_layout.addWidget(QLabel("ยอดไถ่คืน:"), 2, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
-        finance_layout.addWidget(self.total_redemption_label, 6, 1)
+        finance_layout.addWidget(self.total_redemption_label, 2, 1)
         
         layout.addWidget(finance_group)
         
@@ -309,60 +282,53 @@ class NewContractDialog(QDialog):
         self.renewal_count_spin.valueChanged.connect(self.calculate_renewal_amounts)
         renewal_layout.addWidget(self.renewal_count_spin, 1, 1)
         
-        # ค่าธรรมเนียมต่อดอก
-        renewal_layout.addWidget(QLabel("ค่าธรรมเนียมต่อดอก:"), 2, 0)
-        self.renewal_fee_amount_spin = QDoubleSpinBox()
-        self.renewal_fee_amount_spin.setRange(0, 999999)
-        self.renewal_fee_amount_spin.setSuffix(" บาท")
-        self.renewal_fee_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
-        renewal_layout.addWidget(self.renewal_fee_amount_spin, 2, 1)
         
         # ค่าปรับ
-        renewal_layout.addWidget(QLabel("ค่าปรับ:"), 3, 0)
+        renewal_layout.addWidget(QLabel("ค่าปรับ:"), 2, 0)
         self.renewal_penalty_amount_spin = QDoubleSpinBox()
         self.renewal_penalty_amount_spin.setRange(0, 999999)
         self.renewal_penalty_amount_spin.setSuffix(" บาท")
         self.renewal_penalty_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
-        renewal_layout.addWidget(self.renewal_penalty_amount_spin, 3, 1)
+        renewal_layout.addWidget(self.renewal_penalty_amount_spin, 2, 1)
         
         # ส่วนลด
-        renewal_layout.addWidget(QLabel("ส่วนลด:"), 4, 0)
+        renewal_layout.addWidget(QLabel("ส่วนลด:"), 3, 0)
         self.renewal_discount_amount_spin = QDoubleSpinBox()
         self.renewal_discount_amount_spin.setRange(0, 999999)
         self.renewal_discount_amount_spin.setSuffix(" บาท")
         self.renewal_discount_amount_spin.valueChanged.connect(self.calculate_renewal_amounts)
-        renewal_layout.addWidget(self.renewal_discount_amount_spin, 4, 1)
+        renewal_layout.addWidget(self.renewal_discount_amount_spin, 3, 1)
         
         # รวม
-        renewal_layout.addWidget(QLabel("รวม:"), 5, 0)
+        renewal_layout.addWidget(QLabel("รวม:"), 4, 0)
         self.renewal_total_amount_label = QLabel("0.00 บาท")
-        renewal_layout.addWidget(self.renewal_total_amount_label, 5, 1)
+        renewal_layout.addWidget(self.renewal_total_amount_label, 4, 1)
         
         # วันที่ต่อดอก
-        renewal_layout.addWidget(QLabel("วันต่อดอก:"), 6, 0)
+        renewal_layout.addWidget(QLabel("วันต่อดอก:"), 5, 0)
         self.renewal_date_edit = QDateEdit()
         self.renewal_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(self.renewal_date_edit, 6, 1)
+        renewal_layout.addWidget(self.renewal_date_edit, 5, 1)
         
         # วันครบกำหนดปัจจุบัน
-        renewal_layout.addWidget(QLabel("วันครบกำหนดปัจจุบัน:"), 7, 0)
+        renewal_layout.addWidget(QLabel("วันครบกำหนดปัจจุบัน:"), 6, 0)
         self.current_due_date_edit = QDateEdit()
         self.current_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(self.current_due_date_edit, 7, 1)
+        renewal_layout.addWidget(self.current_due_date_edit, 6, 1)
         
         # วันครบกำหนดใหม่
-        renewal_layout.addWidget(QLabel("วันครบกำหนดใหม่:"), 8, 0)
+        renewal_layout.addWidget(QLabel("วันครบกำหนดใหม่:"), 7, 0)
         self.new_due_date_edit = QDateEdit()
         self.new_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(self.new_due_date_edit, 8, 1)
+        renewal_layout.addWidget(self.new_due_date_edit, 7, 1)
         
         # จำนวนวันต่อดอก
-        renewal_layout.addWidget(QLabel("จำนวนวันต่อดอก:"), 9, 0)
+        renewal_layout.addWidget(QLabel("จำนวนวันต่อดอก:"), 8, 0)
         self.extension_days_spin = QSpinBox()
         self.extension_days_spin.setRange(1, 365)
         self.extension_days_spin.setValue(30)
         self.extension_days_spin.valueChanged.connect(self.calculate_extension_dates)
-        renewal_layout.addWidget(self.extension_days_spin, 9, 1)
+        renewal_layout.addWidget(self.extension_days_spin, 8, 1)
         
         layout.addWidget(renewal_group)
         
@@ -377,11 +343,10 @@ class NewContractDialog(QDialog):
     
     def calculate_renewal_amounts(self):
         """คำนวณยอดการต่อดอก"""
-        fee_amount = self.renewal_fee_amount_spin.value()
         penalty_amount = self.renewal_penalty_amount_spin.value()
         discount_amount = self.renewal_discount_amount_spin.value()
         
-        total_amount = fee_amount + penalty_amount - discount_amount
+        total_amount = penalty_amount - discount_amount
         self.renewal_total_amount_label.setText(f"{total_amount:,.2f} บาท")
     
     def calculate_extension_dates(self):
@@ -471,7 +436,6 @@ class NewContractDialog(QDialog):
             # โหลดข้อมูลสัญญา
             self.contract_number_edit.setText(contract_data.get('contract_number', ''))
             self.pawn_amount_spin.setValue(contract_data.get('pawn_amount', 0))
-            self.interest_rate_spin.setValue(contract_data.get('interest_rate', 0))
             
             # โหลดวันที่
             start_date = contract_data.get('start_date', '')
@@ -506,7 +470,6 @@ class NewContractDialog(QDialog):
         # ล้างข้อมูลสัญญา
         self.contract_number_edit.clear()
         self.pawn_amount_spin.setValue(0)
-        self.interest_rate_spin.setValue(0)
         self.days_spin.setValue(30)
         self.start_date_edit.setDate(QDate.currentDate())
         self.end_date_edit.clear()
@@ -527,8 +490,7 @@ class NewContractDialog(QDialog):
         self.product_details_edit.clear()
         
         # ล้างข้อมูลการต่อดอก
-        if hasattr(self, 'renewal_fee_amount_spin'):
-            self.renewal_fee_amount_spin.setValue(0)
+        if hasattr(self, 'renewal_penalty_amount_spin'):
             self.renewal_penalty_amount_spin.setValue(0)
             self.renewal_discount_amount_spin.setValue(0)
             self.renewal_total_amount_label.setText("0.00 บาท")
@@ -546,13 +508,9 @@ class NewContractDialog(QDialog):
     
     def load_settings(self):
         """โหลดการตั้งค่า"""
-        default_interest_rate = float(self.db.get_setting('default_interest_rate'))
         default_days = int(self.db.get_setting('default_contract_days'))
-        default_withholding_tax_rate = float(self.db.get_setting('default_withholding_tax_rate'))
         
-        self.interest_rate_spin.setValue(default_interest_rate)
         self.days_spin.setValue(default_days)
-        self.withholding_tax_rate_spin.setValue(default_withholding_tax_rate)
         
         # ตั้งค่าเริ่มต้นสำหรับข้อมูลการต่อดอก
         if hasattr(self, 'extension_days_spin'):
@@ -589,30 +547,14 @@ class NewContractDialog(QDialog):
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
         pawn_amount = self.pawn_amount_spin.value()
-        interest_rate = self.interest_rate_spin.value()
-        days = self.days_spin.value()
-        withholding_tax_rate = self.withholding_tax_rate_spin.value()
-        
-        # คำนวณดอกเบี้ย
-        interest_amount = PawnShopUtils.calculate_interest(pawn_amount, interest_rate, days)
-        
-        # ค่าธรรมเนียมจากฐานข้อมูล
-        fee_amount = self.db.calculate_fee_amount(pawn_amount, days)
-        
-        # คำนวณหัก ณ ที่จ่าย (จากดอกเบี้ย)
-        withholding_tax_amount = interest_amount * (withholding_tax_rate / 100)
         
         # ยอดจ่าย
         total_paid = pawn_amount
         
-        # ยอดไถ่คืน (รวมหัก ณ ที่จ่าย) - ใช้ฟังก์ชันใหม่
-        total_redemption = PawnShopUtils.calculate_redemption_with_tax(
-            pawn_amount, interest_amount, fee_amount, withholding_tax_amount
-        )
+        # ยอดไถ่คืน
+        total_redemption = pawn_amount
         
         # แสดงผล
-        self.fee_amount_label.setText(f"{fee_amount:,.2f} บาท")
-        self.withholding_tax_amount_label.setText(f"{withholding_tax_amount:,.2f} บาท")
         self.total_paid_label.setText(f"{total_paid:,.2f} บาท")
         self.total_redemption_label.setText(f"{total_redemption:,.2f} บาท")
     
@@ -697,10 +639,6 @@ class NewContractDialog(QDialog):
             'customer_id': self.current_customer['id'],
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
-            'interest_rate': self.interest_rate_spin.value(),
-            'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
-            'withholding_tax_rate': self.withholding_tax_rate_spin.value(),
-            'withholding_tax_amount': float(self.withholding_tax_amount_label.text().replace(' บาท', '').replace(',', '')),
             'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
             'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
@@ -721,12 +659,11 @@ class NewContractDialog(QDialog):
                 action_message = "บันทึกสัญญาเรียบร้อย"
             
             # บันทึกข้อมูลการต่อดอกถ้ามี
-            if hasattr(self, 'renewal_fee_amount_spin') and self.renewal_fee_amount_spin.value() > 0:
+            if hasattr(self, 'renewal_penalty_amount_spin') and (self.renewal_penalty_amount_spin.value() > 0 or self.renewal_discount_amount_spin.value() > 0):
                 renewal_data = {
                     'contract_id': contract_id,
                     'contract_number': contract_data['contract_number'],
                     'renewal_count': self.renewal_count_spin.value(),
-                    'fee_amount': self.renewal_fee_amount_spin.value(),
                     'penalty_amount': self.renewal_penalty_amount_spin.value(),
                     'discount_amount': self.renewal_discount_amount_spin.value(),
                     'total_amount': float(self.renewal_total_amount_label.text().replace(' บาท', '').replace(',', '')),

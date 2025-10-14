@@ -160,15 +160,15 @@ class DataViewerDialog(QDialog):
         
         # ตารางสัญญา
         self.contract_table = QTableWidget()
-        self.contract_table.setColumnCount(11)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
+        self.contract_table.setColumnCount(10)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
         self.contract_table.setHorizontalHeaderLabels([
             "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", "ยอดฝาก", 
-            "อัตราดอกเบี้ย", "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
+            "วันที่เริ่มต้น", "วันที่สิ้นสุด", 
             "สถานะ", "ยอดไถ่คืน", "วันที่สร้าง", "การดำเนินการ"
         ])
         self.contract_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.contract_table.horizontalHeader().setSectionResizeMode(10, QHeaderView.Fixed)
-        self.contract_table.setColumnWidth(10, 100)
+        self.contract_table.horizontalHeader().setSectionResizeMode(9, QHeaderView.Fixed)
+        self.contract_table.setColumnWidth(9, 100)
         layout.addWidget(self.contract_table)
         
         return widget
@@ -360,7 +360,6 @@ class DataViewerDialog(QDialog):
                 
                 self.contract_table.setItem(row, 2, QTableWidgetItem(contract.get('product_name', '')))
                 self.contract_table.setItem(row, 3, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
-                self.contract_table.setItem(row, 4, QTableWidgetItem("{:.2f}%".format(contract.get('interest_rate', 0))))
                 
                 # วันที่เริ่มต้น
                 start_date = contract.get('start_date', '')
@@ -372,7 +371,7 @@ class DataViewerDialog(QDialog):
                         date_str = start_date
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 5, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 4, QTableWidgetItem(date_str))
                 
                 # วันที่สิ้นสุด
                 end_date = contract.get('end_date', '')
@@ -384,14 +383,14 @@ class DataViewerDialog(QDialog):
                         date_str = end_date
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 6, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 5, QTableWidgetItem(date_str))
                 
                 # สถานะ
                 status = contract.get('status', '')
                 status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
-                self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
+                self.contract_table.setItem(row, 6, QTableWidgetItem(status_text))
                 
-                self.contract_table.setItem(row, 8, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
+                self.contract_table.setItem(row, 7, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 
                 # วันที่สร้าง
                 created_at = contract.get('created_at', '')
@@ -403,13 +402,13 @@ class DataViewerDialog(QDialog):
                         date_str = created_at
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 9, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 8, QTableWidgetItem(date_str))
                 
                 # เพิ่มปุ่มลบ
                 delete_button = QPushButton("ลบ")
                 delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                 delete_button.clicked.connect(lambda checked, row=row: self.delete_contract(row))
-                self.contract_table.setCellWidget(row, 10, delete_button)
+                self.contract_table.setCellWidget(row, 9, delete_button)
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสัญญา: {}".format(str(e)))
@@ -602,7 +601,6 @@ class DataViewerDialog(QDialog):
                 
                 self.contract_table.setItem(row, 2, QTableWidgetItem(contract.get('product_name', '')))
                 self.contract_table.setItem(row, 3, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
-                self.contract_table.setItem(row, 4, QTableWidgetItem("{:.2f}%".format(contract.get('interest_rate', 0))))
                 
                 # วันที่เริ่มต้น
                 start_date = contract.get('start_date', '')
@@ -614,7 +612,7 @@ class DataViewerDialog(QDialog):
                         date_str = start_date
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 5, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 4, QTableWidgetItem(date_str))
                 
                 # วันที่สิ้นสุด
                 end_date = contract.get('end_date', '')
@@ -626,14 +624,14 @@ class DataViewerDialog(QDialog):
                         date_str = end_date
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 6, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 5, QTableWidgetItem(date_str))
                 
                 # สถานะ
                 status = contract.get('status', '')
                 status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
-                self.contract_table.setItem(row, 7, QTableWidgetItem(status_text))
+                self.contract_table.setItem(row, 6, QTableWidgetItem(status_text))
                 
-                self.contract_table.setItem(row, 8, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
+                self.contract_table.setItem(row, 7, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 
                 # วันที่สร้าง
                 created_at = contract.get('created_at', '')
@@ -645,13 +643,13 @@ class DataViewerDialog(QDialog):
                         date_str = created_at
                 else:
                     date_str = ''
-                self.contract_table.setItem(row, 9, QTableWidgetItem(date_str))
+                self.contract_table.setItem(row, 8, QTableWidgetItem(date_str))
                 
                 # เพิ่มปุ่มลบ
                 delete_button = QPushButton("ลบ")
                 delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                 delete_button.clicked.connect(lambda checked, row=row: self.delete_contract(row))
-                self.contract_table.setCellWidget(row, 10, delete_button)
+                self.contract_table.setCellWidget(row, 9, delete_button)
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลสัญญา: {}".format(str(e)))

@@ -265,16 +265,6 @@ class ContractPDFGenerator(QObject):
         c.drawString(left_margin + 15, y_pos, f"ขายฝากไว้เป็นจำนวนเงิน: {pawn_amount:,.2f} บาท")
         y_pos -= 20
         
-        # ค่าดำเนินการ
-        fee_amount = contract_data['fee_amount']
-        c.drawString(left_margin + 15, y_pos, f"ค่าดำเนินการ: {fee_amount:,.2f} บาท")
-        y_pos -= 20
-        
-        # ค่าธรรมเนียม (ถ้ามี)
-        if contract_data.get('interest_rate', 0) > 0:
-            interest_amount = contract_data.get('interest_rate', 0) * contract_data['pawn_amount'] / 100
-            c.drawString(left_margin + 15, y_pos, f"ค่าธรรมเนียม: {interest_amount:,.2f} บาท")
-            y_pos -= 20
         
         return y_pos
     

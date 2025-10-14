@@ -3,22 +3,6 @@ from typing import Dict, List, Tuple
 import re
 
 class PawnShopUtils:
-    @staticmethod
-    def calculate_interest(principal: float, rate: float, days: int) -> float:
-        """คำนวณดอกเบี้ย (rate เป็นอัตราดอกเบี้ยต่อเดือน)"""
-        # แปลงอัตราดอกเบี้ยต่อเดือนเป็นต่อวัน
-        daily_rate = rate / 30
-        return (principal * daily_rate * days) / 100
-    
-    @staticmethod
-    def calculate_withholding_tax(interest_amount: float, tax_rate: float) -> float:
-        """คำนวณหัก ณ ที่จ่าย"""
-        return interest_amount * (tax_rate / 100)
-    
-    @staticmethod
-    def calculate_penalty(principal: float, overdue_days: int, penalty_rate: float = 1.0) -> float:
-        """คำนวณค่าปรับ"""
-        return (principal * penalty_rate * overdue_days) / 100
     
     @staticmethod
     def generate_contract_number(prefix: str, sequence: int) -> str:
@@ -37,27 +21,11 @@ class PawnShopUtils:
         return start_date, end_date
     
     @staticmethod
-    def calculate_total_redemption(pawn_amount: float, interest_amount: float, 
-                                 penalty_amount: float = 0, discount_amount: float = 0) -> float:
+    def calculate_total_redemption(pawn_amount: float, penalty_amount: float = 0, discount_amount: float = 0) -> float:
         """คำนวณยอดไถ่คืนรวม"""
-        return pawn_amount + interest_amount + penalty_amount - discount_amount
+        return pawn_amount + penalty_amount - discount_amount
     
-    @staticmethod
-    def calculate_redemption_with_tax(pawn_amount: float, interest_amount: float, 
-                                    fee_amount: float, withholding_tax_amount: float) -> float:
-        """คำนวณยอดไถ่คืนรวม (รวมหัก ณ ที่จ่าย)"""
-        return pawn_amount + interest_amount + fee_amount - withholding_tax_amount
     
-    @staticmethod
-    def calculate_redemption_without_tax(pawn_amount: float, interest_amount: float, 
-                                       fee_amount: float) -> float:
-        """คำนวณยอดไถ่คืนรวม (ไม่รวมหัก ณ ที่จ่าย)"""
-        return pawn_amount + interest_amount + fee_amount
-    
-    @staticmethod
-    def calculate_net_payment(pawn_amount: float, withholding_tax_amount: float) -> float:
-        """คำนวณยอดจ่ายหลังหัก ณ ที่จ่าย"""
-        return pawn_amount - withholding_tax_amount
     
     @staticmethod
     def format_currency(amount: float) -> str:
@@ -126,69 +94,7 @@ class PawnShopUtils:
         
         return False
     
-    @staticmethod
-    def calculate_interest_schedule(contract_data: Dict) -> List[Dict]:
-        """คำนวณตารางดอกเบี้ย"""
-        schedule = []
-        start_date = contract_data['start_date']
-        end_date = contract_data['end_date']
-        principal = contract_data['pawn_amount']
-        rate = contract_data['interest_rate']
-        
-        current_date = start_date
-        sequence = 1
-        
-        while current_date <= end_date:
-            # คำนวณวันที่ครบกำหนด
-            due_date = current_date + timedelta(days=30)
-            
-            # คำนวณดอกเบี้ย
-            interest_amount = PawnShopUtils.calculate_interest(principal, rate, 30)
-            
-            # คำนวณค่าปรับ (ถ้าครบกำหนดแล้ว)
-            penalty_amount = 0
-            if due_date < datetime.now():
-                overdue_days = (datetime.now() - due_date).days
-                penalty_amount = PawnShopUtils.calculate_penalty(principal, overdue_days)
-            
-            schedule.append({
-                'sequence': sequence,
-                'due_date': due_date,
-                'interest_amount': interest_amount,
-                'penalty_amount': penalty_amount,
-                'discount_amount': 0,
-                'total_amount': interest_amount + penalty_amount
-            })
-            
-            current_date = due_date
-            sequence += 1
-        
-        return schedule
     
-    @staticmethod
-    def calculate_overdue_amount(contract_data: Dict) -> Dict:
-        """คำนวณยอดค้างชำระ"""
-        today = datetime.now()
-        end_date = contract_data['end_date']
-        
-        if today <= end_date:
-            return {
-                'is_overdue': False,
-                'overdue_days': 0,
-                'penalty_amount': 0
-            }
-        
-        overdue_days = (today - end_date).days
-        penalty_amount = PawnShopUtils.calculate_penalty(
-            contract_data['pawn_amount'], 
-            overdue_days
-        )
-        
-        return {
-            'is_overdue': True,
-            'overdue_days': overdue_days,
-            'penalty_amount': penalty_amount
-        }
     
     @staticmethod
     def format_thai_date(date: datetime) -> str:

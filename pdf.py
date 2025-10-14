@@ -316,17 +316,15 @@ def generate_pawn_ticket_from_data(
         story.append(Paragraph("ประวัติการต่อดอก", styles["TH-bold"]))
         story.append(Spacer(1, 2*mm))
         
-        renewal_table_data = [["วันที่ต่อดอก", "ต่อเพิ่ม (วัน)", "ดอกเบี้ย", "ค่าธรรมเนียม", "รวม"]]
+        renewal_table_data = [["วันที่ต่อดอก", "ต่อเพิ่ม (วัน)", "รวม"]]
         for renewal in renewal_data:
             renewal_table_data.append([
                 thai_date(renewal.get('renewal_date', '')),
                 str(renewal.get('extension_days', 0)),
-                money(renewal.get('interest_amount', 0)),
-                money(renewal.get('fee_amount', 0)),
                 money(renewal.get('total_amount', 0))
             ])
         
-        renewal_table = Table(renewal_table_data, colWidths=[40*mm, 30*mm, 40*mm, 40*mm, 40*mm])
+        renewal_table = Table(renewal_table_data, colWidths=[60*mm, 40*mm, 60*mm])
         renewal_table.setStyle(TableStyle([
             ('FONT', (0,0), (-1,-1), 'THSarabun', 10),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),

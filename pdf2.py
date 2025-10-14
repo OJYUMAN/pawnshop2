@@ -138,8 +138,6 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
 
     # --- renewal ---
     extension_days = int(renewal_data.get('extension_days', 0) or 0)
-    interest_amount = float(renewal_data.get('interest_amount', 0) or 0)
-    fee_amount = float(renewal_data.get('fee_amount', 0) or 0)
     total_amount = float(renewal_data.get('total_amount', 0) or 0)
     renewal_date_disp = thai_date(renewal_data.get('renewal_date', datetime.now().strftime('%Y-%m-%d')))
 
@@ -158,7 +156,6 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         pass
 
     original_pawn_amount = float(original_contract_data.get('pawn_amount', 0) or 0)
-    original_interest_rate = float(original_contract_data.get('interest_rate', 0) or 0)
     total_redemption = original_pawn_amount + total_amount
 
     # --- product & customer ---
@@ -211,8 +208,6 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
         [cell_para("<b>ต่อดอก</b>", "TH-bold"), ""],
         [cell_para("วันที่", "TH"), cell_para(renewal_date_disp, "TH-right")],
         [cell_para("ต่อเพิ่ม", "TH"), cell_para(f"{extension_days} วัน", "TH-right")],
-        [cell_para("ดอกเบี้ย", "TH"), cell_para(f"{interest_amount:,.2f}", "TH-right")],
-        [cell_para("ค่าธรรมเนียม", "TH"), cell_para(f"{fee_amount:,.2f}", "TH-right")],
         [cell_para("<b>รวมต่อดอก</b>", "TH-bold"), cell_para(f"<b>{total_amount:,.2f}</b>", "TH-right")],
         [cell_para("ครบใหม่", "TH"), cell_para(thai_new_end_date, "TH-right")],
     ]
@@ -268,9 +263,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     # Money summary (เน้นบรรทัดสุดท้าย)
     money = [
         [cell_para("ยอดฝากเดิม", "TH"), cell_para(f"{original_pawn_amount:,.2f}", "TH-right"),
-         cell_para("อัตราดอกเบี้ย", "TH"), cell_para(f"{original_interest_rate:.2f}% ต่อปี", "TH-right")],
-        [cell_para("ดอกเบี้ยต่อดอก", "TH"), cell_para(f"{interest_amount:,.2f}", "TH-right"),
-         cell_para("ค่าธรรมเนียม", "TH"), cell_para(f"{fee_amount:,.2f}", "TH-right")],
+         cell_para("", "TH"), cell_para("", "TH-right")],
         [cell_para("<b>รวมต่อดอก</b>", "TH-bold"), cell_para(f"<b>{total_amount:,.2f}</b>", "TH-right"),
          cell_para("<b>ยอดไถ่คืนรวม</b>", "TH-bold"), cell_para(f"<b>{total_redemption:,.2f}</b>", "TH-right")],
     ]
@@ -384,8 +377,6 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
 
     contract_number = original_contract_data.get('contract_number', 'N/A')
     extension_days = int(renewal_data.get('extension_days', 0) or 0)
-    interest_amount = float(renewal_data.get('interest_amount', 0) or 0)
-    fee_amount = float(renewal_data.get('fee_amount', 0) or 0)
     total_amount = float(renewal_data.get('total_amount', 0) or 0)
     renewal_date_disp = thai_date(renewal_data.get('renewal_date', datetime.now().strftime('%Y-%m-%d')))
 

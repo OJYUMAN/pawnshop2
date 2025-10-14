@@ -28,7 +28,6 @@ from dialogs import CustomerDialog, ProductDialog, InterestPaymentDialog, Redemp
 from data_viewer import DataViewerDialog
 from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
-from fee_management import FeeManagementDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE, SEND_FORFEITURE_NOTIFICATION
 import tempfile
 import shutil
@@ -402,8 +401,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 start_date=contract_data['start_date'],
                 end_date=contract_data['end_date'],
                 days_count=contract_data['days_count'],
-                interest_rate=contract_data['interest_rate'],
-                fee_amount=contract_data['fee_amount'],
                 withholding_tax_amount=contract_data['withholding_tax_amount'],
                 total_paid=contract_data['total_paid'],
                 total_redemption=contract_data['total_redemption'],
@@ -1305,7 +1302,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ("tb_view_all", "folder-open", self.view_contracts),
             ("tb_view_redemptions", "document-properties", self.view_redemptions),
             ("tb_daily_income", "x-office-calendar", self.show_daily_income_summary),
-            ("tb_fee_management", "preferences-system", self.show_fee_management),
             ("tb_scan_id", "smartcard", self.scan_id_card),
         ]
 
@@ -1387,8 +1383,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 icon = QIcon.fromTheme("x-office-calendar", QIcon.fromTheme("calendar", QIcon.fromTheme("date")))
             elif "ตารางดอก" in text:
                 icon = QIcon.fromTheme("insert-object", QIcon.fromTheme("table", QIcon.fromTheme("grid")))
-            elif "ค่าธรรมเนียม" in text:
-                icon = QIcon.fromTheme("preferences-system", QIcon.fromTheme("settings", QIcon.fromTheme("configure")))
             elif "สแกนบัตร" in text or "smartcard" in text:
                 icon = QIcon.fromTheme("smartcard", QIcon.fromTheme("contact-new", QIcon.fromTheme("user-identity")))
             else:
@@ -1798,8 +1792,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             'customer_id': self.current_customer['id'],
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
-            'interest_rate': 0.0,  # ไม่ใช้แล้ว
-            'fee_amount': 0.0,  # ไม่ใช้แล้ว
             'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
             'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
             'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
@@ -1821,8 +1813,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'end_date': contract_data['end_date'],
                 'days': contract_data['days_count'],
                 'pawn_amount': contract_data['pawn_amount'],
-                'interest_rate': contract_data['interest_rate'],
-                'fee_amount': contract_data['fee_amount'],
                 'withholding_tax_rate': contract_data['withholding_tax_rate'],
                 'withholding_tax_amount': contract_data['withholding_tax_amount'],
                 'total_paid': contract_data['total_paid'],
@@ -1892,17 +1882,17 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # สร้างตาราง
         table = QTableWidget()
         if contract_specific:
-            table.setColumnCount(12)
+            table.setColumnCount(11)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
                 "วันที่รับฝาก", "วันที่ครบกำหนด", "วันที่ไถ่คืน", "จำนวนวันที่ฝาก",
-                "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่คืน"
+                "เงินต้น", "ค่าปรับ", "ยอดไถ่คืน"
             ]
         else:
-            table.setColumnCount(10)
+            table.setColumnCount(9)
             headers = [
                 "ลำดับ", "เลขที่สัญญา", "ชื่อลูกค้า", "ชื่อสินค้า", 
-                "วันที่ไถ่คืน", "จำนวนวันที่ฝาก", "เงินต้น", "ค่าธรรมเนียม", "ค่าปรับ", "ยอดไถ่คืน"
+                "วันที่ไถ่คืน", "จำนวนวันที่ฝาก", "เงินต้น", "ค่าปรับ", "ยอดไถ่คืน"
             ]
         table.setHorizontalHeaderLabels(headers)
         
@@ -1951,17 +1941,14 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 principal_amount = redemption.get('principal_amount', 0)
                 table.setItem(row, 8, QTableWidgetItem(f"{principal_amount:,.2f}"))
                 
-                # ค่าธรรมเนียม
-                fee_amount = redemption.get('fee_amount', 0)
-                table.setItem(row, 9, QTableWidgetItem(f"{fee_amount:,.2f}"))
                 
                 # ค่าปรับ
                 penalty_amount = redemption.get('penalty_amount', 0)
-                table.setItem(row, 10, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+                table.setItem(row, 9, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
                 # ยอดไถ่คืน
                 redemption_amount = redemption.get('redemption_amount', 0)
-                table.setItem(row, 11, QTableWidgetItem(f"{redemption_amount:,.2f}"))
+                table.setItem(row, 10, QTableWidgetItem(f"{redemption_amount:,.2f}"))
             else:
                 # วันที่ไถ่คืน
                 redemption_date = redemption.get('redemption_date', '')
@@ -1975,17 +1962,14 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 principal_amount = redemption.get('principal_amount', 0)
                 table.setItem(row, 6, QTableWidgetItem(f"{principal_amount:,.2f}"))
                 
-                # ค่าธรรมเนียม
-                fee_amount = redemption.get('fee_amount', 0)
-                table.setItem(row, 7, QTableWidgetItem(f"{fee_amount:,.2f}"))
                 
                 # ค่าปรับ
                 penalty_amount = redemption.get('penalty_amount', 0)
-                table.setItem(row, 8, QTableWidgetItem(f"{penalty_amount:,.2f}"))
+                table.setItem(row, 7, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
                 # ยอดไถ่คืน
                 redemption_amount = redemption.get('redemption_amount', 0)
-                table.setItem(row, 9, QTableWidgetItem(f"{redemption_amount:,.2f}"))
+                table.setItem(row, 8, QTableWidgetItem(f"{redemption_amount:,.2f}"))
         
         layout.addWidget(table)
         
@@ -2240,7 +2224,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                     # ข้อมูลการต่อดอก
                     self.renewal_history_table.setItem(row_position, 0, QTableWidgetItem(str(renewal.get('renewal_date', ''))))
                     self.renewal_history_table.setItem(row_position, 1, QTableWidgetItem(f"{renewal.get('interest_amount', 0):,.2f}"))
-                    self.renewal_history_table.setItem(row_position, 2, QTableWidgetItem(f"{renewal.get('fee_amount', 0):,.2f}"))
                     self.renewal_history_table.setItem(row_position, 3, QTableWidgetItem(f"{renewal.get('total_amount', 0):,.2f}"))
                     self.renewal_history_table.setItem(row_position, 4, QTableWidgetItem(renewal.get('notes', '')))
             
@@ -2398,16 +2381,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     
     
     
-    def show_fee_management(self):
-        """แสดงหน้าต่างจัดการค่าธรรมเนียม"""
-        dialog = FeeManagementDialog(self)
-        dialog.fee_updated.connect(self.on_fee_updated)
-        dialog.exec()
-    
-    def on_fee_updated(self):
-        """เมื่อมีการอัปเดตข้อมูลค่าธรรมเนียม"""
-        # รีเฟรชการคำนวณค่าธรรมเนียมในฟอร์ม
-        self.calculate_amounts()
         
 
     def toggle_customer_mode(self):
@@ -2646,8 +2619,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'end_date': self.end_date_edit.text(),
                 'days_count': self.days_spin.value(),
                 'pawn_amount': self.pawn_amount_spin.value(),
-                'interest_rate': 0.0,  # ไม่ใช้แล้ว
-                'fee_amount': 0.0,  # ไม่ใช้แล้ว
                 'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
                 'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
                 'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
@@ -2821,7 +2792,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # เงื่อนไขและข้อตกลง
         story.append(Paragraph("เงื่อนไขและข้อตกลง", heading_style))
         terms = [
-            "1. ลูกค้าต้องชำระดอกเบี้ยและค่าธรรมเนียมตามกำหนดเวลา",
+            "1. ลูกค้าต้องชำระเงินตามกำหนดเวลา",
             "2. หากไม่ชำระภายในกำหนด สินค้าจะตกเป็นของร้าน",
             "3. ลูกค้าสามารถไถ่คืนสินค้าได้ตลอดเวลาก่อนครบกำหนด",
             "4. ร้านจะเก็บรักษาสินค้าให้อย่างดีและปลอดภัย",
@@ -2972,7 +2943,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'renewals': 0,
                 'redemptions': 0,
                 'total_interest': 0.0,
-                'total_fees': 0.0,
                 'total_redemption_amount': 0.0,
                 'net_income': 0.0
             }
@@ -2983,8 +2953,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             # คำนวณดอกเบี้ยจากสัญญาใหม่
             for contract in new_contracts:
-                daily_income['total_interest'] += contract.get('fee_amount', 0)
-                daily_income['total_fees'] += contract.get('fee_amount', 0)
+                daily_income['total_interest'] += 0  # ไม่มีดอกเบี้ยแล้ว
             
             renewals = self.db.get_renewals_by_date(date)
             daily_income['renewals'] = len(renewals)
@@ -2999,7 +2968,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 daily_income['total_redemption_amount'] += redemption.get('amount', 0)
             
             # คำนวณรายได้สุทธิ
-            daily_income['net_income'] = daily_income['total_fees'] - daily_income['total_redemption_amount']
+            daily_income['net_income'] = daily_income['total_interest'] - daily_income['total_redemption_amount']
             
             return daily_income
             
@@ -3038,7 +3007,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ("🔄 การต่อดอก", f"{daily_income['renewals']} ครั้ง"),
             ("💎 การไถ่คืน", f"{daily_income['redemptions']} ครั้ง"),
             ("💰 ดอกเบี้ยรวม", f"{daily_income['total_interest']:,.2f} บาท"),
-            ("💵 ค่าธรรมเนียมรวม", f"{daily_income['total_fees']:,.2f} บาท"),
             ("💎 จำนวนเงินไถ่คืน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
             ("📈 รายได้สุทธิ", f"{daily_income['net_income']:,.2f} บาท")
         ]
@@ -3093,7 +3061,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 renewals=daily_income['renewals'],
                 redemptions=daily_income['redemptions'],
                 total_interest=daily_income['total_interest'],
-                total_fees=daily_income['total_fees'],
                 total_redemption_amount=daily_income['total_redemption_amount'],
                 net_income=daily_income['net_income'],
                 timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')

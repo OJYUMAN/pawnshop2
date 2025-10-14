@@ -1104,7 +1104,6 @@ class InterestPaymentDialog(QDialog):
         self.contract_number_label = QLabel()
         self.customer_name_label = QLabel()
         self.pawn_amount_label = QLabel()
-        self.interest_rate_label = QLabel()
         
         contract_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
         contract_layout.addWidget(self.contract_number_label, 0, 1)
@@ -1112,8 +1111,6 @@ class InterestPaymentDialog(QDialog):
         contract_layout.addWidget(self.customer_name_label, 1, 1)
         contract_layout.addWidget(QLabel("ยอดฝาก:"), 2, 0)
         contract_layout.addWidget(self.pawn_amount_label, 2, 1)
-        contract_layout.addWidget(QLabel("อัตราดอกเบี้ย:"), 3, 0)
-        contract_layout.addWidget(self.interest_rate_label, 3, 1)
         
         layout.addWidget(contract_group)
         
@@ -1171,7 +1168,6 @@ class InterestPaymentDialog(QDialog):
             customer_name = "{} {}".format(self.contract_data.get('first_name', ''), self.contract_data.get('last_name', ''))
             self.customer_name_label.setText(customer_name)
             self.pawn_amount_label.setText("{:,.2f} บาท".format(self.contract_data.get('pawn_amount', 0)))
-            self.interest_rate_label.setText("{:.2f}%".format(self.contract_data.get('interest_rate', 0)))
     
     def calculate_total(self):
         """คำนวณยอดรวม"""
@@ -1338,15 +1334,6 @@ class RedemptionDialog(QDialog):
             color: #8B4513;
         """)
         
-        self.fee_amount_label = QLabel("0")
-        self.fee_amount_label.setStyleSheet("""
-            background-color: white;
-            border: 2px solid #D2691E;
-            border-radius: 5px;
-            padding: 5px;
-            font-weight: bold;
-            color: #8B4513;
-        """)
         
         self.penalty_amount_label = QLabel("0")
         self.penalty_amount_label.setStyleSheet("""
@@ -1381,14 +1368,12 @@ class RedemptionDialog(QDialog):
         
         amount_layout.addWidget(QLabel(language_manager.get_text("redemption_principal")), 0, 0)
         amount_layout.addWidget(self.principal_amount_label, 0, 1)
-        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_fee")), 1, 0)
-        amount_layout.addWidget(self.fee_amount_label, 1, 1)
-        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_penalty")), 2, 0)
-        amount_layout.addWidget(self.penalty_amount_label, 2, 1)
-        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_discount")), 3, 0)
-        amount_layout.addWidget(self.discount_amount_label, 3, 1)
-        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_total")), 4, 0)
-        amount_layout.addWidget(self.total_amount_label, 4, 1)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_penalty")), 1, 0)
+        amount_layout.addWidget(self.penalty_amount_label, 1, 1)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_discount")), 2, 0)
+        amount_layout.addWidget(self.discount_amount_label, 2, 1)
+        amount_layout.addWidget(QLabel(language_manager.get_text("redemption_total")), 3, 0)
+        amount_layout.addWidget(self.total_amount_label, 3, 1)
         
         layout.addWidget(amount_group)
         
@@ -1474,13 +1459,6 @@ class RedemptionDialog(QDialog):
                 return
             
             principal = self.contract_data.get('pawn_amount', 0)
-            days = int(self.total_days_label.text())
-            
-            # คำนวณค่าธรรมเนียมตามจำนวนวัน
-            fee_rate = self.db.get_fee_rate_by_days(days)
-            fee_amount = 0
-            if fee_rate:
-                fee_amount = (principal * fee_rate['fee_rate']) / 100
             
             # คำนวณค่าปรับ (ถ้าเกินกำหนด)
             penalty = 0
@@ -1492,14 +1470,13 @@ class RedemptionDialog(QDialog):
             discount = 0
             
             # คำนวณยอดรวม
-            total = principal + fee_amount + penalty - discount
+            total = principal + penalty - discount
             
             # แสดงผลลัพธ์
-            self.principal_amount_label.setText("{principal:,.2f} บาท")
-            self.fee_amount_label.setText("{fee_amount:,.2f} บาท")
-            self.penalty_amount_label.setText("{penalty:,.2f} บาท")
-            self.discount_amount_label.setText("{discount:,.2f} บาท")
-            self.total_amount_label.setText("{total:,.2f} บาท")
+            self.principal_amount_label.setText(f"{principal:,.2f} บาท")
+            self.penalty_amount_label.setText(f"{penalty:,.2f} บาท")
+            self.discount_amount_label.setText(f"{discount:,.2f} บาท")
+            self.total_amount_label.setText(f"{total:,.2f} บาท")
             
         except Exception as e:
             print("Error calculating amounts: {e}")
@@ -1544,7 +1521,6 @@ class RedemptionDialog(QDialog):
                 'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
                 'total_days': int(self.total_days_label.text()),
                 'principal_amount': float(self.principal_amount_label.text().replace(' บาท', '').replace(',', '')),
-                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'penalty_amount': float(self.penalty_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
@@ -1627,7 +1603,6 @@ class RedemptionDialog(QDialog):
                 'due_date': redemption_data['due_date'],
                 'total_days': redemption_data['total_days'],
                 'principal_amount': redemption_data['principal_amount'],
-                'fee_amount': redemption_data['fee_amount'],
                 'penalty_amount': redemption_data['penalty_amount'],
                 'discount_amount': redemption_data['discount_amount'],
                 'redemption_amount': redemption_data['redemption_amount']
@@ -1640,7 +1615,6 @@ class RedemptionDialog(QDialog):
                 'end_date': self.contract_data.get('end_date', ''),
                 'days_count': self.contract_data.get('days_count', 0),
                 'pawn_amount': self.contract_data.get('pawn_amount', 0),
-                'interest_rate': self.contract_data.get('interest_rate', 0),
                 'estimated_value': self.contract_data.get('estimated_value', 0)
             }
             
@@ -1792,7 +1766,6 @@ class RedemptionDialog(QDialog):
                 'due_date': self.due_date_edit.date().toString("yyyy-MM-dd"),
                 'total_days': int(self.total_days_label.text()),
                 'principal_amount': float(self.principal_amount_label.text().replace(' บาท', '').replace(',', '')),
-                'fee_amount': float(self.fee_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'penalty_amount': float(self.penalty_amount_label.text().replace(' บาท', '').replace(',', '')),
                 'discount_amount': float(self.discount_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
@@ -1902,7 +1875,6 @@ class RenewalDialog(QDialog):
         self.contract_number_label = QLabel()
         self.customer_name_label = QLabel()
         self.pawn_amount_label = QLabel()
-        self.interest_rate_label = QLabel()
         
         contract_layout.addWidget(QLabel(language_manager.get_text("renewal_contract_number")), 0, 0)
         contract_layout.addWidget(self.contract_number_label, 0, 1)
@@ -1910,8 +1882,6 @@ class RenewalDialog(QDialog):
         contract_layout.addWidget(self.customer_name_label, 1, 1)
         contract_layout.addWidget(QLabel(language_manager.get_text("renewal_pawn_amount")), 2, 0)
         contract_layout.addWidget(self.pawn_amount_label, 2, 1)
-        contract_layout.addWidget(QLabel(language_manager.get_text("renewal_interest_rate")), 3, 0)
-        contract_layout.addWidget(self.interest_rate_label, 3, 1)
         
         layout.addWidget(contract_group)
         
@@ -1931,52 +1901,45 @@ class RenewalDialog(QDialog):
         renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_count")), 1, 0)
         renewal_layout.addWidget(self.renewal_count_spin, 1, 1)
         
-        # ค่าธรรมเนียม
-        self.fee_amount_spin = QDoubleSpinBox()
-        self.fee_amount_spin.setRange(0, 999999)
-        self.fee_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_fee")), 2, 0)
-        renewal_layout.addWidget(self.fee_amount_spin, 2, 1)
         
         # ค่าปรับ
         self.penalty_amount_spin = QDoubleSpinBox()
         self.penalty_amount_spin.setRange(0, 999999)
         self.penalty_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_penalty")), 3, 0)
-        renewal_layout.addWidget(self.penalty_amount_spin, 3, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_penalty")), 2, 0)
+        renewal_layout.addWidget(self.penalty_amount_spin, 2, 1)
         
         # ส่วนลด
         self.discount_amount_spin = QDoubleSpinBox()
         self.discount_amount_spin.setRange(0, 999999)
         self.discount_amount_spin.setSuffix(" บาท")
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_discount")), 4, 0)
-        renewal_layout.addWidget(self.discount_amount_spin, 4, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_discount")), 3, 0)
+        renewal_layout.addWidget(self.discount_amount_spin, 3, 1)
         
         # รวม
         self.total_amount_label = QLabel("0.00 บาท")
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_total")), 5, 0)
-        renewal_layout.addWidget(self.total_amount_label, 5, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_total")), 4, 0)
+        renewal_layout.addWidget(self.total_amount_label, 4, 1)
         
         # วันที่ต่อดอก
         self.renewal_date_edit = QDateEdit()
         self.renewal_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_date")), 6, 0)
-        renewal_layout.addWidget(self.renewal_date_edit, 6, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_date")), 5, 0)
+        renewal_layout.addWidget(self.renewal_date_edit, 5, 1)
         
         # วันครบกำหนดปัจจุบัน
         self.current_due_date_edit = QDateEdit()
         self.current_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_current_due")), 7, 0)
-        renewal_layout.addWidget(self.current_due_date_edit, 7, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_current_due")), 6, 0)
+        renewal_layout.addWidget(self.current_due_date_edit, 6, 1)
         
         # วันครบกำหนดใหม่
         self.new_due_date_edit = QDateEdit()
         self.new_due_date_edit.setDate(QDate.currentDate())
-        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_new_due")), 8, 0)
-        renewal_layout.addWidget(self.new_due_date_edit, 8, 1)
+        renewal_layout.addWidget(QLabel(language_manager.get_text("renewal_new_due")), 7, 0)
+        renewal_layout.addWidget(self.new_due_date_edit, 7, 1)
         
         # เชื่อมต่อสัญญาณ
-        self.fee_amount_spin.valueChanged.connect(self.calculate_total)
         self.penalty_amount_spin.valueChanged.connect(self.calculate_total)
         self.discount_amount_spin.valueChanged.connect(self.calculate_total)
         
@@ -2041,7 +2004,6 @@ class RenewalDialog(QDialog):
             customer_name = "{} {}".format(self.contract_data.get('first_name', ''), self.contract_data.get('last_name', ''))
             self.customer_name_label.setText(customer_name)
             self.pawn_amount_label.setText("{:,.2f} บาท".format(self.contract_data.get('pawn_amount', 0)))
-            self.interest_rate_label.setText("{:.2f}%".format(self.contract_data.get('interest_rate', 0)))
             
             # คำนวณจำนวนวันฝาก
             self.calculate_deposit_days()
@@ -2068,10 +2030,9 @@ class RenewalDialog(QDialog):
     
     def calculate_total(self):
         """คำนวณยอดรวม"""
-        fee = self.fee_amount_spin.value()
         penalty = self.penalty_amount_spin.value()
         discount = self.discount_amount_spin.value()
-        total = fee + penalty - discount
+        total = penalty - discount
         self.total_amount_label.setText("{:,.2f} บาท".format(total))
     
     def save_renewal(self):
@@ -2081,14 +2042,13 @@ class RenewalDialog(QDialog):
             return
         
         # ตรวจสอบข้อมูลที่จำเป็น
-        if self.fee_amount_spin.value() == 0 and self.penalty_amount_spin.value() == 0:
-            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกค่าธรรมเนียมหรือค่าปรับอย่างน้อยหนึ่งรายการ")
+        if self.penalty_amount_spin.value() == 0 and self.discount_amount_spin.value() == 0:
+            QMessageBox.warning(self, "แจ้งเตือน", "กรุณากรอกค่าปรับหรือส่วนลดอย่างน้อยหนึ่งรายการ")
             return
         
         renewal_data = {
             'contract_id': self.contract_data['id'],
             'renewal_count': self.renewal_count_spin.value(),
-            'fee_amount': self.fee_amount_spin.value(),
             'penalty_amount': self.penalty_amount_spin.value(),
             'discount_amount': self.discount_amount_spin.value(),
             'total_amount': float(self.total_amount_label.text().replace(' บาท', '').replace(',', '')),
@@ -2183,8 +2143,6 @@ class RenewalDialog(QDialog):
             renewal_data = {
                 'renewal_date': self.renewal_date_edit.date().toString("yyyy-MM-dd"),
                 'extension_days': (self.new_due_date_edit.date().toJulianDay() - self.current_due_date_edit.date().toJulianDay()),
-                'interest_amount': self.fee_amount_spin.value(),
-                'fee_amount': self.penalty_amount_spin.value(),
                 'total_amount': float(self.total_amount_label.text().replace(' บาท', '').replace(',', ''))
             }
             
@@ -2195,7 +2153,6 @@ class RenewalDialog(QDialog):
                 'end_date': self.contract_data.get('end_date', ''),
                 'days_count': self.contract_data.get('days_count', 0),
                 'pawn_amount': self.contract_data.get('pawn_amount', 0),
-                'interest_rate': self.contract_data.get('interest_rate', 0),
                 'estimated_value': self.contract_data.get('estimated_value', 0)
             }
             

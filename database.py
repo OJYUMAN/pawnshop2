@@ -86,7 +86,6 @@ class PawnShopDatabase:
                     customer_id INTEGER NOT NULL,
                     product_id INTEGER NOT NULL,
                     pawn_amount REAL NOT NULL,
-                    interest_rate REAL NOT NULL,
                     fee_amount REAL NOT NULL,
                     withholding_tax_rate REAL DEFAULT 0.0,
                     withholding_tax_amount REAL DEFAULT 0.0,
@@ -130,6 +129,13 @@ class PawnShopDatabase:
                     FOREIGN KEY (contract_id) REFERENCES contracts (id)
                 )
             ''')
+            
+            # Migration: ลบคอลัมน์ interest_rate ออกจากตาราง contracts (ถ้ามี)
+            try:
+                cursor.execute("ALTER TABLE contracts DROP COLUMN interest_rate")
+            except:
+                # ถ้าไม่มีคอลัมน์ interest_rate หรือเกิดข้อผิดพลาด ให้ข้าม
+                pass
             
             # ตารางการต่อดอก
             cursor.execute('''
@@ -186,7 +192,6 @@ class PawnShopDatabase:
             self._insert_default_settings(cursor)
             
             # เพิ่มข้อมูลค่าธรรมเนียมเริ่มต้น
-            self._insert_default_fee_rates(cursor)
             
             conn.commit()
     
@@ -244,9 +249,7 @@ class PawnShopDatabase:
     def _insert_default_settings(self, cursor):
         """เพิ่มการตั้งค่าเริ่มต้น"""
         default_settings = [
-            ('default_interest_rate', '3.0'),
             ('default_contract_days', '30'),
-            ('default_withholding_tax_rate', '3.0'),
             ('company_name', 'ร้านรับจำนำ อัญชัน'),
             ('company_address', ''),
             ('company_phone', ''),
@@ -259,24 +262,6 @@ class PawnShopDatabase:
                 INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)
             ''', (key, value))
     
-    def _insert_default_fee_rates(self, cursor):
-        """เพิ่มข้อมูลค่าธรรมเนียมเริ่มต้น"""
-        # ตรวจสอบว่ามีข้อมูลค่าธรรมเนียมแล้วหรือไม่
-        cursor.execute("SELECT COUNT(*) FROM fee_rates")
-        if cursor.fetchone()[0] == 0:
-            default_fee_rates = [
-                (5, 1.5, 'ค่าธรรมเนียม 5 วัน'),
-                (10, 2.0, 'ค่าธรรมเนียม 10 วัน'),
-                (15, 2.5, 'ค่าธรรมเนียม 15 วัน'),
-                (30, 3.0, 'ค่าธรรมเนียม 30 วัน'),
-                (45, 6.0, 'ค่าธรรมเนียม 45 วัน')
-            ]
-            
-            for days, rate, description in default_fee_rates:
-                cursor.execute('''
-                    INSERT INTO fee_rates (days_count, fee_rate, description) 
-                    VALUES (?, ?, ?)
-                ''', (days, rate, description))
     
     def add_customer(self, customer_data: Dict) -> int:
         """เพิ่มลูกค้าใหม่"""
@@ -356,15 +341,14 @@ class PawnShopDatabase:
             cursor.execute('''
                 INSERT INTO contracts (
                     contract_number, customer_id, product_id, pawn_amount,
-                    interest_rate, fee_amount, withholding_tax_rate, withholding_tax_amount,
+                    fee_amount, withholding_tax_rate, withholding_tax_amount,
                     total_paid, total_redemption, start_date, end_date, days_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 contract_data['contract_number'],
                 contract_data['customer_id'],
                 contract_data['product_id'],
                 contract_data['pawn_amount'],
-                contract_data['interest_rate'],
                 contract_data['fee_amount'],
                 contract_data.get('withholding_tax_rate', 0.0),
                 contract_data.get('withholding_tax_amount', 0.0),
@@ -387,7 +371,7 @@ class PawnShopDatabase:
             cursor.execute('''
                 UPDATE contracts SET
                     customer_id = ?, product_id = ?, pawn_amount = ?,
-                    interest_rate = ?, fee_amount = ?, withholding_tax_rate = ?, 
+                    fee_amount = ?, withholding_tax_rate = ?, 
                     withholding_tax_amount = ?, total_paid = ?, total_redemption = ?, 
                     start_date = ?, end_date = ?, days_count = ?
                 WHERE id = ?
@@ -395,7 +379,6 @@ class PawnShopDatabase:
                 contract_data['customer_id'],
                 contract_data['product_id'],
                 contract_data['pawn_amount'],
-                contract_data['interest_rate'],
                 contract_data['fee_amount'],
                 contract_data.get('withholding_tax_rate', 0.0),
                 contract_data.get('withholding_tax_amount', 0.0),
@@ -614,29 +597,6 @@ class PawnShopDatabase:
                 return [dict(zip(columns, row)) for row in rows]
             return []
     
-    def add_interest_payment(self, payment_data: Dict) -> int:
-        """เพิ่มการชำระดอกเบี้ย"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                INSERT INTO interest_payments (
-                    contract_id, payment_date, interest_amount, penalty_amount,
-                    discount_amount, total_amount, payment_type
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                payment_data['contract_id'],
-                payment_data['payment_date'],
-                payment_data['interest_amount'],
-                payment_data.get('penalty_amount', 0),
-                payment_data.get('discount_amount', 0),
-                payment_data['total_amount'],
-                payment_data.get('payment_type', 'interest')
-            ))
-            
-            payment_id = cursor.lastrowid
-            conn.commit()
-            return payment_id
     
     def add_renewal(self, renewal_data: Dict) -> int:
         """เพิ่มการต่อดอก"""
@@ -1131,151 +1091,12 @@ class PawnShopDatabase:
             row = cursor.fetchone()
             return row[0] if row else None
     
-    # ฟังก์ชันสำหรับจัดการค่าธรรมเนียม
-    def get_all_fee_rates(self) -> List[Dict]:
-        """ดึงข้อมูลค่าธรรมเนียมทั้งหมด"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT id, days_count, fee_rate, description, is_active, created_at, updated_at
-                FROM fee_rates 
-                ORDER BY days_count
-            ''')
-            rows = cursor.fetchall()
-            
-            columns = [description[0] for description in cursor.description]
-            return [dict(zip(columns, row)) for row in rows]
     
-    def get_fee_rate_by_days(self, days: int) -> Optional[Dict]:
-        """ดึงข้อมูลค่าธรรมเนียมตามจำนวนวัน"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT id, days_count, fee_rate, description, is_active
-                FROM fee_rates 
-                WHERE days_count = ? AND is_active = 1
-            ''', (days,))
-            row = cursor.fetchone()
-            
-            if row:
-                columns = [description[0] for description in cursor.description]
-                return dict(zip(columns, row))
-            return None
     
-    def add_fee_rate(self, fee_data: Dict) -> int:
-        """เพิ่มข้อมูลค่าธรรมเนียมใหม่"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO fee_rates (days_count, fee_rate, description, is_active)
-                VALUES (?, ?, ?, ?)
-            ''', (
-                fee_data['days_count'],
-                fee_data['fee_rate'],
-                fee_data.get('description', ''),
-                fee_data.get('is_active', True)
-            ))
-            
-            fee_id = cursor.lastrowid
-            conn.commit()
-            return fee_id
     
-    def update_fee_rate(self, fee_id: int, fee_data: Dict) -> bool:
-        """อัปเดตข้อมูลค่าธรรมเนียม"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
-                    UPDATE fee_rates 
-                    SET days_count = ?, fee_rate = ?, description = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                ''', (
-                    fee_data['days_count'],
-                    fee_data['fee_rate'],
-                    fee_data.get('description', ''),
-                    fee_data.get('is_active', True),
-                    fee_id
-                ))
-                
-                conn.commit()
-                return cursor.rowcount > 0
-                
-        except Exception as e:
-            print(f"Error updating fee rate: {e}")
-            return False
     
-    def delete_fee_rate(self, fee_id: int) -> bool:
-        """ลบข้อมูลค่าธรรมเนียม"""
-        try:
-            with self.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute('DELETE FROM fee_rates WHERE id = ?', (fee_id,))
-                conn.commit()
-                return cursor.rowcount > 0
-                
-        except Exception as e:
-            print(f"Error deleting fee rate: {e}")
-            return False
     
-    def calculate_fee_amount(self, pawn_amount: float, days: int) -> float:
-        """คำนวณค่าธรรมเนียมตามจำนวนวันและยอดฝาก"""
-        fee_rate = self.get_fee_rate_by_days(days)
-        if fee_rate:
-            return pawn_amount * (fee_rate['fee_rate'] / 100)
-        return 0.0
     
-    def calculate_withholding_tax(self, interest_amount: float, tax_rate: float) -> float:
-        """คำนวณหัก ณ ที่จ่าย"""
-        return interest_amount * (tax_rate / 100)
-    
-    def get_withholding_tax_rate(self) -> float:
-        """ดึงอัตราหัก ณ ที่จ่ายเริ่มต้น"""
-        try:
-            return float(self.get_setting('default_withholding_tax_rate'))
-        except:
-            return 3.0
-    
-    def update_withholding_tax_rate(self, new_rate: float) -> bool:
-        """อัปเดตอัตราหัก ณ ที่จ่าย"""
-        try:
-            return self.update_setting('default_withholding_tax_rate', str(new_rate))
-        except:
-            return False
-    
-    def get_contracts_with_withholding_tax(self) -> List[Dict]:
-        """ดึงข้อมูลสัญญาที่มีการหัก ณ ที่จ่าย"""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                SELECT 
-                    c.contract_number,
-                    c.pawn_amount,
-                    c.interest_rate,
-                    c.days_count,
-                    c.withholding_tax_rate,
-                    c.withholding_tax_amount,
-                    c.start_date,
-                    c.end_date,
-                    cu.first_name,
-                    cu.last_name
-                FROM contracts c
-                JOIN customers cu ON c.customer_id = cu.id
-                WHERE c.withholding_tax_amount > 0
-                ORDER BY c.start_date DESC
-            ''')
-            
-            rows = cursor.fetchall()
-            columns = [description[0] for description in cursor.description]
-            
-            contracts = []
-            for row in rows:
-                contract = dict(zip(columns, row))
-                # คำนวณดอกเบี้ย
-                interest_amount = (contract['pawn_amount'] * contract['interest_rate'] * contract['days_count']) / 100
-                contract['interest_amount'] = interest_amount
-                contracts.append(contract)
-            
-            return contracts
 
     def get_contracts_by_customer(self, customer_id: int) -> List[Dict]:
         """ดึงข้อมูลสัญญาของลูกค้าคนหนึ่ง"""
