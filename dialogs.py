@@ -1660,7 +1660,7 @@ class RedemptionDialog(QDialog):
             # สร้างไฟล์ชั่วคราวสำหรับพรีวิวและให้ผู้ใช้เลือกบันทึก
             contract_number = self.contract_data.get('contract_number', 'unknown')
             with tempfile.TemporaryDirectory() as tmpdir:
-                temp_file = os.path.join(tmpdir, "redemption_preview_{contract_number}.pd")
+                temp_file = os.path.join(tmpdir, f"redemption_preview_{contract_number}.pdf")
 
                 # สร้าง PDF ลงไฟล์ชั่วคราว
                 result = generate_redemption_contract_pdf(
@@ -1689,7 +1689,7 @@ class RedemptionDialog(QDialog):
                         pass
 
                     # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
-                    suggested_name = "ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pd"
+                    suggested_name = f"ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
                     save_path, _ = QFileDialog.getSaveFileName(
                         self,
                         "บันทึก PDF",
@@ -1698,7 +1698,7 @@ class RedemptionDialog(QDialog):
                     )
                     if save_path:
                         shutil.copyfile(result, save_path)
-                        QMessageBox.information(self, "สำเร็จ", "บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
+                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
                         # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
                         if redemption_id is not None:
                             self.print_redemption_contract(save_path)

@@ -34,7 +34,6 @@ MESSAGE_TEMPLATE = {
 📅 วันสิ้นสุด: {end_date}
 ⏰ จำนวนวัน: {days_count} วัน
 💸 ค่าธรรมเนียม: {fee_amount:,.2f} บาท
-🏦 ภาษีหัก ณ ที่จ่าย: {withholding_tax_amount:,.2f} บาท
 💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
 💎 จำนวนเงินไถ่คืน: {total_redemption:,.2f} บาท
 

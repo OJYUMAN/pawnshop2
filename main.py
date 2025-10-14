@@ -61,7 +61,7 @@ class PawnShopUI(QMainWindow):
         self.current_product = None
         self.current_contract = None
         
-        self.setWindowTitle("Pawnshop Management System")
+        self.setWindowTitle("Phoneshop Management System")
         self.setMinimumSize(1024, 700)
         self.resize(1600, 900)
 
@@ -385,6 +385,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             product_name = product_data.get('model', '') or product_data.get('name', 'ไม่ระบุ')
             product_brand = product_data.get('brand', 'ไม่ระบุ')
+            product_size = product_data.get('size', 'ไม่ระบุ')
             product_serial = product_data.get('serial_number', 'ไม่ระบุ')
             
             # ใช้ template จาก config
@@ -401,7 +402,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 start_date=contract_data['start_date'],
                 end_date=contract_data['end_date'],
                 days_count=contract_data['days_count'],
-                withholding_tax_amount=contract_data['withholding_tax_amount'],
                 total_paid=contract_data['total_paid'],
                 total_redemption=contract_data['total_redemption'],
                 timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -1091,21 +1091,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.total_redemption_spin.setSuffix(" บาท")
         layout.addWidget(self.total_redemption_spin, 1, 1)
 
-        # อัตราหัก ณ ที่จ่าย
-        self.lbl_withholding_tax_rate = QLabel()
-        layout.addWidget(self.lbl_withholding_tax_rate, 2, 0)
-        self.withholding_tax_rate_spin = QDoubleSpinBox()
-        self.withholding_tax_rate_spin.setRange(0, 100)
-        self.withholding_tax_rate_spin.setSuffix(" %")
-        self.withholding_tax_rate_spin.setValue(3.0)  # ค่าเริ่มต้น 3%
-        self.withholding_tax_rate_spin.valueChanged.connect(self.calculate_amounts)
-        layout.addWidget(self.withholding_tax_rate_spin, 2, 1)
-
-        # ยอดหัก ณ ที่จ่าย
-        self.lbl_withholding_tax_amount = QLabel()
-        layout.addWidget(self.lbl_withholding_tax_amount, 3, 0)
-        self.withholding_tax_amount_label = QLabel("0.00 บาท")
-        layout.addWidget(self.withholding_tax_amount_label, 3, 1)
 
         # เชื่อมภาษา
         language_manager.language_changed.connect(self.apply_results_language)
@@ -1118,8 +1103,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             w.setTitle(language_manager.get_text("results_group"))
         self.lbl_pawn_amount.setText(language_manager.get_text("pawn_amount"))
         self.lbl_total_redemption.setText(language_manager.get_text("total_redemption"))
-        self.lbl_withholding_tax_rate.setText(language_manager.get_text("withholding_rate"))
-        self.lbl_withholding_tax_amount.setText("ยอดหัก ณ ที่จ่าย:")
 
     def create_search_group(self):
         group_box = QGroupBox()
@@ -1394,8 +1377,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 icon = QIcon.fromTheme("document-properties", QIcon.fromTheme("document", QIcon.fromTheme("file")))
             elif "รับ" in text:
                 icon = QIcon.fromTheme("arrow-down", QIcon.fromTheme("download", QIcon.fromTheme("get")))
-            elif "หัก ณ ที่จ่าย" in text:
-                icon = QIcon.fromTheme("document-edit", QIcon.fromTheme("edit", QIcon.fromTheme("modify")))
             elif "รายงาน" in text:
                 icon = QIcon.fromTheme("document-properties", QIcon.fromTheme("report", QIcon.fromTheme("chart")))
             elif "บัญชีรายวัน" in text:
@@ -1812,8 +1793,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
             'fee_amount': 0.0,  # ค่าธรรมเนียม (จะเพิ่มการคำนวณในอนาคต)
-            'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
-            'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
             'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
             'total_redemption': self.total_redemption_spin.value(),  # ใช้ยอดที่ผู้ใช้กรอก
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
@@ -1833,8 +1812,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'end_date': contract_data['end_date'],
                 'days': contract_data['days_count'],
                 'pawn_amount': contract_data['pawn_amount'],
-                'withholding_tax_rate': contract_data['withholding_tax_rate'],
-                'withholding_tax_amount': contract_data['withholding_tax_amount'],
                 'total_paid': contract_data['total_paid'],
                 'total_redemption': contract_data['total_redemption'],
                 'status': contract_data['status']
@@ -2196,13 +2173,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             if days_count > 0:
                 self.days_spin.setValue(days_count)
             
-            # โหลดข้อมูลหัก ณ ที่จ่าย
-            withholding_tax_rate = self.current_contract.get('withholding_tax_rate', 3.0)
-            self.withholding_tax_rate_spin.setValue(withholding_tax_rate)
-            
-            withholding_tax_amount = self.current_contract.get('withholding_tax_amount', 0)
-            if withholding_tax_amount > 0:
-                self.withholding_tax_amount_label.setText("{:,.2f} บาท".format(withholding_tax_amount))
             
             # คำนวณยอดต่างๆ ใหม่
             self.calculate_amounts()
@@ -2223,15 +2193,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 self.load_renewal_history(contract_number)
 
     def calculate_amounts(self):
-        """คำนวณยอดต่างๆ รวมถึงหัก ณ ที่จ่าย"""
+        """คำนวณยอดต่างๆ"""
         try:
-            # คำนวณยอดหัก ณ ที่จ่าย
-            if hasattr(self, 'withholding_tax_rate_spin') and hasattr(self, 'withholding_tax_amount_label'):
-                withholding_tax_rate = self.withholding_tax_rate_spin.value()
-                # คำนวณจากยอดฝาก (หรือยอดที่ต้องการหัก ณ ที่จ่าย)
-                pawn_amount = self.pawn_amount_spin.value() if hasattr(self, 'pawn_amount_spin') else 0
-                withholding_tax_amount = (pawn_amount * withholding_tax_rate) / 100
-                self.withholding_tax_amount_label.setText(f"{withholding_tax_amount:,.2f} บาท")
+            pass  # ฟังก์ชันคำนวณยอดต่างๆ
         except Exception as e:
             print(f"Error calculating amounts: {e}")
 
@@ -2381,36 +2345,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         QMessageBox.information(self, "รายงานประจำเดือน", "ฟีเจอร์รายงานประจำเดือน")
         
     
-    def show_withholding_tax_report(self):
-        """แสดงรายงานหัก ณ ที่จ่าย"""
-        try:
-            # ดึงข้อมูลหัก ณ ที่จ่ายจากฐานข้อมูล
-            contracts = self.db.get_contracts_with_withholding_tax()
-            
-            if not contracts:
-                QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", "ไม่พบข้อมูลหัก ณ ที่จ่าย")
-                return
-            
-            # สร้างรายงาน
-            total_withholding_tax = sum(contract.get('withholding_tax_amount', 0) for contract in contracts)
-            total_interest = sum(contract.get('interest_amount', 0) for contract in contracts)
-            
-            message = f"""
-รายงานหัก ณ ที่จ่าย:
-
-จำนวนสัญญา: {len(contracts)} สัญญา
-ยอดดอกเบี้ยรวม: {total_interest:,.2f} บาท
-ยอดหัก ณ ที่จ่ายรวม: {total_withholding_tax:,.2f} บาท
-ยอดจ่ายจริงรวม: {total_interest - total_withholding_tax:,.2f} บาท
-
-หมายเหตุ: หัก ณ ที่จ่ายจะถูกหักจากดอกเบี้ยที่ลูกค้าต้องจ่าย
-            """
-            
-            QMessageBox.information(self, "รายงานหัก ณ ที่จ่าย", message)
-            
-            
-        except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}")
     
     
     
@@ -2652,8 +2586,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'end_date': self.end_date_edit.text(),
                 'days_count': self.days_spin.value(),
                 'pawn_amount': self.pawn_amount_spin.value(),
-                'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
-                'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
                 'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย
                 'total_redemption': self.total_redemption_spin.value()  # ใช้ยอดที่ผู้ใช้กรอก
             }

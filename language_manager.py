@@ -101,7 +101,6 @@ _TRANSLATIONS = {
         "results_group": "ผลจัดทำ",
         "pawn_amount": "ยอดฝาก",
         "fee_amount": "ค่าธรรมเนียม",
-        "withholding_rate": "อัตราหัก ณ ที่จ่าย",
         "update": "อัปเดต",
         "total_paid": "ยอดจ่าย",
         "total_redemption": "ยอดไถ่คืน",
@@ -134,7 +133,6 @@ _TRANSLATIONS = {
         "th_end_date": "วันที่สิ้นสุด",
         "th_days": "จำนวนวัน",
         "th_interest": "ดอกเบี้ย",
-        "th_withholding": "หัก ณ ที่จ่าย",
         "th_total": "ยอดรวม",
         "th_status": "สถานะ",
 
@@ -282,7 +280,6 @@ _TRANSLATIONS = {
         "results_group": "Results",
         "pawn_amount": "Pawn Amount",
         "fee_amount": "Fee",
-        "withholding_rate": "Withholding Rate",
         "update": "Update",
         "total_paid": "Total Paid",
         "total_redemption": "Total Redemption",
@@ -315,7 +312,6 @@ _TRANSLATIONS = {
         "th_end_date": "End Date",
         "th_days": "Days",
         "th_interest": "Interest",
-        "th_withholding": "Withholding",
         "th_total": "Total",
         "th_status": "Status",
 
@@ -457,7 +453,6 @@ _TRANSLATIONS = {
         "results_group": "ຜົນຈັດທຳ",
         "pawn_amount": "ຍອດຝາກ",
         "fee_amount": "ຄ່າທຳນຽມ",
-        "withholding_rate": "ອັດຕາຫັກ ນະ ທີ່ຈ່າຍ",
         "update": "ອັບເດດ",
         "total_paid": "ຍອດຈ່າຍ",
         "total_redemption": "ຍອດໄຖ່ຖອນ",
@@ -490,7 +485,6 @@ _TRANSLATIONS = {
         "th_end_date": "ວັນສິ້ນສຸດ",
         "th_days": "ຈຳນວນວັນ",
         "th_interest": "ດອກເບ້ຍ",
-        "th_withholding": "ຫັກ ນະ ທີ່ຈ່າຍ",
         "th_total": "ຍອດລວມ",
         "th_status": "ສະຖານະ",
 
@@ -632,7 +626,6 @@ _TRANSLATIONS = {
         "results_group": "ရလဒ်",
         "pawn_amount": "အပေါင်ငွေ",
         "fee_amount": "ကြေး",
-        "withholding_rate": "ကောက်ခံနှုန်း",
         "update": "အပ်ဒိတ်",
         "total_paid": "ပေးသွက်စုစုပေါင်း",
         "total_redemption": "ပြန်ရယူစုစုပေါင်း",
@@ -665,7 +658,6 @@ _TRANSLATIONS = {
         "th_end_date": "ပြီးဆုံးရက်",
         "th_days": "ရက်",
         "th_interest": "အတိုး",
-        "th_withholding": "ကောက်ခံ",
         "th_total": "စုစုပေါင်း",
         "th_status": "အနေအထား",
 

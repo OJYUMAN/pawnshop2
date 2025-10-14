@@ -87,8 +87,6 @@ class PawnShopDatabase:
                     product_id INTEGER NOT NULL,
                     pawn_amount REAL NOT NULL,
                     fee_amount REAL NOT NULL,
-                    withholding_tax_rate REAL DEFAULT 0.0,
-                    withholding_tax_amount REAL DEFAULT 0.0,
                     total_paid REAL NOT NULL,
                     total_redemption REAL NOT NULL,
                     start_date DATE NOT NULL,
@@ -194,6 +192,67 @@ class PawnShopDatabase:
             # เพิ่มข้อมูลค่าธรรมเนียมเริ่มต้น
             
             conn.commit()
+            
+            # Migration: Remove withholding tax columns
+            self._migrate_remove_withholding_tax(conn)
+    
+    def _migrate_remove_withholding_tax(self, conn):
+        """Migration: Remove withholding tax columns from contracts table"""
+        try:
+            cursor = conn.cursor()
+            
+            # Check if withholding tax columns exist
+            cursor.execute("PRAGMA table_info(contracts)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'withholding_tax_rate' in columns or 'withholding_tax_amount' in columns:
+                print("Migrating: Removing withholding tax columns...")
+                
+                # Create new table without withholding tax columns
+                cursor.execute('''
+                    CREATE TABLE contracts_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        contract_number TEXT UNIQUE NOT NULL,
+                        customer_id INTEGER NOT NULL,
+                        product_id INTEGER NOT NULL,
+                        pawn_amount REAL NOT NULL,
+                        fee_amount REAL NOT NULL,
+                        total_paid REAL NOT NULL,
+                        total_redemption REAL NOT NULL,
+                        start_date DATE NOT NULL,
+                        end_date DATE NOT NULL,
+                        days_count INTEGER NOT NULL,
+                        status TEXT DEFAULT 'active',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (customer_id) REFERENCES customers (id),
+                        FOREIGN KEY (product_id) REFERENCES products (id)
+                    )
+                ''')
+                
+                # Copy data from old table to new table (excluding withholding tax columns)
+                cursor.execute('''
+                    INSERT INTO contracts_new (
+                        id, contract_number, customer_id, product_id, pawn_amount,
+                        fee_amount, total_paid, total_redemption, start_date, end_date,
+                        days_count, status, created_at
+                    )
+                    SELECT 
+                        id, contract_number, customer_id, product_id, pawn_amount,
+                        fee_amount, total_paid, total_redemption, start_date, end_date,
+                        days_count, status, created_at
+                    FROM contracts
+                ''')
+                
+                # Drop old table and rename new table
+                cursor.execute('DROP TABLE contracts')
+                cursor.execute('ALTER TABLE contracts_new RENAME TO contracts')
+                
+                conn.commit()
+                print("Migration completed: Withholding tax columns removed")
+                
+        except Exception as e:
+            print(f"Migration error: {e}")
+            conn.rollback()
     
     def upgrade_database(self, cursor):
         """อัปเกรดฐานข้อมูลโดยเพิ่มคอลัมน์ใหม่"""
@@ -341,17 +400,14 @@ class PawnShopDatabase:
             cursor.execute('''
                 INSERT INTO contracts (
                     contract_number, customer_id, product_id, pawn_amount,
-                    fee_amount, withholding_tax_rate, withholding_tax_amount,
-                    total_paid, total_redemption, start_date, end_date, days_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    fee_amount, total_paid, total_redemption, start_date, end_date, days_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 contract_data['contract_number'],
                 contract_data['customer_id'],
                 contract_data['product_id'],
                 contract_data['pawn_amount'],
                 contract_data['fee_amount'],
-                contract_data.get('withholding_tax_rate', 0.0),
-                contract_data.get('withholding_tax_amount', 0.0),
                 contract_data['total_paid'],
                 contract_data['total_redemption'],
                 contract_data['start_date'],
@@ -371,8 +427,7 @@ class PawnShopDatabase:
             cursor.execute('''
                 UPDATE contracts SET
                     customer_id = ?, product_id = ?, pawn_amount = ?,
-                    fee_amount = ?, withholding_tax_rate = ?, 
-                    withholding_tax_amount = ?, total_paid = ?, total_redemption = ?, 
+                    fee_amount = ?, total_paid = ?, total_redemption = ?, 
                     start_date = ?, end_date = ?, days_count = ?
                 WHERE id = ?
             ''', (
@@ -380,8 +435,6 @@ class PawnShopDatabase:
                 contract_data['product_id'],
                 contract_data['pawn_amount'],
                 contract_data['fee_amount'],
-                contract_data.get('withholding_tax_rate', 0.0),
-                contract_data.get('withholding_tax_amount', 0.0),
                 contract_data['total_paid'],
                 contract_data['total_redemption'],
                 contract_data['start_date'],
