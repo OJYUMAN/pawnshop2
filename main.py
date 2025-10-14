@@ -1792,6 +1792,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             'customer_id': self.current_customer['id'],
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
+            'fee_amount': 0.0,  # ค่าธรรมเนียม (จะเพิ่มการคำนวณในอนาคต)
             'withholding_tax_rate': 0.0,  # ไม่ใช้แล้ว
             'withholding_tax_amount': 0.0,  # ไม่ใช้แล้ว
             'total_paid': self.pawn_amount_spin.value(),  # ใช้ยอดฝากเป็นยอดจ่าย

@@ -639,6 +639,7 @@ class NewContractDialog(QDialog):
             'customer_id': self.current_customer['id'],
             'product_id': self.current_product['id'],
             'pawn_amount': self.pawn_amount_spin.value(),
+            'fee_amount': 0.0,  # ค่าธรรมเนียม (จะเพิ่มการคำนวณในอนาคต)
             'total_paid': float(self.total_paid_label.text().replace(' บาท', '').replace(',', '')),
             'total_redemption': float(self.total_redemption_label.text().replace(' บาท', '').replace(',', '')),
             'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),

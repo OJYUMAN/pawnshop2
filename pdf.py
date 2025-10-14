@@ -217,7 +217,7 @@ def generate_pawn_ticket_from_data(
     
     shop_info = f"""
     กับ {shop_name} {shop_branch} เลขประจำตัวผู้เสียภาษี {contract_data.get('tax_id','')}<br/>
-    ที่ตั้ง {shop_address} โทร {contract_data.get('shop_phone','')}<br/>
+    ที่ตั้ง {shop_address}  {contract_data.get('shop_phone','')}<br/>
     โดย{contract_data.get('authorized_signer','ผู้มีอำนาจลงนาม')} เป็นผู้มีอำนาจลงนาม 
     ซึ่งต่อไปนี้เรียกว่า "ผู้ซื้อฝาก" อีกฝ่ายหนึ่ง
     """
@@ -291,8 +291,8 @@ def generate_pawn_ticket_from_data(
          Paragraph("ลงชื่อ ______________________________", styles["TH"]),
          Paragraph("ลงชื่อ ______________________________", styles["TH"])],
         [Paragraph(f"( {full_name} )", styles["TH"]),
-         Paragraph(f"( {contract_data.get('buyer_signer_name','นายประเสริฐ ใจดี')} )", styles["TH"]),
-         Paragraph(f"( {contract_data.get('witness_name','นางสาวมั่นใจ ถูกต้อง')} )", styles["TH"])],
+         Paragraph(f"( {contract_data.get('buyer_signer_name','______________________________')} )", styles["TH"]),
+         Paragraph(f"( {contract_data.get('witness_name','______________________________')} )", styles["TH"])],
         [Paragraph("ผู้ขายฝาก", styles["TH"]),
          Paragraph("ผู้ซื้อฝาก", styles["TH"]),
          Paragraph("พยาน", styles["TH"])]
@@ -520,7 +520,7 @@ def generate_pawn_contract_html(
       ที่อยู่ {esc(addr_text)} โทร {esc(phone)}
       ซึ่งต่อไปนี้เรียกว่า “<strong>ผู้ขายฝาก</strong>”
       ฝ่ายหนึ่ง กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(contract_data.get('tax_id',''))}
-      ที่ตั้ง {esc(shop_address)} โทร {esc(contract_data.get('shop_phone',''))}
+      ที่ตั้ง {esc(shop_address)}  {esc(contract_data.get('shop_phone',''))}
       โดย{esc(contract_data.get('authorized_signer','ผู้มีอำนาจลงนาม'))} เป็นผู้มีอำนาจลงนาม ซึ่งต่อไปนี้เรียกว่า “<strong>ผู้ซื้อฝาก</strong>” อีกฝ่ายหนึ่ง
     </p>
 
@@ -580,12 +580,12 @@ def generate_pawn_contract_html(
       </div>
       <div class="sig">
         <div>ลงชื่อ ______________________________</div>
-        <div>( {esc(contract_data.get('buyer_signer_name','นายประเสริฐ ใจดี'))} )</div>
+        <div>( {esc(contract_data.get('buyer_signer_name','                  '))} )</div>
         <div>ผู้ซื้อฝาก</div>
       </div>
       <div class="sig">
         <div>ลงชื่อ ______________________________</div>
-        <div>( {esc(witness)} )</div>
+        <div>(               )</div>
         <div>พยาน</div>
       </div>
     </div>
