@@ -68,11 +68,17 @@ class SettingsDialog(QDialog):
         self.language_combo = QComboBox()
         self.language_combo.addItem("ไทย", "th")
         self.language_combo.addItem("English", "en")
+        self.language_combo.addItem("ລາວ", "lo")
+        self.language_combo.addItem("မြန်မာ", "my")
         language_layout.addRow(language_manager.get_text("language"), self.language_combo)
         
-        # เก็บข้อความภาษาไทยและอังกฤษสำหรับอัปเดต
-        self.thai_text = "ไทย"
-        self.english_text = "English"
+        # เก็บข้อความภาษาต่างๆ สำหรับอัปเดต
+        self.language_texts = {
+            "th": {"th": "ไทย", "en": "English", "lo": "ລາວ", "my": "မြန်မာ"},
+            "en": {"th": "Thai", "en": "English", "lo": "Lao", "my": "Myanmar"},
+            "lo": {"th": "ไทย", "en": "English", "lo": "ລາວ", "my": "မြန်မာ"},
+            "my": {"th": "ไทย", "en": "English", "lo": "ລາວ", "my": "မြန်မာ"}
+        }
         
         self.tab_widget.addTab(language_widget, language_manager.get_text("language"))
     
@@ -177,9 +183,10 @@ class SettingsDialog(QDialog):
     def update_combo_texts(self):
         """อัปเดตข้อความใน ComboBox"""
         # อัปเดตข้อความใน ComboBox ตามภาษาปัจจุบัน
-        if language_manager.get_current_language() == "th":
-            self.language_combo.setItemText(0, "ไทย")
-            self.language_combo.setItemText(1, "English")
-        else:
-            self.language_combo.setItemText(0, "Thai")
-            self.language_combo.setItemText(1, "English")
+        current_lang = language_manager.get_current_language()
+        texts = self.language_texts.get(current_lang, self.language_texts["th"])
+        
+        self.language_combo.setItemText(0, texts["th"])
+        self.language_combo.setItemText(1, texts["en"])
+        self.language_combo.setItemText(2, texts["lo"])
+        self.language_combo.setItemText(3, texts["my"])

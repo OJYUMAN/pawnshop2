@@ -9,11 +9,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_JUSTIFY
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib import colors
 from reportlab.platypus import (
-    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
-    KeepInFrame
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle
 )
 from reportlab.lib.units import mm
 from datetime import datetime
@@ -52,7 +51,6 @@ def thai_date(date_val: Optional[str]) -> str:
         out = dt.strftime('%d %B %Y')
         for e, t in month_map.items():
             out = out.replace(e, t)
-        # เพิ่มปี พ.ศ. ถ้าต้องการสามารถบวก 543 ที่นี่
         return out
     except Exception:
         return str(date_val) if date_val else 'N/A'
@@ -77,17 +75,37 @@ class A4Doc(BaseDocTemplate):
         self.addPageTemplates(PageTemplate(id='A4Full', frames=[frame]))
 
 
-# ---------- Styles ----------
+# ---------- Styles (ชิดซ้าย + CJK wrap เพื่อตัดปัญหาช่องไฟ) ----------
 def make_styles():
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_JUSTIFY))
-    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=13.5, leading=16.2))
-    styles.add(ParagraphStyle(name="TH-h1", fontName="THSarabun-Bold", fontSize=20, leading=23, alignment=TA_CENTER, spaceAfter=6))
-    styles.add(ParagraphStyle(name="TH-meta", fontName="THSarabun", fontSize=12, leading=14.2))
-    styles.add(ParagraphStyle(name="TH-section", fontName="THSarabun-Bold", fontSize=13.5, leading=16.2, spaceBefore=6, spaceAfter=2))
-    styles.add(ParagraphStyle(name="TH-indent", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_JUSTIFY, leftIndent=12*mm))
-    styles.add(ParagraphStyle(name="TH-mini", fontName="THSarabun", fontSize=10.5, leading=12.2, textColor=colors.black))
-    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=13.5, leading=16.2, alignment=TA_RIGHT))
+
+    common = dict(leading=15.2, alignment=TA_LEFT, wordWrap='CJK', spaceBefore=0, spaceAfter=2)
+
+    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=13.5, **common))
+    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=13.5, **common))
+
+    styles.add(ParagraphStyle(
+        name="TH-h1", fontName="THSarabun-Bold", fontSize=20, leading=22.5,
+        alignment=TA_CENTER, spaceAfter=4
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-meta", fontName="THSarabun", fontSize=12, leading=13.4,
+        alignment=TA_LEFT, wordWrap='CJK', spaceBefore=0, spaceAfter=1
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-section", fontName="THSarabun-Bold", fontSize=13.5, leading=15.2,
+        alignment=TA_LEFT, wordWrap='CJK', spaceBefore=4, spaceAfter=0
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-indent", fontName="THSarabun", fontSize=13.5,
+        leftIndent=12*mm, **common
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-mini", fontName="THSarabun", fontSize=10.5, leading=11.6, textColor=colors.black
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-right", fontName="THSarabun", fontSize=13.5, leading=15.2, alignment=TA_RIGHT
+    ))
     return styles
 
 
@@ -107,13 +125,12 @@ def _shop(shop_data: Optional[Dict]):
 
 def _meta_row(left_text: str, right_text: str, styles, col_gap_mm=10):
     """
-    แถว meta ตามดีไซน์: 2 คอลัมน์ ชิดซ้าย-ขวา มีช่องว่างระหว่างคอลัมน์
+    แถว meta: 2 คอลัมน์ ชิดซ้าย-ขวา
     """
     page_w = A4[0]
     margin = 16*mm
     usable = page_w - 2*margin
     gap = col_gap_mm * mm
-    # แบ่งครึ่งแบบหยาบ ๆ ให้เหมือน HTML (flex space-between)
     col_w = (usable - gap) / 2.0
     t = Table(
         [[Paragraph(left_text, styles["TH-meta"]), Paragraph(right_text, styles["TH-meta"])]],
@@ -124,14 +141,13 @@ def _meta_row(left_text: str, right_text: str, styles, col_gap_mm=10):
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
         ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
     ]))
     return t
 
 def _signatures_block(names: Dict[str, str], styles):
     """
     บล็อกลายเซ็น 3 ช่อง: ผู้ไถ่คืน / ผู้รับไถ่คืน / พยาน
-    names = {"redeemer": "...", "receiver": "...", "witness": "..."}
     """
     labels = [("ผู้ไถ่คืน", names.get("redeemer", "")),
               ("ผู้รับไถ่คืน", names.get("receiver", "")),
@@ -155,8 +171,8 @@ def _signatures_block(names: Dict[str, str], styles):
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
     ]))
     return t
 
@@ -189,11 +205,9 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     # ---------- Extract & normalize data ----------
     shop_name, shop_branch, shop_address, shop_tax_id, shop_phone, authorized_signer, buyer_signer_name, witness_name = _shop(shop_data)
 
-    # สัญญาเดิม
     original_contract_number = original_contract_data.get('contract_number', 'N/A')
     original_contract_date = thai_date(original_contract_data.get('start_date', 'N/A'))
 
-    # ไถ่คืน
     redemption_count = redemption_data.get('redemption_count', 1)
     thai_redemption_date_full = thai_date(redemption_data.get('redemption_date', datetime.now().strftime('%Y-%m-%d')))
     redemption_time = redemption_data.get('redemption_time', '15:00 น.')
@@ -205,7 +219,6 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     discount_amount = float(redemption_data.get('discount_amount', 0) or 0)
     total_redemption = float(redemption_data.get('redemption_amount', 0) or 0)
 
-    # ลูกค้า
     first_name = customer_data.get('first_name', '')
     last_name = customer_data.get('last_name', '')
     customer_name = f"{first_name} {last_name}".strip() or "_________________"
@@ -214,7 +227,6 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     age_str = f"อายุ {age} ปี " if age else ""
     phone = customer_data.get('phone', '_________________')
 
-    # ที่อยู่ลูกค้า
     addr_parts = []
     if customer_data.get('house_number'): addr_parts.append(customer_data['house_number'])
     if customer_data.get('street'): addr_parts.append(customer_data['street'])
@@ -224,19 +236,15 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     if customer_data.get('zipcode'): addr_parts.append(str(customer_data['zipcode']))
     address = " ".join(addr_parts) if addr_parts else "_________________"
 
-    # ร้านค้า/ผู้รับไถ่คืน (ใช้ข้อมูลจาก shop_config)
-    # shop_tax_id, shop_phone, authorized_signer ถูกกำหนดแล้วจาก _shop()
     authorized_person = authorized_signer
 
-    # สินค้า
     brand = product_data.get('brand', '')
     name = product_data.get('model', '') or product_data.get('name', 'ทรัพย์สิน')
     color = product_data.get('color', '')
     imei1 = product_data.get('imei1', '')
     imei2 = product_data.get('imei2', '')
     serial = product_data.get('serial_number', '')
-    accessories = product_data.get('accessories', '')  # รายการอุปกรณ์
-    # วันที่ในสัญญาเดิม (ใช้แสดงอ้างอิง)
+    accessories = product_data.get('accessories', '')
     orig_ref_date = thai_date(original_contract_data.get('start_date', 'N/A'))
 
     # ---------- Build story ----------
@@ -244,7 +252,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
 
     # Title
     story.append(Paragraph("สัญญาไถ่คืนทรัพย์สิน (โทรศัพท์มือถือ)", styles["TH-h1"]))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 4))
 
     # Meta rows (2 แถว)
     story.append(_meta_row(
@@ -255,7 +263,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         f"ทำที่: {shop_name} สาขา{shop_branch}",
         f"วันที่ไถ่คืน: {thai_redemption_date_full} เวลา {redemption_time}", styles
     ))
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 4))
 
     # Section: คู่สัญญา
     story.append(Paragraph("คู่สัญญา", styles["TH-section"]))
@@ -314,7 +322,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         f"ทำขึ้น ณ {shop_name} สาขา{shop_branch} เมื่อวันที่ {thai_redemption_date_full}"
     )
     story.append(Paragraph(p6, styles["TH-indent"]))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
     # Signatures (3 columns)
     sig_names = {
@@ -323,7 +331,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
         "witness": (redemption_data.get('witness_name') or witness_name or "_________________")
     }
     story.append(_signatures_block(sig_names, styles))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
 
     # Footer mini
     footer = Paragraph(
@@ -338,7 +346,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     return output_file
 
 
-# ================= RECEIPT (เดิม, ปรับย่อส่วนได้ตามต้องการ) =================
+# ================= RECEIPT (กระชับ) =================
 def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
                                     product_data: Dict, original_contract_data: Dict,
                                     shop_data: Optional[Dict] = None,

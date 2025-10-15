@@ -1332,16 +1332,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             if i == 3 or i == 7 or i == 9:  # เพิ่ม separator หลังปุ่มสแกนบัตร
                 toolbar.addSeparator()
 
-        # ปุ่มสลับภาษา
-        lang_key = "tb_toggle_language"
-        lang_text = language_manager.get_text(lang_key)
-        lang_icon = self.create_icon_for_action("preferences-system", lang_text)
-        lang_action = QAction(lang_icon, lang_text, self)
-        lang_action.setToolTip(lang_text)
-        lang_action.setStatusTip(lang_text)
-        lang_action.triggered.connect(self.toggle_language)
-        toolbar.addAction(lang_action)
-        self.toolbar_actions[lang_key] = lang_action
 
         # อัปเดตข้อความเมื่อภาษาเปลี่ยน
         language_manager.language_changed.connect(self.apply_toolbar_language)
@@ -1416,38 +1406,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             action.setText(text)
             action.setToolTip(text)
             # สำหรับปุ่มที่มีสถานะเป็นคำสั่ง เช่น "คลิกเพื่อ ..." เฉพาะปุ่มที่เป็น action หลัก
-            if key != "tb_toggle_language":
-                action.setStatusTip(f"คลิกเพื่อ {text}")
+            action.setStatusTip(f"คลิกเพื่อ {text}")
 
-    def toggle_language(self):
-        """เปิด popup ให้เลือกภาษาและเปลี่ยนภาษา"""
-        languages = language_manager.get_available_languages()
-        # แสดงชื่อภาษาให้ผู้ใช้เห็นสวยงาม
-        display_map = {
-            "th": "ไทย",
-            "en": "English",
-            "lo": "ລາວ",
-            "my": "မြန်မာ",
-        }
-        items = [display_map.get(code, code) for code in languages]
-
-        current_code = language_manager.get_current_language()
-        current_index = languages.index(current_code) if current_code in languages else 0
-
-        item, ok = QInputDialog.getItem(
-            self,
-            language_manager.get_text("language"),
-            language_manager.get_text("language"),
-            items,
-            current_index,
-            False
-        )
-        if ok and item:
-            # หา code จากชื่อที่เลือก
-            reverse_map = {v: k for k, v in display_map.items()}
-            selected_code = reverse_map.get(item)
-            if selected_code and selected_code != current_code:
-                language_manager.set_language(selected_code)
 
     def show_settings(self):
         """แสดงหน้าต่างการตั้งค่า"""
