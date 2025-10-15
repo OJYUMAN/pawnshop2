@@ -2665,7 +2665,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             # ใช้ระบบพรีวิวใหม่
             from print_preview_dialog import show_print_preview
-            from pdf_generator import generate_pawn_contract_pdf as pdf_generator
+            from pdf import generate_pawn_ticket_from_data as pdf_generator
             
             success = show_print_preview(
                 parent=self,

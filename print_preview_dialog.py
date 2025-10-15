@@ -259,7 +259,7 @@ class PrintPreviewDialog(QDialog):
                 # ใช้ฟังก์ชันเริ่มต้นถ้าไม่มี pdf_generator_func
                 if self.contract_type == "pawn":
                     # สร้างสัญญาฝากขาย
-                    from pdf_generator import generate_pawn_contract_pdf
+                    from pdf import generate_pawn_ticket_from_data as generate_pawn_contract_pdf
                     result = generate_pawn_contract_pdf(
                         contract_data=self.contract_data,
                         customer_data=self.customer_data,
