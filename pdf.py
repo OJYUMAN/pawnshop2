@@ -135,6 +135,11 @@ def generate_pawn_ticket_from_data(
     shop_name = (shop_data or {}).get("name", default_shop.get("name", ""))
     shop_branch = (shop_data or {}).get("branch", default_shop.get("branch", ""))
     shop_address = (shop_data or {}).get("address", default_shop.get("address", ""))
+    shop_tax_id = (shop_data or {}).get("tax_id", default_shop.get("tax_id", ""))
+    shop_phone = (shop_data or {}).get("phone", default_shop.get("phone", ""))
+    authorized_signer = (shop_data or {}).get("authorized_signer", default_shop.get("authorized_signer", ""))
+    buyer_signer_name = (shop_data or {}).get("buyer_signer_name", default_shop.get("buyer_signer_name", ""))
+    witness_name = (shop_data or {}).get("witness_name", default_shop.get("witness_name", ""))
     
     # ข้อมูลสัญญา
     contract_number = contract_data.get("contract_number", "N/A")
@@ -216,9 +221,9 @@ def generate_pawn_ticket_from_data(
     """
     
     shop_info = f"""
-    กับ {shop_name} {shop_branch} เลขประจำตัวผู้เสียภาษี {contract_data.get('tax_id','')}<br/>
-    ที่ตั้ง {shop_address}  {contract_data.get('shop_phone','')}<br/>
-    โดย{contract_data.get('authorized_signer','ผู้มีอำนาจลงนาม')} เป็นผู้มีอำนาจลงนาม 
+    กับ {shop_name} {shop_branch} เลขประจำตัวผู้เสียภาษี {shop_tax_id}<br/>
+    ที่ตั้ง {shop_address}  โทร{shop_phone}<br/>
+    โดย{authorized_signer} เป็นผู้มีอำนาจลงนาม 
     ซึ่งต่อไปนี้เรียกว่า "ผู้ซื้อฝาก" อีกฝ่ายหนึ่ง
     """
     
@@ -291,8 +296,8 @@ def generate_pawn_ticket_from_data(
          Paragraph("ลงชื่อ ______________________________", styles["TH"]),
          Paragraph("ลงชื่อ ______________________________", styles["TH"])],
         [Paragraph(f"( {full_name} )", styles["TH"]),
-         Paragraph(f"( {contract_data.get('buyer_signer_name','______________________________')} )", styles["TH"]),
-         Paragraph(f"( {contract_data.get('witness_name','______________________________')} )", styles["TH"])],
+         Paragraph(f"( {buyer_signer_name} )", styles["TH"]),
+         Paragraph(f"( {witness_name} )", styles["TH"])],
         [Paragraph("ผู้ขายฝาก", styles["TH"]),
          Paragraph("ผู้ซื้อฝาก", styles["TH"]),
          Paragraph("พยาน", styles["TH"])]
@@ -369,6 +374,11 @@ def generate_pawn_contract_html(
     shop_name = (shop_data or {}).get("name", default_shop.get("name", ""))
     shop_branch = (shop_data or {}).get("branch", default_shop.get("branch", ""))
     shop_address = (shop_data or {}).get("address", default_shop.get("address", ""))
+    shop_tax_id = (shop_data or {}).get("tax_id", default_shop.get("tax_id", ""))
+    shop_phone = (shop_data or {}).get("phone", default_shop.get("phone", ""))
+    authorized_signer = (shop_data or {}).get("authorized_signer", default_shop.get("authorized_signer", ""))
+    buyer_signer_name = (shop_data or {}).get("buyer_signer_name", default_shop.get("buyer_signer_name", ""))
+    witness_name = (shop_data or {}).get("witness_name", default_shop.get("witness_name", ""))
 
     contract_number = contract_data.get("contract_number", "N/A")
     copy_number = contract_data.get("copy_number", 1)
@@ -518,10 +528,10 @@ def generate_pawn_contract_html(
     <p class="indent">
       ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age, (int, float)) else ""} เลขบัตรประจำตัวประชาชน {esc(id_card)}
       ที่อยู่ {esc(addr_text)} โทร {esc(phone)}
-      ซึ่งต่อไปนี้เรียกว่า “<strong>ผู้ขายฝาก</strong>”
-      ฝ่ายหนึ่ง กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(contract_data.get('tax_id',''))}
-      ที่ตั้ง {esc(shop_address)}  {esc(contract_data.get('shop_phone',''))}
-      โดย{esc(contract_data.get('authorized_signer','ผู้มีอำนาจลงนาม'))} เป็นผู้มีอำนาจลงนาม ซึ่งต่อไปนี้เรียกว่า “<strong>ผู้ซื้อฝาก</strong>” อีกฝ่ายหนึ่ง
+      ซึ่งต่อไปนี้เรียกว่า "<strong>ผู้ขายฝาก</strong>"
+      ฝ่ายหนึ่ง กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)}
+      ที่ตั้ง {esc(shop_address)}  {esc(shop_phone)}
+      โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งต่อไปนี้เรียกว่า "<strong>ผู้ซื้อฝาก</strong>" อีกฝ่ายหนึ่ง
     </p>
 
     <div class="section-title">รายละเอียดทรัพย์สินที่ขายฝาก</div>
@@ -580,7 +590,7 @@ def generate_pawn_contract_html(
       </div>
       <div class="sig">
         <div>ลงชื่อ ______________________________</div>
-        <div>( {esc(contract_data.get('buyer_signer_name','                  '))} )</div>
+        <div>( {esc(buyer_signer_name)} )</div>
         <div>ผู้ซื้อฝาก</div>
       </div>
       <div class="sig">

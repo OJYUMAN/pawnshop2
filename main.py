@@ -28,6 +28,7 @@ from dialogs import CustomerDialog, ProductDialog, InterestPaymentDialog, Redemp
 from data_viewer import DataViewerDialog
 from customer_search import CustomerSearchDialog
 from product_search import ProductSearchDialog
+from settings_dialog import SettingsDialog
 from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID, ENABLE_LINE_NOTIFICATION, SEND_CONTRACT_NOTIFICATION, SEND_DAILY_INCOME_NOTIFICATION, MESSAGE_TEMPLATE, SEND_FORFEITURE_NOTIFICATION
 import tempfile
 import shutil
@@ -1306,6 +1307,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             ("tb_view_redemptions", "document-properties", self.view_redemptions),
             ("tb_daily_income", "x-office-calendar", self.show_daily_income_summary),
             ("tb_scan_id", "smartcard", self.scan_id_card),
+            ("tb_settings", "preferences-system", self.show_settings),
         ]
 
         for i, (key, icon_name, slot) in enumerate(action_defs):
@@ -1326,8 +1328,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             # เก็บ action ไว้เพื่ออัปเดตข้อความภายหลัง
             self.toolbar_actions[key] = action
             
-            # เพิ่ม separator หลังปุ่มที่ 3 และ 7 เพื่อแบ่งกลุ่ม
-            if i == 3 or i == 7 or i == 11:  # เพิ่ม separator หลังปุ่มสแกนบัตร
+            # เพิ่ม separator หลังปุ่มที่ 3, 7, และ 9 เพื่อแบ่งกลุ่ม
+            if i == 3 or i == 7 or i == 9:  # เพิ่ม separator หลังปุ่มสแกนบัตร
                 toolbar.addSeparator()
 
         # ปุ่มสลับภาษา
@@ -1446,6 +1448,24 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             selected_code = reverse_map.get(item)
             if selected_code and selected_code != current_code:
                 language_manager.set_language(selected_code)
+
+    def show_settings(self):
+        """แสดงหน้าต่างการตั้งค่า"""
+        try:
+            settings_dialog = SettingsDialog(self)
+            result = settings_dialog.exec()
+            if result == QDialog.Accepted:
+                # อัปเดต UI หลังจากบันทึกการตั้งค่า
+                self.update_ui_after_settings_change()
+        except Exception as e:
+            QMessageBox.warning(self, "ข้อผิดพลาด", f"ไม่สามารถเปิดหน้าต่างการตั้งค่าได้: {str(e)}")
+
+    def update_ui_after_settings_change(self):
+        """อัปเดต UI หลังจากมีการเปลี่ยนแปลงการตั้งค่า"""
+        # อัปเดตข้อความใน toolbar
+        self.apply_toolbar_language()
+        # อัปเดตข้อความในส่วนอื่น ๆ ตามต้องการ
+        self.setWindowTitle(language_manager.get_text("settings_title"))
 
     def generate_new_contract(self):
         """สร้างสัญญาใหม่ - สร้างเลขที่สัญญาและแสดงบน UI"""

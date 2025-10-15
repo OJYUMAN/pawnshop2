@@ -1,9 +1,10 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
-    QPushButton, QGroupBox, QFormLayout
+    QPushButton, QGroupBox, QFormLayout, QTabWidget, QLineEdit, QTextEdit
 )
 from PySide6.QtCore import Qt
 from language_manager import language_manager
+from shop_config_loader import load_shop_config, save_shop_config
 
 class SettingsDialog(QDialog):
     """หน้าต่างตั้งค่าแอปพลิเคชั่น"""
@@ -11,8 +12,8 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(language_manager.get_text("settings_title"))
-        self.setMinimumSize(360, 200)
-        self.resize(480, 260)
+        self.setMinimumSize(500, 400)
+        self.resize(600, 500)
         self.setModal(True)
         
         # ตั้งค่า UI
@@ -33,21 +34,16 @@ class SettingsDialog(QDialog):
         layout.setSpacing(20)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # กลุ่มการตั้งค่าภาษา
-        self.language_group = QGroupBox(language_manager.get_text("language"))
-        language_layout = QFormLayout(self.language_group)
+        # สร้าง TabWidget
+        self.tab_widget = QTabWidget()
         
-        # ComboBox สำหรับเลือกภาษา
-        self.language_combo = QComboBox()
-        self.language_combo.addItem("ไทย", "th")
-        self.language_combo.addItem("English", "en")
-        language_layout.addRow(language_manager.get_text("language"), self.language_combo)
+        # แท็บการตั้งค่าภาษา
+        self.setup_language_tab()
         
-        # เก็บข้อความภาษาไทยและอังกฤษสำหรับอัปเดต
-        self.thai_text = "ไทย"
-        self.english_text = "English"
+        # แท็บการตั้งค่า PDF
+        self.setup_pdf_tab()
         
-        layout.addWidget(self.language_group)
+        layout.addWidget(self.tab_widget)
         
         # ปุ่มควบคุม
         button_layout = QHBoxLayout()
@@ -63,6 +59,51 @@ class SettingsDialog(QDialog):
         
         layout.addLayout(button_layout)
     
+    def setup_language_tab(self):
+        """ตั้งค่าแท็บภาษา"""
+        language_widget = QGroupBox()
+        language_layout = QFormLayout(language_widget)
+        
+        # ComboBox สำหรับเลือกภาษา
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("ไทย", "th")
+        self.language_combo.addItem("English", "en")
+        language_layout.addRow(language_manager.get_text("language"), self.language_combo)
+        
+        # เก็บข้อความภาษาไทยและอังกฤษสำหรับอัปเดต
+        self.thai_text = "ไทย"
+        self.english_text = "English"
+        
+        self.tab_widget.addTab(language_widget, language_manager.get_text("language"))
+    
+    def setup_pdf_tab(self):
+        """ตั้งค่าแท็บ PDF"""
+        pdf_widget = QGroupBox()
+        pdf_layout = QFormLayout(pdf_widget)
+        
+        # ฟิลด์ข้อมูลร้านค้า
+        self.shop_name_edit = QLineEdit()
+        self.shop_branch_edit = QLineEdit()
+        self.shop_address_edit = QTextEdit()
+        self.shop_address_edit.setMaximumHeight(80)
+        self.tax_id_edit = QLineEdit()
+        self.phone_edit = QLineEdit()
+        self.authorized_signer_edit = QLineEdit()
+        self.buyer_signer_name_edit = QLineEdit()
+        self.witness_name_edit = QLineEdit()
+        
+        # เพิ่มฟิลด์ลงในฟอร์ม
+        pdf_layout.addRow(language_manager.get_text("shop_name"), self.shop_name_edit)
+        pdf_layout.addRow(language_manager.get_text("shop_branch"), self.shop_branch_edit)
+        pdf_layout.addRow(language_manager.get_text("shop_address"), self.shop_address_edit)
+        pdf_layout.addRow(language_manager.get_text("tax_id"), self.tax_id_edit)
+        pdf_layout.addRow(language_manager.get_text("shop_phone"), self.phone_edit)
+        pdf_layout.addRow(language_manager.get_text("authorized_signer"), self.authorized_signer_edit)
+        pdf_layout.addRow(language_manager.get_text("buyer_signer_name"), self.buyer_signer_name_edit)
+        pdf_layout.addRow(language_manager.get_text("witness_name"), self.witness_name_edit)
+        
+        self.tab_widget.addTab(pdf_widget, language_manager.get_text("pdf_settings"))
+    
     def connect_signals(self):
         """เชื่อมต่อสัญญาณ"""
         self.save_button.clicked.connect(self.save_settings)
@@ -70,10 +111,22 @@ class SettingsDialog(QDialog):
     
     def load_current_settings(self):
         """โหลดการตั้งค่าปัจจุบัน"""
+        # โหลดการตั้งค่าภาษา
         current_lang = language_manager.get_current_language()
         index = self.language_combo.findData(current_lang)
         if index >= 0:
             self.language_combo.setCurrentIndex(index)
+        
+        # โหลดการตั้งค่า PDF
+        shop_config = load_shop_config()
+        self.shop_name_edit.setText(shop_config.get('name', ''))
+        self.shop_branch_edit.setText(shop_config.get('branch', ''))
+        self.shop_address_edit.setPlainText(shop_config.get('address', ''))
+        self.tax_id_edit.setText(shop_config.get('tax_id', ''))
+        self.phone_edit.setText(shop_config.get('phone', ''))
+        self.authorized_signer_edit.setText(shop_config.get('authorized_signer', ''))
+        self.buyer_signer_name_edit.setText(shop_config.get('buyer_signer_name', ''))
+        self.witness_name_edit.setText(shop_config.get('witness_name', ''))
         
         # อัปเดตข้อความใน ComboBox ตามภาษาปัจจุบัน
         self.update_combo_texts()
@@ -84,6 +137,19 @@ class SettingsDialog(QDialog):
         selected_language = self.language_combo.currentData()
         if selected_language != language_manager.get_current_language():
             language_manager.set_language(selected_language)
+        
+        # บันทึกการตั้งค่า PDF
+        shop_data = {
+            'name': self.shop_name_edit.text(),
+            'branch': self.shop_branch_edit.text(),
+            'address': self.shop_address_edit.toPlainText(),
+            'tax_id': self.tax_id_edit.text(),
+            'phone': self.phone_edit.text(),
+            'authorized_signer': self.authorized_signer_edit.text(),
+            'buyer_signer_name': self.buyer_signer_name_edit.text(),
+            'witness_name': self.witness_name_edit.text()
+        }
+        save_shop_config(shop_data)
         
         # ปิดหน้าต่างตั้งค่า
         self.accept()
@@ -97,8 +163,9 @@ class SettingsDialog(QDialog):
         # อัปเดตชื่อหน้าต่าง
         self.setWindowTitle(language_manager.get_text("settings_title"))
         
-        # อัปเดตข้อความใน GroupBox
-        self.language_group.setTitle(language_manager.get_text("language"))
+        # อัปเดตข้อความในแท็บ
+        self.tab_widget.setTabText(0, language_manager.get_text("language"))
+        self.tab_widget.setTabText(1, language_manager.get_text("pdf_settings"))
         
         # อัปเดตข้อความในปุ่ม
         self.save_button.setText(language_manager.get_text("save"))

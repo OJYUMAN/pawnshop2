@@ -32,7 +32,12 @@ def load_shop_config(config_file="shop_config.json"):
                 return {
                     'name': config.get('shop_name', 'ร้าน ไอโปรโมบาย'),
                     'branch': config.get('shop_branch', 'สาขาหล่มสัก'),
-                    'address': config.get('shop_address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+                    'address': config.get('shop_address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'),
+                    'tax_id': config.get('tax_id', '0-1234-56789-01-2'),
+                    'phone': config.get('phone', '02-345-6789'),
+                    'authorized_signer': config.get('authorized_signer', 'นายประเสริฐ ใจดี'),
+                    'buyer_signer_name': config.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
+                    'witness_name': config.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง')
                 }
         else:
             print("Warning: Shop config file not found at {}, using defaults".format(config_path))
@@ -52,7 +57,12 @@ def get_default_shop_config():
     return {
         'name': 'ร้าน ไอโปรโมบาย',
         'branch': 'สาขาหล่มสัก',
-        'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'
+        'address': '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110',
+        'tax_id': '0-1234-56789-01-2',
+        'phone': '02-345-6789',
+        'authorized_signer': 'นายประเสริฐ ใจดี',
+        'buyer_signer_name': 'นายประเสริฐ ใจดี',
+        'witness_name': 'นางสาวมั่นใจ ถูกต้อง'
     }
 
 
@@ -76,7 +86,12 @@ def save_shop_config(shop_data, config_file="shop_config.json"):
         config = {
             'shop_name': shop_data.get('name', 'ร้าน ไอโปรโมบาย'),
             'shop_branch': shop_data.get('branch', 'สาขาหล่มสัก'),
-            'shop_address': shop_data.get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110')
+            'shop_address': shop_data.get('address', '14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110'),
+            'tax_id': shop_data.get('tax_id', '0-1234-56789-01-2'),
+            'phone': shop_data.get('phone', '02-345-6789'),
+            'authorized_signer': shop_data.get('authorized_signer', 'นายประเสริฐ ใจดี'),
+            'buyer_signer_name': shop_data.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
+            'witness_name': shop_data.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง')
         }
         
         with open(config_path, 'w') as f:

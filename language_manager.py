@@ -26,6 +26,7 @@ _TRANSLATIONS = {
         "tb_daily_income": "สรุปรายได้รายวัน",
         "tb_fee_management": "ค่าธรรมเนียม",
         "tb_scan_id": "สแกนบัตรประชาชน",
+        "tb_settings": "ตั้งค่า",
         "tb_toggle_language": "สลับภาษา",
 
         # Customer Tab
@@ -183,6 +184,17 @@ _TRANSLATIONS = {
         "redemption_discount": "ส่วนลด:",
         "redemption_total": "รวม:",
         "redemption_confirm": "ต้องการไถ่คืนสัญญานี้ใช่หรือไม่",
+
+        # PDF Settings
+        "pdf_settings": "การตั้งค่า PDF",
+        "shop_name": "ชื่อร้าน:",
+        "shop_branch": "สาขา:",
+        "shop_address": "ที่อยู่:",
+        "tax_id": "เลขประจำตัวผู้เสียภาษี:",
+        "shop_phone": "เบอร์โทรศัพท์:",
+        "authorized_signer": "ผู้มีอำนาจลงนาม:",
+        "buyer_signer_name": "ชื่อผู้ซื้อฝาก:",
+        "witness_name": "ชื่อพยาน:",
     },
     "en": {
         # Common
@@ -205,6 +217,7 @@ _TRANSLATIONS = {
         "tb_daily_income": "Daily Income",
         "tb_fee_management": "Fees",
         "tb_scan_id": "Scan ID",
+        "tb_settings": "Settings",
         "tb_toggle_language": "Toggle Language",
 
         # Customer Tab
@@ -362,6 +375,17 @@ _TRANSLATIONS = {
         "redemption_discount": "Discount:",
         "redemption_total": "Total:",
         "redemption_confirm": "Do you want to redeem this contract?",
+
+        # PDF Settings
+        "pdf_settings": "PDF Settings",
+        "shop_name": "Shop Name:",
+        "shop_branch": "Branch:",
+        "shop_address": "Address:",
+        "tax_id": "Tax ID:",
+        "shop_phone": "Phone:",
+        "authorized_signer": "Authorized Signer:",
+        "buyer_signer_name": "Buyer Signer Name:",
+        "witness_name": "Witness Name:",
     },
     "lo": {
         # Common

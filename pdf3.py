@@ -98,6 +98,11 @@ def _shop(shop_data: Optional[Dict]):
         (shop_data or {}).get('name', cfg['name']),
         (shop_data or {}).get('branch', cfg['branch']),
         (shop_data or {}).get('address', cfg['address']),
+        (shop_data or {}).get('tax_id', cfg.get('tax_id', '')),
+        (shop_data or {}).get('phone', cfg.get('phone', '')),
+        (shop_data or {}).get('authorized_signer', cfg.get('authorized_signer', '')),
+        (shop_data or {}).get('buyer_signer_name', cfg.get('buyer_signer_name', '')),
+        (shop_data or {}).get('witness_name', cfg.get('witness_name', ''))
     )
 
 def _meta_row(left_text: str, right_text: str, styles, col_gap_mm=10):
@@ -182,7 +187,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     doc = A4Doc(output_file, pagesize=A4)
 
     # ---------- Extract & normalize data ----------
-    shop_name, shop_branch, shop_address = _shop(shop_data)
+    shop_name, shop_branch, shop_address, shop_tax_id, shop_phone, authorized_signer, buyer_signer_name, witness_name = _shop(shop_data)
 
     # สัญญาเดิม
     original_contract_number = original_contract_data.get('contract_number', 'N/A')
@@ -219,10 +224,9 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     if customer_data.get('zipcode'): addr_parts.append(str(customer_data['zipcode']))
     address = " ".join(addr_parts) if addr_parts else "_________________"
 
-    # ร้านค้า/ผู้รับไถ่คืน
-    shop_tax_id = (shop_data or {}).get('tax_id', '_________________')
-    shop_phone = (shop_data or {}).get('phone', '_________________')
-    authorized_person = (shop_data or {}).get('authorized_person', '_________________')
+    # ร้านค้า/ผู้รับไถ่คืน (ใช้ข้อมูลจาก shop_config)
+    # shop_tax_id, shop_phone, authorized_signer ถูกกำหนดแล้วจาก _shop()
+    authorized_person = authorized_signer
 
     # สินค้า
     brand = product_data.get('brand', '')
@@ -316,7 +320,7 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     sig_names = {
         "redeemer": customer_name,
         "receiver": authorized_person,
-        "witness": (redemption_data.get('witness_name') or "_________________")
+        "witness": (redemption_data.get('witness_name') or witness_name or "_________________")
     }
     story.append(_signatures_block(sig_names, styles))
     story.append(Spacer(1, 8))
@@ -351,7 +355,7 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
 
     styles = make_styles()
     PAGE_W = A4[0]
-    shop_name, shop_branch, shop_address = _shop(shop_data)
+    shop_name, shop_branch, shop_address, shop_tax_id, shop_phone, authorized_signer, buyer_signer_name, witness_name = _shop(shop_data)
 
     contract_number = original_contract_data.get('contract_number', 'N/A')
     total_days = int(redemption_data.get('total_days', 0) or 0)
