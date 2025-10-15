@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QRadioButton, QToolBar,
     QMenuBar, QMessageBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit,
     QScrollArea, QFrame, QFileDialog, QDialog, QProgressDialog, QInputDialog,
-    QSizePolicy
+    QSizePolicy, QCheckBox
 )
 from resource_path import resource_path, get_font_path, get_icon_path
 from reportlab.lib.pagesizes import A4
@@ -369,6 +369,18 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         except:
             # ใช้ค่าเริ่มต้นถ้าไม่มีการตั้งค่า
             self.days_spin.setValue(30)
+        
+        # โหลดการตั้งค่าดอกเบี้ย
+        try:
+            from shop_config_loader import load_shop_config
+            shop_config = load_shop_config()
+            interest_rate = shop_config.get('interest_rate', 10.0)
+            auto_calculate = shop_config.get('auto_calculate_interest', True)
+            
+            self.interest_rate_spin.setValue(interest_rate)
+            self.use_calculated_checkbox.setChecked(auto_calculate)
+        except:
+            pass
 
     def send_contract_to_line(self, contract_data, customer_data, product_data):
         """ส่งข้อมูลสัญญาเข้า Line"""
@@ -1085,14 +1097,43 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.pawn_amount_spin.valueChanged.connect(self.calculate_amounts)
         layout.addWidget(self.pawn_amount_spin, 0, 1)
 
-        # ยอดไถ่คืน
+        # อัตราดอกเบี้ย
+        self.lbl_interest_rate = QLabel()
+        layout.addWidget(self.lbl_interest_rate, 1, 0)
+        self.interest_rate_spin = QDoubleSpinBox()
+        self.interest_rate_spin.setRange(0.0, 100.0)
+        self.interest_rate_spin.setSuffix(" %")
+        self.interest_rate_spin.setDecimals(2)
+        self.interest_rate_spin.valueChanged.connect(self.on_interest_rate_changed)
+        layout.addWidget(self.interest_rate_spin, 1, 1)
+        
+        # ปุ่มรีเซ็ตอัตราดอกเบี้ย
+        self.reset_interest_button = QPushButton("รีเซ็ต")
+        self.reset_interest_button.setMaximumWidth(60)
+        self.reset_interest_button.clicked.connect(self.reset_interest_rate)
+        layout.addWidget(self.reset_interest_button, 1, 2)
+
+        # ยอดไถ่คืน (คำนวณ)
+        self.lbl_calculated_redemption = QLabel()
+        layout.addWidget(self.lbl_calculated_redemption, 2, 0)
+        self.calculated_redemption_label = QLabel("0.00 บาท")
+        self.calculated_redemption_label.setStyleSheet("QLabel { color: #2E8B57; font-weight: bold; }")
+        layout.addWidget(self.calculated_redemption_label, 2, 1)
+
+        # ยอดไถ่คืน (แก้ไขเอง)
         self.lbl_total_redemption = QLabel()
-        layout.addWidget(self.lbl_total_redemption, 1, 0)
+        layout.addWidget(self.lbl_total_redemption, 3, 0)
         self.total_redemption_spin = QDoubleSpinBox()
         self.total_redemption_spin.setRange(0, 999999)
         self.total_redemption_spin.setSuffix(" บาท")
-        layout.addWidget(self.total_redemption_spin, 1, 1)
+        self.total_redemption_spin.valueChanged.connect(self.on_manual_redemption_changed)
+        layout.addWidget(self.total_redemption_spin, 3, 1)
 
+        # Checkbox สำหรับใช้ยอดที่คำนวณ
+        self.use_calculated_checkbox = QCheckBox()
+        self.use_calculated_checkbox.setChecked(True)
+        self.use_calculated_checkbox.toggled.connect(self.on_use_calculated_toggled)
+        layout.addWidget(self.use_calculated_checkbox, 4, 0, 1, 2)
 
         # เชื่อมภาษา
         language_manager.language_changed.connect(self.apply_results_language)
@@ -1104,7 +1145,11 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         if (w := self.findChild(QGroupBox, "TopMiddleGroup")) is not None:
             w.setTitle(language_manager.get_text("results_group"))
         self.lbl_pawn_amount.setText(language_manager.get_text("pawn_amount"))
-        self.lbl_total_redemption.setText(language_manager.get_text("total_redemption"))
+        self.lbl_interest_rate.setText(language_manager.get_text("interest_rate"))
+        self.lbl_calculated_redemption.setText(language_manager.get_text("calculated_redemption"))
+        self.lbl_total_redemption.setText(language_manager.get_text("manual_redemption"))
+        self.use_calculated_checkbox.setText(language_manager.get_text("use_calculated"))
+        self.reset_interest_button.setText(language_manager.get_text("reset"))
 
     def create_search_group(self):
         group_box = QGroupBox()
@@ -1924,9 +1969,15 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 penalty_amount = redemption.get('penalty_amount', 0)
                 table.setItem(row, 9, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
-                # ยอดไถ่คืน
+                # ยอดไถ่คืน (แสดงเปอร์เซ็นต์ดอกเบี้ยที่ใช้)
                 redemption_amount = redemption.get('redemption_amount', 0)
-                table.setItem(row, 10, QTableWidgetItem(f"{redemption_amount:,.2f}"))
+                principal_amount = redemption.get('principal_amount', 0)
+                if principal_amount > 0:
+                    interest_rate_used = ((redemption_amount - principal_amount) / principal_amount) * 100
+                    display_text = f"{redemption_amount:,.2f} ({interest_rate_used:.1f}%)"
+                else:
+                    display_text = f"{redemption_amount:,.2f}"
+                table.setItem(row, 10, QTableWidgetItem(display_text))
             else:
                 # วันที่ไถ่คืน
                 redemption_date = redemption.get('redemption_date', '')
@@ -1945,9 +1996,15 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 penalty_amount = redemption.get('penalty_amount', 0)
                 table.setItem(row, 7, QTableWidgetItem(f"{penalty_amount:,.2f}"))
                 
-                # ยอดไถ่คืน
+                # ยอดไถ่คืน (แสดงเปอร์เซ็นต์ดอกเบี้ยที่ใช้)
                 redemption_amount = redemption.get('redemption_amount', 0)
-                table.setItem(row, 8, QTableWidgetItem(f"{redemption_amount:,.2f}"))
+                principal_amount = redemption.get('principal_amount', 0)
+                if principal_amount > 0:
+                    interest_rate_used = ((redemption_amount - principal_amount) / principal_amount) * 100
+                    display_text = f"{redemption_amount:,.2f} ({interest_rate_used:.1f}%)"
+                else:
+                    display_text = f"{redemption_amount:,.2f}"
+                table.setItem(row, 8, QTableWidgetItem(display_text))
         
         layout.addWidget(table)
         
@@ -2176,9 +2233,84 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
         try:
-            pass  # ฟังก์ชันคำนวณยอดต่างๆ
+            # ใช้อัตราดอกเบี้ยจาก UI แทนการโหลดจาก config
+            interest_rate = self.interest_rate_spin.value()
+            
+            # โหลดการตั้งค่าการคำนวณอัตโนมัติ
+            from shop_config_loader import load_shop_config
+            shop_config = load_shop_config()
+            auto_calculate = shop_config.get('auto_calculate_interest', True)
+            
+            # คำนวณยอดไถ่คืน
+            pawn_amount = self.pawn_amount_spin.value()
+            if pawn_amount > 0 and auto_calculate:
+                # คำนวณดอกเบี้ยตามจำนวนวัน
+                days = self.days_spin.value()
+                if days > 0:
+                    # คำนวณดอกเบี้ยต่อเดือน
+                    months = days / 30.0  # แปลงวันเป็นเดือน
+                    interest_amount = pawn_amount * (interest_rate / 100.0) * months
+                    calculated_redemption = pawn_amount + interest_amount
+                    
+                    # แสดงยอดที่คำนวณได้
+                    self.calculated_redemption_label.setText(f"{calculated_redemption:,.2f} บาท")
+                    
+                    # ถ้าใช้ยอดที่คำนวณ ให้อัปเดตยอดไถ่คืน
+                    if self.use_calculated_checkbox.isChecked():
+                        self.total_redemption_spin.setValue(calculated_redemption)
+                else:
+                    self.calculated_redemption_label.setText("0.00 บาท")
+            else:
+                self.calculated_redemption_label.setText("0.00 บาท")
+                
         except Exception as e:
             print(f"Error calculating amounts: {e}")
+    
+    def on_manual_redemption_changed(self, value):
+        """จัดการการเปลี่ยนแปลงยอดไถ่คืนแบบแก้ไขเอง"""
+        # ถ้าแก้ไขยอดไถ่คืนเอง ให้ยกเลิกการใช้ยอดที่คำนวณ
+        if not self.use_calculated_checkbox.isChecked():
+            return
+    
+    def on_use_calculated_toggled(self, checked):
+        """จัดการการเปิด/ปิดการใช้ยอดที่คำนวณ"""
+        if checked:
+            # ใช้ยอดที่คำนวณ
+            calculated_text = self.calculated_redemption_label.text().replace(" บาท", "").replace(",", "")
+            try:
+                calculated_value = float(calculated_text)
+                self.total_redemption_spin.setValue(calculated_value)
+            except ValueError:
+                pass
+        # ถ้าไม่ใช้ยอดที่คำนวณ ให้ใช้ยอดที่ผู้ใช้กรอกเอง
+    
+    def on_interest_rate_changed(self, value):
+        """จัดการการเปลี่ยนแปลงอัตราดอกเบี้ย"""
+        # คำนวณยอดไถ่คืนใหม่เมื่ออัตราดอกเบี้ยเปลี่ยน
+        self.calculate_amounts()
+        
+        # บันทึกการตั้งค่าอัตราดอกเบี้ยใหม่
+        self.save_interest_rate_to_config(value)
+    
+    def reset_interest_rate(self):
+        """รีเซ็ตอัตราดอกเบี้ยเป็นค่าเริ่มต้น"""
+        try:
+            from shop_config_loader import load_shop_config
+            shop_config = load_shop_config()
+            default_rate = shop_config.get('interest_rate', 10.0)
+            self.interest_rate_spin.setValue(default_rate)
+        except:
+            self.interest_rate_spin.setValue(10.0)
+    
+    def save_interest_rate_to_config(self, interest_rate):
+        """บันทึกอัตราดอกเบี้ยลงในไฟล์ config"""
+        try:
+            from shop_config_loader import load_shop_config, save_shop_config
+            shop_config = load_shop_config()
+            shop_config['interest_rate'] = interest_rate
+            save_shop_config(shop_config)
+        except Exception as e:
+            print(f"Error saving interest rate: {e}")
 
     def load_renewal_history(self, contract_number):
         """โหลดประวัติการต่อดอกของสัญญา"""

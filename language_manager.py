@@ -105,6 +105,12 @@ _TRANSLATIONS = {
         "update": "อัปเดต",
         "total_paid": "ยอดจ่าย",
         "total_redemption": "ยอดไถ่คืน",
+        "interest_rate": "อัตราดอกเบี้ย",
+        "interest_rate_per_month": "ต่อเดือน",
+        "calculated_redemption": "ยอดไถ่คืน (คำนวณ)",
+        "manual_redemption": "ยอดไถ่คืน (แก้ไขเอง)",
+        "reset": "รีเซ็ต",
+        "use_calculated": "ใช้ยอดที่คำนวณอัตโนมัติ",
 
         # Search Group
         "search_group": "ค้นหาสัญญา",
@@ -296,6 +302,12 @@ _TRANSLATIONS = {
         "update": "Update",
         "total_paid": "Total Paid",
         "total_redemption": "Total Redemption",
+        "interest_rate": "Interest Rate",
+        "interest_rate_per_month": "per month",
+        "calculated_redemption": "Redemption (Calculated)",
+        "manual_redemption": "Redemption (Manual)",
+        "reset": "Reset",
+        "use_calculated": "Use calculated amount",
 
         # Search Group
         "search_group": "Search Contracts",
@@ -482,6 +494,12 @@ _TRANSLATIONS = {
         "update": "ອັບເດດ",
         "total_paid": "ຍອດຈ່າຍ",
         "total_redemption": "ຍອດໄຖ່ຖອນ",
+        "interest_rate": "ອັດຕາດອກເບ້ຍ",
+        "interest_rate_per_month": "ຕໍ່ເດືອນ",
+        "calculated_redemption": "ຍອດໄຖ່ຖອນ (ຄຳນວນ)",
+        "manual_redemption": "ຍອດໄຖ່ຖອນ (ແກ້ໄຂເອງ)",
+        "reset": "ຣີເຊັດ",
+        "use_calculated": "ໃຊ້ຍອດທີ່ຄຳນວນອັດຕະໂນມັດ",
 
         # Search Group
         "search_group": "ຄົ້ນຫາສັນຍາ",
@@ -657,6 +675,12 @@ _TRANSLATIONS = {
         "update": "အပ်ဒိတ်",
         "total_paid": "ပေးသွက်စုစုပေါင်း",
         "total_redemption": "ပြန်ရယူစုစုပေါင်း",
+        "interest_rate": "အတိုးနှုန်း",
+        "interest_rate_per_month": "လစဉ်",
+        "calculated_redemption": "ပြန်ရယူ (တွက်ချက်)",
+        "manual_redemption": "ပြန်ရယူ (လက်တွေ့)",
+        "reset": "ပြန်စ",
+        "use_calculated": "တွက်ချက်ထားသောပမာဏကိုသုံးပါ",
 
         # Search Group
         "search_group": "စာချုပ် ရှာဖွေ",

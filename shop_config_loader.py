@@ -37,7 +37,9 @@ def load_shop_config(config_file="shop_config.json"):
                     'phone': config.get('phone', '02-345-6789'),
                     'authorized_signer': config.get('authorized_signer', 'นายประเสริฐ ใจดี'),
                     'buyer_signer_name': config.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
-                    'witness_name': config.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง')
+                    'witness_name': config.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง'),
+                    'interest_rate': config.get('interest_rate', 10.0),
+                    'auto_calculate_interest': config.get('auto_calculate_interest', True)
                 }
         else:
             print("Warning: Shop config file not found at {}, using defaults".format(config_path))
@@ -62,7 +64,9 @@ def get_default_shop_config():
         'phone': '02-345-6789',
         'authorized_signer': 'นายประเสริฐ ใจดี',
         'buyer_signer_name': 'นายประเสริฐ ใจดี',
-        'witness_name': 'นางสาวมั่นใจ ถูกต้อง'
+        'witness_name': 'นางสาวมั่นใจ ถูกต้อง',
+        'interest_rate': 10.0,
+        'auto_calculate_interest': True
     }
 
 
@@ -91,7 +95,9 @@ def save_shop_config(shop_data, config_file="shop_config.json"):
             'phone': shop_data.get('phone', '02-345-6789'),
             'authorized_signer': shop_data.get('authorized_signer', 'นายประเสริฐ ใจดี'),
             'buyer_signer_name': shop_data.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
-            'witness_name': shop_data.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง')
+            'witness_name': shop_data.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง'),
+            'interest_rate': shop_data.get('interest_rate', 10.0),
+            'auto_calculate_interest': shop_data.get('auto_calculate_interest', True)
         }
         
         with open(config_path, 'w') as f:

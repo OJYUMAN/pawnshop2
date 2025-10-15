@@ -1,10 +1,12 @@
 {
-  "shop_name": "ร้าน ไอโปรโอเจ",
-  "shop_branch": "สาขาหล่มสักนํ้า",
-  "shop_address": "14-15 ถ.พิำดำนิจ ต.หล่มสัำดำก อ.หล่ำดำมสัก จ.เพชรบูรำดำณ์ 67110",
-  "tax_id": "0-1234-56789-01-2",
-  "phone": "02-345-6789",
-  "authorized_signer": "นายประเสริฐ ใจดี1",
-  "buyer_signer_name": "นายประเสริฐ ใจดี2",
-  "witness_name": "นางสาวมั่นใจ ถูกต้อง3"
+  "shop_name": "Test Shop",
+  "shop_branch": "Test Branch",
+  "shop_address": "Test Address",
+  "tax_id": "1234567890123",
+  "phone": "02-123-4567",
+  "authorized_signer": "Test Signer",
+  "buyer_signer_name": "Test Buyer",
+  "witness_name": "Test Witness",
+  "interest_rate": 15.0,
+  "auto_calculate_interest": true
 }

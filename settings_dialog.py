@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
-    QPushButton, QGroupBox, QFormLayout, QTabWidget, QLineEdit, QTextEdit
+    QPushButton, QGroupBox, QFormLayout, QTabWidget, QLineEdit, QTextEdit,
+    QDoubleSpinBox, QCheckBox
 )
 from PySide6.QtCore import Qt
 from language_manager import language_manager
@@ -42,6 +43,9 @@ class SettingsDialog(QDialog):
         
         # แท็บการตั้งค่า PDF
         self.setup_pdf_tab()
+        
+        # แท็บการตั้งค่าดอกเบี้ย
+        self.setup_interest_tab()
         
         layout.addWidget(self.tab_widget)
         
@@ -110,6 +114,30 @@ class SettingsDialog(QDialog):
         
         self.tab_widget.addTab(pdf_widget, language_manager.get_text("pdf_settings"))
     
+    def setup_interest_tab(self):
+        """ตั้งค่าแท็บดอกเบี้ย"""
+        interest_widget = QGroupBox()
+        interest_layout = QFormLayout(interest_widget)
+        
+        # อัตราดอกเบี้ยต่อเดือน
+        self.interest_rate_spin = QDoubleSpinBox()
+        self.interest_rate_spin.setRange(0.0, 100.0)
+        self.interest_rate_spin.setSuffix(" %")
+        self.interest_rate_spin.setDecimals(2)
+        self.interest_rate_spin.setValue(10.0)  # ค่าเริ่มต้น 10%
+        interest_layout.addRow(language_manager.get_text("interest_rate"), self.interest_rate_spin)
+        
+        # เปิด/ปิดการคำนวณอัตโนมัติ
+        self.auto_calculate_checkbox = QCheckBox()
+        self.auto_calculate_checkbox.setChecked(True)
+        interest_layout.addRow("คำนวณอัตโนมัติ", self.auto_calculate_checkbox)
+        
+        # เชื่อมต่อสัญญาณ
+        self.interest_rate_spin.valueChanged.connect(self.on_interest_rate_changed)
+        self.auto_calculate_checkbox.toggled.connect(self.on_auto_calculate_toggled)
+        
+        self.tab_widget.addTab(interest_widget, "การตั้งค่าดอกเบี้ย")
+    
     def connect_signals(self):
         """เชื่อมต่อสัญญาณ"""
         self.save_button.clicked.connect(self.save_settings)
@@ -136,6 +164,11 @@ class SettingsDialog(QDialog):
         
         # อัปเดตข้อความใน ComboBox ตามภาษาปัจจุบัน
         self.update_combo_texts()
+        
+        # โหลดการตั้งค่าดอกเบี้ย
+        shop_config = load_shop_config()
+        self.interest_rate_spin.setValue(shop_config.get('interest_rate', 10.0))
+        self.auto_calculate_checkbox.setChecked(shop_config.get('auto_calculate_interest', True))
     
     def save_settings(self):
         """บันทึกการตั้งค่า"""
@@ -144,7 +177,7 @@ class SettingsDialog(QDialog):
         if selected_language != language_manager.get_current_language():
             language_manager.set_language(selected_language)
         
-        # บันทึกการตั้งค่า PDF
+        # บันทึกการตั้งค่า PDF และดอกเบี้ย
         shop_data = {
             'name': self.shop_name_edit.text(),
             'branch': self.shop_branch_edit.text(),
@@ -153,7 +186,9 @@ class SettingsDialog(QDialog):
             'phone': self.phone_edit.text(),
             'authorized_signer': self.authorized_signer_edit.text(),
             'buyer_signer_name': self.buyer_signer_name_edit.text(),
-            'witness_name': self.witness_name_edit.text()
+            'witness_name': self.witness_name_edit.text(),
+            'interest_rate': self.interest_rate_spin.value(),
+            'auto_calculate_interest': self.auto_calculate_checkbox.isChecked()
         }
         save_shop_config(shop_data)
         
@@ -179,6 +214,16 @@ class SettingsDialog(QDialog):
         
         # อัปเดตข้อความใน ComboBox
         self.update_combo_texts()
+    
+    def on_interest_rate_changed(self, value):
+        """จัดการการเปลี่ยนแปลงอัตราดอกเบี้ย"""
+        # สามารถเพิ่มการตรวจสอบหรือการแจ้งเตือนได้ที่นี่
+        pass
+    
+    def on_auto_calculate_toggled(self, checked):
+        """จัดการการเปิด/ปิดการคำนวณอัตโนมัติ"""
+        # สามารถเพิ่มการตรวจสอบหรือการแจ้งเตือนได้ที่นี่
+        pass
     
     def update_combo_texts(self):
         """อัปเดตข้อความใน ComboBox"""
