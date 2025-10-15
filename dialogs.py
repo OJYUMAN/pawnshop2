@@ -1615,9 +1615,6 @@ class RedemptionDialog(QDialog):
     def generate_redemption_contract_pdf(self, redemption_data, redemption_id):
         """สร้างสัญญาไถ่คืนเป็น PDF"""
         try:
-            # นำเข้า pdf3.py
-            from pdf3 import generate_redemption_contract_pdf
-            
             # ดึงข้อมูลลูกค้าและสินค้าเพิ่มเติม
             contract_id = self.contract_data['id']
             customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
@@ -1664,11 +1661,7 @@ class RedemptionDialog(QDialog):
             }
             
             default_shop_config = load_shop_config()
-           # shop_name1 = (shop_data or {}).get('name', default_shop_config['name'])
-          #  shop_branch2 = (shop_data or {}).get('branch', default_shop_config['branch'])
-          #  shop_address3 = (shop_data or {}).get('address', default_shop_config['address'])
-
-               # ข้อมูลร้านค้า
+            # ข้อมูลร้านค้า
             shop_data = {
                 'name': default_shop_config['name'],
                 'branch': default_shop_config['branch'],
@@ -1686,55 +1679,26 @@ class RedemptionDialog(QDialog):
                 'other_details': product.get('other_details', '')
             }
             
-         
+            # ใช้ระบบพรีวิวใหม่
+            from print_preview_dialog import show_print_preview
+            from pdf3 import generate_redemption_contract_pdf as pdf_generator
             
-            # สร้างไฟล์ชั่วคราวสำหรับพรีวิวและให้ผู้ใช้เลือกบันทึก
-            contract_number = self.contract_data.get('contract_number', 'unknown')
-            with tempfile.TemporaryDirectory() as tmpdir:
-                temp_file = os.path.join(tmpdir, f"redemption_preview_{contract_number}.pdf")
-
-                # สร้าง PDF ลงไฟล์ชั่วคราว
-                result = generate_redemption_contract_pdf(
-                    redemption_data=redemption_pdf_data,
-                    customer_data=customer_data,
-                    product_data=product_data,
-                    original_contract_data=original_contract_data,
-                    shop_data=shop_data,
-                    output_file=temp_file,
-                    output_folder=None
-                )
-
-                if result and os.path.exists(result):
-                    # เปิดไฟล์ PDF ภายนอกเพื่อพรีวิว
-                    import subprocess
-                    import platform
-
-                    try:
-                        if platform.system() == "Darwin":
-                            subprocess.run(["open", result])
-                        elif platform.system() == "Windows":
-                            os.startfile(result)
-                        else:
-                            subprocess.run(["xdg-open", result])
-                    except Exception:
-                        pass
-
-                    # ให้ผู้ใช้เลือกตำแหน่งบันทึกไฟล์
-                    suggested_name = f"ใบไถ่คืน_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                    save_path, _ = QFileDialog.getSaveFileName(
-                        self,
-                        "บันทึก PDF",
-                        suggested_name,
-                        "PDF Files (*.pdf)"
-                    )
-                    if save_path:
-                        shutil.copyfile(result, save_path)
-                        QMessageBox.information(self, "สำเร็จ", f"บันทึกสัญญาไถ่คืนแล้วที่:\n{save_path}")
-                        # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
-                        if redemption_id is not None:
-                            self.print_redemption_contract(save_path)
-                else:
-                    QMessageBox.warning(self, "แจ้งเตือน", "สร้างสัญญาไถ่คืนไม่สำเร็จ")
+            success = show_print_preview(
+                parent=self,
+                contract_type="redemption",
+                pdf_generator_func=pdf_generator,
+                contract_data=redemption_pdf_data,
+                customer_data=customer_data,
+                product_data=product_data,
+                shop_data=shop_data
+            )
+            
+            if success:
+                QMessageBox.information(self, "สำเร็จ", "ดำเนินการเสร็จสิ้น")
+                # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
+                if redemption_id is not None:
+                    # เปิดหน้าต่างเลือกเครื่องปริ้นอีกครั้งถ้าต้องการ
+                    pass
                 
         except ImportError:
             QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")

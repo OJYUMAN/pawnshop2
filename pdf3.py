@@ -188,7 +188,9 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     try:
         ensure_fonts()
     except Exception as e:
-        print(e); return ""
+        error_msg = f"Font loading error: {str(e)}"
+        print(error_msg)
+        return ""
 
     if not output_file:
         contract_number = original_contract_data.get('contract_number', 'unknown')
@@ -219,32 +221,32 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     discount_amount = float(redemption_data.get('discount_amount', 0) or 0)
     total_redemption = float(redemption_data.get('redemption_amount', 0) or 0)
 
-    first_name = customer_data.get('first_name', '')
-    last_name = customer_data.get('last_name', '')
+    first_name = customer_data.get('first_name', '') or ''
+    last_name = customer_data.get('last_name', '') or ''
     customer_name = f"{first_name} {last_name}".strip() or "_________________"
-    id_card = customer_data.get('id_card', '_________________')
-    age = customer_data.get('age', '')
+    id_card = customer_data.get('id_card', '_________________') or '_________________'
+    age = customer_data.get('age', '') or ''
     age_str = f"อายุ {age} ปี " if age else ""
-    phone = customer_data.get('phone', '_________________')
+    phone = customer_data.get('phone', '_________________') or '_________________'
 
     addr_parts = []
-    if customer_data.get('house_number'): addr_parts.append(customer_data['house_number'])
-    if customer_data.get('street'): addr_parts.append(customer_data['street'])
-    if customer_data.get('subdistrict'): addr_parts.append(f"แขวง/ตำบล{customer_data['subdistrict']}")
-    if customer_data.get('district'): addr_parts.append(f"เขต/อำเภอ{customer_data['district']}")
-    if customer_data.get('province'): addr_parts.append(f"จ.{customer_data['province']}")
-    if customer_data.get('zipcode'): addr_parts.append(str(customer_data['zipcode']))
+    if customer_data.get('house_number'): addr_parts.append(str(customer_data['house_number'] or ''))
+    if customer_data.get('street'): addr_parts.append(str(customer_data['street'] or ''))
+    if customer_data.get('subdistrict'): addr_parts.append(f"แขวง/ตำบล{customer_data['subdistrict'] or ''}")
+    if customer_data.get('district'): addr_parts.append(f"เขต/อำเภอ{customer_data['district'] or ''}")
+    if customer_data.get('province'): addr_parts.append(f"จ.{customer_data['province'] or ''}")
+    if customer_data.get('zipcode'): addr_parts.append(str(customer_data['zipcode'] or ''))
     address = " ".join(addr_parts) if addr_parts else "_________________"
 
     authorized_person = authorized_signer
 
-    brand = product_data.get('brand', '')
-    name = product_data.get('model', '') or product_data.get('name', 'ทรัพย์สิน')
-    color = product_data.get('color', '')
-    imei1 = product_data.get('imei1', '')
-    imei2 = product_data.get('imei2', '')
-    serial = product_data.get('serial_number', '')
-    accessories = product_data.get('accessories', '')
+    brand = product_data.get('brand', '') or ''
+    name = product_data.get('model', '') or product_data.get('name', 'ทรัพย์สิน') or 'ทรัพย์สิน'
+    color = product_data.get('color', '') or ''
+    imei1 = product_data.get('imei1', '') or ''
+    imei2 = product_data.get('imei2', '') or ''
+    serial = product_data.get('serial_number', '') or ''
+    accessories = product_data.get('accessories', '') or ''
     orig_ref_date = thai_date(original_contract_data.get('start_date', 'N/A'))
 
     # ---------- Build story ----------
@@ -341,9 +343,14 @@ def generate_redemption_contract_pdf(redemption_data: Dict, customer_data: Dict,
     story.append(footer)
 
     # Build
-    doc.build(story)
-    print(f"Successfully created redemption contract '{output_file}'")
-    return output_file
+    try:
+        doc.build(story)
+        print(f"Successfully created redemption contract '{output_file}'")
+        return output_file
+    except Exception as e:
+        error_msg = f"PDF building error: {str(e)}"
+        print(error_msg)
+        return ""
 
 
 # ================= RECEIPT (กระชับ) =================
@@ -354,7 +361,9 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     try:
         ensure_fonts()
     except Exception as e:
-        print(e); return ""
+        error_msg = f"Font loading error: {str(e)}"
+        print(error_msg)
+        return ""
 
     if not output_file:
         contract_number = original_contract_data.get('contract_number', 'unknown')
@@ -427,7 +436,7 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     cp = _boxed([
         [Paragraph("<b>ลูกค้า</b>", styles["TH-bold"]), Paragraph("<b>สินค้า</b>", styles["TH-bold"])],
         [Paragraph(f"ชื่อ: {customer_name}<br/>โทร: {phone}", styles["TH"]),
-         Paragraph((product_data.get('brand','') + ' ' if product_data.get('brand') else '') + (product_data.get('model','') or product_data.get('name','N/A')), styles["TH"])],
+         Paragraph(f"{product_data.get('brand', '') or ''} {product_data.get('model', '') or product_data.get('name', 'N/A') or 'N/A'}".strip(), styles["TH"])],
     ], [col_w, col_w], header_rows=1)
     story += [cp, Spacer(1,6)]
 
@@ -436,9 +445,14 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
         styles["TH-mini"]
     )]
 
-    doc.build(story)
-    print(f"Successfully created redemption receipt '{output_file}'")
-    return output_file
+    try:
+        doc.build(story)
+        print(f"Successfully created redemption receipt '{output_file}'")
+        return output_file
+    except Exception as e:
+        error_msg = f"PDF building error: {str(e)}"
+        print(error_msg)
+        return ""
 
 
 # --- Main ---

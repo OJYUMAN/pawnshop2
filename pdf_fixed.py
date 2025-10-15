@@ -63,7 +63,7 @@ def thai_date(date_str, include_time=False):
         return str(day) + " " + month_name + " " + str(year_th) + " เวลา " + dt.strftime('%H:%M') + " น."
     return str(day) + " " + month_name + " " + str(year_th)
 
-def money(n):
+def money(n) -> str:
     try:
         if abs(float(n) - int(float(n))) < 1e-9:
             return "{:,.0f}".format(float(n))
@@ -91,7 +91,7 @@ def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf')
         if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
             pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
     except Exception as e:
-        print("เกิดข้อผิดพลาดในการโหลดฟอนต์: " + str(e))
+        print("เกิดข้อผิดพลาดในการโหลดฟอนต์: " + str(e) + "")
         raise
 
 # ---------- PDF Styles ----------
@@ -124,12 +124,12 @@ def generate_pawn_ticket_from_data(
     try:
         ensure_fonts()
     except Exception as e:
-        print("Error setting up fonts: " + str(e))
+        print("Error setting up fonts: " + str(e) + "")
         return ""
     
     if not output_file:
         contract_number = contract_data.get("contract_number", "unknown")
-        output_file = "pawn_contract_" + str(contract_number) + "_" + datetime.now().strftime('%Y%m%d_%H%M%S') + ".pdf"
+        output_file = "pawn_contract_" + str(contract_number) + "_" + str(datetime.now().strftime('%Y%m%d_%H%M%S')) + ".pdf"
     
     styles = make_pdf_styles()
     
@@ -155,7 +155,7 @@ def generate_pawn_ticket_from_data(
     
     # ข้อมูลลูกค้า
     full_name = (customer_data.get("full_name") or 
-                f"{customer_data.get('first_name','')} {customer_data.get('last_name','')}".strip()) or "-"
+                "" + str(customer_data.get('first_name','')) + " " + str(customer_data.get('last_name','')) + "".strip()) or "-"
     id_card = customer_data.get("id_card", "-")
     age = customer_data.get("age")
     phone = customer_data.get("phone", "-")
@@ -196,7 +196,7 @@ def generate_pawn_ticket_from_data(
     contract_info = [
         [Paragraph("สัญญาเลขที่:", styles["TH-bold"]), Paragraph(contract_number, styles["TH"]),
          Paragraph("ฉบับที่:", styles["TH-bold"]), Paragraph(str(copy_number), styles["TH"])],
-        [Paragraph("ทำที่:", styles["TH-bold"]), Paragraph(f"{shop_name} {shop_branch}", styles["TH"]),
+        [Paragraph("ทำที่:", styles["TH-bold"]), Paragraph("" + str(shop_name) + " " + str(shop_branch) + "", styles["TH"]),
          Paragraph("วันที่:", styles["TH-bold"]), Paragraph(start_date_th, styles["TH"])]
     ]
     
@@ -216,14 +216,14 @@ def generate_pawn_ticket_from_data(
     story.append(Paragraph("คู่สัญญา", styles["TH-bold"]))
     story.append(Spacer(1, 2*mm))
     
-    customer_info = f"""
-    ระหว่าง {full_name}{f" อายุ {int(age)} ปี" if isinstance(age, (int, float)) else ""} 
+    customer_info = """
+    ระหว่าง {full_name}{" อายุ " + str(int(age)) + " ปี" if isinstance(age, (int, float)) else ""} 
     เลขบัตรประจำตัวประชาชน {id_card}<br/>
     ที่อยู่ {addr_text} โทร {phone}<br/>
     ซึ่งต่อไปนี้เรียกว่า "ผู้ขายฝาก" ฝ่ายหนึ่ง
     """
     
-    shop_info = f"""
+    shop_info = """
     กับ {shop_name} {shop_branch} เลขประจำตัวผู้เสียภาษี {shop_tax_id}<br/>
     ที่ตั้ง {shop_address}  โทร{shop_phone}<br/>
     โดย{authorized_signer} เป็นผู้มีอำนาจลงนาม 
@@ -239,7 +239,7 @@ def generate_pawn_ticket_from_data(
     story.append(Paragraph("รายละเอียดทรัพย์สินที่ขายฝาก", styles["TH-bold"]))
     story.append(Spacer(1, 2*mm))
     
-    product_details = f"""
+    product_details = """
     โทรศัพท์มือถือยี่ห้อ {brand or 'ไม่ระบุ'} รุ่น {model or 'ไม่ระบุ'}{(" สี " + color) if color else ""}
     {"," if (imei1 or imei2 or serial) else ""} 
     {" IMEI 1: " + imei1 if imei1 else ""}{("," if imei1 and (imei2 or serial) else "")}
@@ -256,8 +256,8 @@ def generate_pawn_ticket_from_data(
     story.append(Spacer(1, 2*mm))
     
     terms = [
-        f"ข้อ 1. ผู้ซื้อฝากตกลงรับซื้อฝากทรัพย์สินดังกล่าวในราคา {money(pawn_amount)} บาทถ้วน และผู้ขายฝากตกลงขายฝากในราคาดังกล่าว โดยผู้ขายฝากได้รับเงินครบถ้วนแล้วในวันทำสัญญา",
-        f"ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนทรัพย์สินภายในกำหนด {days_count if days_count else '-'} วัน นับแต่วันที่ทำสัญญา โดยต้องชำระเงินจำนวน {money(redemption_amount)} บาทถ้วน ภายในวันที่ {end_date_th} เวลาไม่เกิน 18.00 น.",
+        "ข้อ 1. ผู้ซื้อฝากตกลงรับซื้อฝากทรัพย์สินดังกล่าวในราคา " + str(money(pawn_amount)) + " บาทถ้วน และผู้ขายฝากตกลงขายฝากในราคาดังกล่าว โดยผู้ขายฝากได้รับเงินครบถ้วนแล้วในวันทำสัญญา",
+        "ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนทรัพย์สินภายในกำหนด " + str(days_count if days_count else '-') + " วัน นับแต่วันที่ทำสัญญา โดยต้องชำระเงินจำนวน " + str(money(redemption_amount)) + " บาทถ้วน ภายในวันที่ " + str(end_date_th) + " เวลาไม่เกิน 18.00 น.",
         "ข้อ 3. หากผู้ขายฝากไม่ชำระเงินไถ่ถอนภายในกำหนดตามข้อ 2 ให้ถือว่าผู้ขายฝากสละสิทธิในการไถ่ถอน และผู้ซื้อฝากมีสิทธิจัดการทรัพย์สินดังกล่าวได้โดยชอบ",
         "ข้อ 4. ผู้ขายฝากรับรองว่าทรัพย์สินเป็นกรรมสิทธิ์ของตน มิได้มีภาระผูกพัน จำนำ จำนอง หรือคดีพิพาทใด ๆ และยินยอมให้ผู้ซื้อฝากตรวจสอบความถูกต้องของหมายเลข IMEI/Serial ได้",
         "ข้อ 5. ในกรณีสูญหาย/ถูกโจรกรรม ผู้ขายฝากต้องแจ้งความและแจ้งผู้ซื้อฝากทันที ผู้ซื้อฝากไม่รับผิดชอบต่อความเสียหายที่เกิดขึ้นก่อนการไถ่ถอน",
@@ -272,7 +272,7 @@ def generate_pawn_ticket_from_data(
     story.append(Paragraph("การรับเงินและเอกสารแนบ", styles["TH-bold"]))
     story.append(Spacer(1, 2*mm))
     
-    receipt_text = f"""
+    receipt_text = """
     ผู้ขายฝากได้รับเงินจำนวน {money(pawn_amount)} บาทถ้วนแล้วเรียบร้อยในวันทำสัญญา
     พร้อมส่งมอบทรัพย์สินและอุปกรณ์ตามรายการข้างต้นให้แก่ผู้ซื้อฝากครบถ้วน
     โดยมีสำเนาบัตรประชาชนผู้ขายฝาก 1 ฉบับ และรูปถ่ายทรัพย์สินแนบเป็นหลักฐาน
@@ -285,7 +285,7 @@ def generate_pawn_ticket_from_data(
     story.append(Paragraph("การยืนยันคู่สัญญา", styles["TH-bold"]))
     story.append(Spacer(1, 2*mm))
     
-    confirmation_text = f"""
+    confirmation_text = """
     คู่สัญญาได้อ่านและเข้าใจข้อความในสัญญาฉบับนี้โดยตลอดดีแล้ว จึงได้ตกลงลงนามและยอมรับผูกพันตามสัญญานี้ทุกประการ
     ทำขึ้น ณ {shop_name} {shop_branch} เมื่อวันที่ {thai_date(contract_data.get('signed_date') or contract_data.get('start_date', ''))}
     """
@@ -298,9 +298,9 @@ def generate_pawn_ticket_from_data(
         [Paragraph("ลงชื่อ ______________________________", styles["TH"]),
          Paragraph("ลงชื่อ ______________________________", styles["TH"]),
          Paragraph("ลงชื่อ ______________________________", styles["TH"])],
-        [Paragraph(f"( {full_name} )", styles["TH"]),
-         Paragraph(f"( {buyer_signer_name} )", styles["TH"]),
-         Paragraph(f"( {witness_name} )", styles["TH"])],
+        [Paragraph("( " + str(full_name) + " )", styles["TH"]),
+         Paragraph("( " + str(buyer_signer_name) + " )", styles["TH"]),
+         Paragraph("( " + str(witness_name) + " )", styles["TH"])],
         [Paragraph("ผู้ขายฝาก", styles["TH"]),
          Paragraph("ผู้ซื้อฝาก", styles["TH"]),
          Paragraph("พยาน", styles["TH"])]
@@ -348,7 +348,7 @@ def generate_pawn_ticket_from_data(
         story.append(Spacer(1, 6*mm))
     
     # Footer
-    footer_text = f"""
+    footer_text = """
     เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M')}
     """
     story.append(Paragraph(footer_text, styles["TH-small"]))
@@ -385,7 +385,7 @@ def generate_pawn_contract_html(
 
     contract_number = contract_data.get("contract_number", "N/A")
     copy_number = contract_data.get("copy_number", 1)
-    place_full = f"{shop_name} {('สาข' in shop_branch and shop_branch) or f'({shop_branch})' if shop_branch else ''}".replace("()", "").strip()
+    place_full = "" + str(shop_name) + " " + str(('สาข' in shop_branch and shop_branch) or f'(" + str(shop_branch) + ")' if shop_branch else '') + "".replace("()", "").strip()
     place_full = place_full if place_full else shop_name
     place_line = place_full if place_full else "สถานที่ทำสัญญา"
 
@@ -394,7 +394,7 @@ def generate_pawn_contract_html(
     # ถ้าใส่เวลาแยกมาใน contract_data
     start_time = contract_data.get("start_time")  # "HH:MM"
     # รวมเวลาให้ thai_date ตรวจจับเอง
-    start_dt_for_display = f"{start_date_raw} {start_time}" if (start_time and start_date_raw) else start_date_raw
+    start_dt_for_display = "" + str(start_date_raw) + " " + str(start_time) + "" if (start_time and start_date_raw) else start_date_raw
 
     start_date_th = thai_date(start_dt_for_display, include_time=bool(start_time))
     end_date_th = thai_date(end_date_raw)
@@ -404,7 +404,7 @@ def generate_pawn_contract_html(
     redemption_amount = contract_data.get("total_redemption", pawn_amount)
 
     # ลูกค้า
-    full_name = (customer_data.get("full_name") or f"{customer_data.get('first_name','')} {customer_data.get('last_name','')}".strip()) or "-"
+    full_name = (customer_data.get("full_name") or "" + str(customer_data.get('first_name','')) + " " + str(customer_data.get('last_name','')) + "".strip()) or "-"
     id_card = customer_data.get("id_card", "-")
     age = customer_data.get("age")
     phone = customer_data.get("phone", "-")
@@ -433,10 +433,10 @@ def generate_pawn_contract_html(
     witness = witness_name or contract_data.get("witness_name") or "นางสาวมั่นใจ ถูกต้อง"
 
     # ฉบับที่
-    copy_txt = f"{int(copy_number)}" if isinstance(copy_number, (int, float)) else esc(str(copy_number))
+    copy_txt = "" + str(int(copy_number)) + "" if isinstance(copy_number, (int, float)) else esc(str(copy_number))
 
     # เตรียม HTML
-    html_doc = f"""<!DOCTYPE html>
+    html_doc = """<!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="utf-8" />
@@ -529,7 +529,7 @@ def generate_pawn_contract_html(
 
     <div class="section-title">คู่สัญญา</div>
     <p class="indent">
-      ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age, (int, float)) else ""} เลขบัตรประจำตัวประชาชน {esc(id_card)}
+      ระหว่าง {esc(full_name)}{" อายุ " + str(int(age)) + " ปี" if isinstance(age, (int, float)) else ""} เลขบัตรประจำตัวประชาชน {esc(id_card)}
       ที่อยู่ {esc(addr_text)} โทร {esc(phone)}
       ซึ่งต่อไปนี้เรียกว่า "<strong>ผู้ขายฝาก</strong>"
       ฝ่ายหนึ่ง กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)}
@@ -611,7 +611,7 @@ def generate_pawn_contract_html(
 </html>"""
 
     if not output_file:
-        output_file = f"pawn_contract_{contract_number or 'unknown'}.html"
+        output_file = "pawn_contract_" + str(contract_number or 'unknown') + ".html"
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html_doc)
     return output_file

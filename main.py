@@ -2657,30 +2657,64 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             return
         
         try:
-            # สร้างไฟล์ชั่วคราวสำหรับพรีวิว
-            with tempfile.TemporaryDirectory() as tmpdir:
-                contract_number = self.contract_number_edit.text() or "ใหม่"
-                temp_file = os.path.join(tmpdir, f"pawn_preview_{contract_number}.pdf")
-
-                # สร้าง PDF ลงไฟล์ชั่วคราว
-                self._create_pawn_contract_pdf(temp_file)
-
-                # เปิดด้วยโปรแกรมอ่าน PDF ภายนอกเสมอ และให้ตัวเลือกบันทึก
-                self._open_pdf_external(temp_file)
-
-                suggested_name = f"ใบขายฝาก_{contract_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                save_path, _ = QFileDialog.getSaveFileName(
-                    self,
-                    "บันทึก PDF",
-                    suggested_name,
-                    "PDF Files (*.pdf)"
-                )
-                if save_path:
-                    shutil.copyfile(temp_file, save_path)
-                    QMessageBox.information(self, "สำเร็จ", f"บันทึกใบขายฝากแล้วที่:\n{save_path}")
+            # เตรียมข้อมูลสำหรับระบบพรีวิว
+            contract_data = self.get_contract_data()
+            customer_data = self.current_customer
+            product_data = self.current_product
+            shop_data = self.get_shop_data()
+            
+            # ใช้ระบบพรีวิวใหม่
+            from print_preview_dialog import show_print_preview
+            from pdf_generator import generate_pawn_contract_pdf as pdf_generator
+            
+            success = show_print_preview(
+                parent=self,
+                contract_type="pawn",
+                pdf_generator_func=pdf_generator,
+                contract_data=contract_data,
+                customer_data=customer_data,
+                product_data=product_data,
+                shop_data=shop_data
+            )
+            
+            if success:
+                QMessageBox.information(self, "สำเร็จ", "ดำเนินการเสร็จสิ้น")
 
         except Exception as e:
-            QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาดในการสร้าง/พรีวิว PDF: {str(e)}")
+            QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการสร้าง/พรีวิว PDF: " + str(e))
+
+    def get_contract_data(self):
+        """ดึงข้อมูลสัญญาจาก UI"""
+        try:
+            # คำนวณจำนวนวัน
+            start_date = self.start_date_edit.date()
+            end_date = QDate.fromString(self.end_date_edit.text(), "yyyy-MM-dd")
+            days_count = start_date.daysTo(end_date) if end_date.isValid() else 30
+            
+            contract_data = {
+                'contract_number': self.contract_number_edit.text(),
+                'start_date': self.start_date_edit.date().toString("yyyy-MM-dd"),
+                'end_date': self.end_date_edit.text(),
+                'days_count': days_count,
+                'pawn_amount': self.pawn_amount_spin.value(),
+                'interest_rate': getattr(self, 'interest_rate_spin', None) and self.interest_rate_spin.value() or 0,
+                'total_redemption': self.total_redemption_spin.value(),
+                'estimated_value': getattr(self, 'estimated_value_spin', None) and self.estimated_value_spin.value() or 0,
+                'witness_name': getattr(self, 'witness_name_edit', None) and self.witness_name_edit.text() or '',
+                'copy_number': getattr(self, 'copy_number_spin', None) and self.copy_number_spin.value() or 1
+            }
+            return contract_data
+        except Exception as e:
+            print("Error getting contract data: " + str(e))
+            return {}
+
+    def get_shop_data(self):
+        """ดึงข้อมูลร้านจากไฟล์ config"""
+        try:
+            from shop_config_loader import load_shop_config
+            return load_shop_config() or {}
+        except Exception:
+            return {}
 
     def _create_pawn_contract_pdf(self, file_path):
         """สร้างไฟล์ PDF ใบขายฝากโดยใช้ฟังก์ชันจาก pdf.py"""
