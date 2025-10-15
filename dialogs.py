@@ -1458,7 +1458,8 @@ class RedemptionDialog(QDialog):
             if not self.contract_data:
                 return
             
-            principal = self.contract_data.get('pawn_amount', 0)
+            # ใช้ยอดไถ่คืนที่ตั้งไว้ในสัญญาเดิมแทนที่จะใช้แค่ยอดเงินต้น
+            principal = self.contract_data.get('total_redemption', self.contract_data.get('pawn_amount', 0))
             
             # คำนวณค่าปรับ (ถ้าเกินกำหนด)
             penalty = 0
