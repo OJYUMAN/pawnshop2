@@ -14,7 +14,7 @@ from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
 def send_line_message(message):
     """Send a text message to LINE using push API. Returns True on success."""
     try:
-        url = "https://api.line.me/v2/bot/message/push"
+        url = "https://api.line.me/v2/bot/message/broadcast"
 
         headers = {
             'Content-Type': 'application/json',

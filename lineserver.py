@@ -15,7 +15,7 @@ def send_line_message(channel_access_token, user_id, message):
     Returns:
         bool: True ถ้าส่งสำเร็จ, False ถ้าส่งไม่สำเร็จ
     """
-    url = "https://api.line.me/v2/bot/message/push"
+    url = "https://api.line.me/v2/bot/message/broadcast"
     
     headers = {
         'Content-Type': 'application/json',

@@ -25,14 +25,14 @@ MESSAGE_TEMPLATE = {
 🆔 บัตรประชาชน: {customer_id_card}
 
 💍 สินค้า: {product_name}
-🏷️ แบรนด์: {product_brand}
+🏷️ ยี่ห้อ: {product_brand}
 
-💰 จำนวนเงินกู้: {pawn_amount:,.2f} บาท
+💰 ราคาฝากขาย: {pawn_amount:,.2f} บาท
 📅 วันเริ่มต้น: {start_date}
 📅 วันสิ้นสุด: {end_date}
 ⏰ จำนวนวัน: {days_count} วัน
 💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
-💎 จำนวนเงินไถ่คืน: {total_redemption:,.2f} บาท
+💎 ยอดซื้อเครื่องคืน: {total_redemption:,.2f} บาท
 
 ⏰ เวลาที่บันทึก: {timestamp}
     """.strip(),
@@ -48,24 +48,24 @@ MESSAGE_TEMPLATE = {
     """.strip(),
     
     'redemption': """
-💎 การไถ่คืน: {contract_number}
+💎 ซื้อเครื่องคืน: {contract_number}
 
 👤 ลูกค้า: {customer_name}
 📱 เบอร์โทร: {customer_phone}
 🆔 บัตรประชาชน: {customer_id_card}
 
 💍 สินค้า: {product_name}
-🏷️ แบรนด์: {product_brand}
+🏷️ ยี่ห้อ: {product_brand}
 
-💰 จำนวนเงินกู้: {pawn_amount:,.2f} บาท
+💰 จำนวนฝากขาย: {pawn_amount:,.2f} บาท
 💵 จำนวนเงินรวมที่ต้องจ่าย: {total_paid:,.2f} บาท
-💎 จำนวนเงินไถ่คืน: {redemption_amount:,.2f} บาท
+💎 จำนวนเงินซื้อเครื่องคืน: {redemption_amount:,.2f} บาท
 📅 วันเริ่มต้น: {start_date}
 📅 วันสิ้นสุด: {end_date}
 📅 วันไถ่คืน: {redemption_date}
 ⏰ จำนวนวัน: {days_count} วัน
 
-⏰ เวลาที่ไถ่คืน: {timestamp}
+⏰ เวลาที่ซื้อเครื่องคืน: {timestamp}
     """.strip(),
     
     'forfeiture': """
@@ -83,11 +83,9 @@ MESSAGE_TEMPLATE = {
 
 📋 สัญญาใหม่: {new_contracts} สัญญา
 🔄 การต่อดอก: {renewals} ครั้ง
-💎 การไถ่คืน: {redemptions} ครั้ง
+💎 การซื้อเครื่องคืน: {redemptions} ครั้ง
 
-💸 ค่าธรรมเนียมการต่อดอก: {total_renewal_fees:,.2f} บาท
-💵 ค่าธรรมเนียมรวม: {total_fees:,.2f} บาท
-💎 จำนวนเงินไถ่คืน: {total_redemption_amount:,.2f} บาท
+💎 จำนวนเงินซื้อเครื่องคืน: {total_redemption_amount:,.2f} บาท
 
 📈 รายได้สุทธิ: {net_income:,.2f} บาท
 
