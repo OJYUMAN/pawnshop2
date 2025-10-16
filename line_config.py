@@ -86,8 +86,6 @@ MESSAGE_TEMPLATE = {
 
 💎 จำนวนเงินซื้อเครื่องคืน: {total_redemption_amount:,.2f} บาท
 
-📈 รายได้สุทธิ: {net_income:,.2f} บาท
-
 ⏰ เวลาที่สรุป: {timestamp}
     """.strip()
 }

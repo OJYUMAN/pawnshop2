@@ -3054,25 +3054,15 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 'new_contracts': 0,
                 'renewals': 0,
                 'redemptions': 0,
-                'total_interest': 0.0,
-                'total_redemption_amount': 0.0,
-                'net_income': 0.0
+                'total_redemption_amount': 0.0
             }
             
             # นับสัญญาใหม่
             new_contracts = self.db.get_contracts_by_date(date)
             daily_income['new_contracts'] = len(new_contracts)
             
-            # คำนวณดอกเบี้ยจากสัญญาใหม่
-            for contract in new_contracts:
-                daily_income['total_interest'] += 0  # ไม่มีดอกเบี้ยแล้ว
-            
             renewals = self.db.get_renewals_by_date(date)
             daily_income['renewals'] = len(renewals)
-            
-            # คำนวณค่าธรรมเนียมจากการต่อดอก
-            for renewal in renewals:
-                daily_income['total_interest'] += renewal.get('total_amount', 0)
             
             # นับการไถ่คืน
             redemptions = self.db.get_redemptions_by_date(date)
@@ -3081,9 +3071,6 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             # คำนวณจำนวนเงินไถ่คืน
             for redemption in redemptions:
                 daily_income['total_redemption_amount'] += redemption.get('redemption_amount', 0)
-            
-            # คำนวณรายได้สุทธิ (ดอกเบี้ย + ค่าธรรมเนียม - จำนวนเงินไถ่คืน)
-            daily_income['net_income'] = daily_income['total_interest'] - daily_income['total_redemption_amount']
             
             return daily_income
             
@@ -3113,31 +3100,20 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         # ตารางสรุป
         summary_table = QTableWidget()
         summary_table.setColumnCount(2)
-        summary_table.setRowCount(8)
+        summary_table.setRowCount(4)
         summary_table.setHorizontalHeaderLabels(["รายการ", "จำนวน/จำนวนเงิน"])
         
         # ข้อมูลในตาราง
         summary_data = [
             ("📋 สัญญาใหม่", f"{daily_income['new_contracts']} สัญญา"),
             ("🔄 การต่อดอก", f"{daily_income['renewals']} ครั้ง"),
-            ("💎 การไถ่คืน", f"{daily_income['redemptions']} ครั้ง"),
-            ("💰 ดอกเบี้ยรวม", f"{daily_income['total_interest']:,.2f} บาท"),
-            ("💎 จำนวนเงินไถ่คืน", f"{daily_income['total_redemption_amount']:,.2f} บาท"),
-            ("📈 รายได้สุทธิ", f"{daily_income['net_income']:,.2f} บาท")
+            ("💎 การซื้อเครื่องคืน", f"{daily_income['redemptions']} ครั้ง"),
+            ("💎 จำนวนเงินซื้อเครื่องคืน", f"{daily_income['total_redemption_amount']:,.2f} บาท")
         ]
         
         for row, (label, value) in enumerate(summary_data):
             summary_table.setItem(row, 0, QTableWidgetItem(label))
             summary_table.setItem(row, 1, QTableWidgetItem(value))
-            
-            # ตั้งค่าสีสำหรับรายได้สุทธิ
-            if row == 7:  # รายได้สุทธิ
-                if daily_income['net_income'] > 0:
-                    summary_table.item(row, 1).setBackground(Qt.green)
-                    summary_table.item(row, 1).setForeground(Qt.white)
-                elif daily_income['net_income'] < 0:
-                    summary_table.item(row, 1).setBackground(Qt.red)
-                    summary_table.item(row, 1).setForeground(Qt.white)
         
         summary_table.resizeColumnsToContents()
         summary_table.setAlternatingRowColors(True)
@@ -3175,9 +3151,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 new_contracts=daily_income['new_contracts'],
                 renewals=daily_income['renewals'],
                 redemptions=daily_income['redemptions'],
-                total_interest=daily_income['total_interest'],
                 total_redemption_amount=daily_income['total_redemption_amount'],
-                net_income=daily_income['net_income'],
                 timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             )
 
