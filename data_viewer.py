@@ -42,6 +42,21 @@ class DataViewerDialog(QDialog):
             QMessageBox.warning(self, "รหัสผ่านไม่ถูกต้อง", "รหัสผ่านไม่ถูกต้อง")
             return False
         return True
+    
+    def verify_edit_password(self):
+        """ขอรหัสผ่านก่อนอนุญาตให้แก้ไขข้อมูล"""
+        password, ok = QInputDialog.getText(
+            self,
+            "ยืนยันรหัสผ่าน",
+            "กรอกรหัสผ่านเพื่อแก้ไขข้อมูล:",
+            QLineEdit.EchoMode.Password
+        )
+        if not ok:
+            return False
+        if password != "ipro1101":
+            QMessageBox.warning(self, "รหัสผ่านไม่ถูกต้อง", "รหัสผ่านไม่ถูกต้อง")
+            return False
+        return True
 
     def setup_ui(self):
         self.setWindowTitle("ดูข้อมูลทั้งหมด")
@@ -98,14 +113,16 @@ class DataViewerDialog(QDialog):
         
         # ตารางลูกค้า
         self.customer_table = QTableWidget()
-        self.customer_table.setColumnCount(8)  # เพิ่มคอลัมน์สำหรับปุ่มลบ
+        self.customer_table.setColumnCount(9)  # เพิ่มคอลัมน์สำหรับปุ่มแก้ไขและลบ
         self.customer_table.setHorizontalHeaderLabels([
             "รหัสลูกค้า", "ชื่อ", "นามสกุล", "เลขบัตรประชาชน", 
-            "เบอร์โทรศัพท์", "ที่อยู่", "รายละเอียด", "การดำเนินการ"
+            "เบอร์โทรศัพท์", "ที่อยู่", "รายละเอียด", "แก้ไข", "ลบ"
         ])
         self.customer_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.customer_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
-        self.customer_table.setColumnWidth(7, 100)
+        self.customer_table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
+        self.customer_table.setColumnWidth(7, 80)
+        self.customer_table.setColumnWidth(8, 80)
         layout.addWidget(self.customer_table)
         
         return widget
@@ -290,11 +307,17 @@ class DataViewerDialog(QDialog):
                 
                 self.customer_table.setItem(row, 6, QTableWidgetItem(customer.get('other_details', '')))
                 
+                # เพิ่มปุ่มแก้ไข
+                edit_button = QPushButton("แก้ไข")
+                edit_button.setStyleSheet("QPushButton { background-color: #28a745; color: white; border: none; padding: 5px; }")
+                edit_button.clicked.connect(lambda checked, row=row: self.edit_customer(row))
+                self.customer_table.setCellWidget(row, 7, edit_button)
+                
                 # เพิ่มปุ่มลบ
                 delete_button = QPushButton("ลบ")
                 delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                 delete_button.clicked.connect(lambda checked, row=row: self.delete_customer(row))
-                self.customer_table.setCellWidget(row, 7, delete_button)
+                self.customer_table.setCellWidget(row, 8, delete_button)
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลลูกค้า: {}".format(str(e)))
@@ -513,11 +536,17 @@ class DataViewerDialog(QDialog):
                 
                 self.customer_table.setItem(row, 6, QTableWidgetItem(customer.get('other_details', '')))
                 
+                # เพิ่มปุ่มแก้ไข
+                edit_button = QPushButton("แก้ไข")
+                edit_button.setStyleSheet("QPushButton { background-color: #28a745; color: white; border: none; padding: 5px; }")
+                edit_button.clicked.connect(lambda checked, row=row: self.edit_customer(row))
+                self.customer_table.setCellWidget(row, 7, edit_button)
+                
                 # เพิ่มปุ่มลบ
                 delete_button = QPushButton("ลบ")
                 delete_button.setStyleSheet("QPushButton { background-color: #ff6b6b; color: white; border: none; padding: 5px; }")
                 delete_button.clicked.connect(lambda checked, row=row: self.delete_customer(row))
-                self.customer_table.setCellWidget(row, 7, delete_button)
+                self.customer_table.setCellWidget(row, 8, delete_button)
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลลูกค้า: {}".format(str(e)))
@@ -760,3 +789,30 @@ class DataViewerDialog(QDialog):
                     
         except Exception as e:
             QMessageBox.critical(self, "ข้อผิดพลาด", "เกิดข้อผิดพลาดในการลบข้อมูล: {}".format(str(e)))
+    
+    def edit_customer(self, row: int):
+        """แก้ไขข้อมูลลูกค้า"""
+        try:
+            # ตรวจรหัสผ่านก่อน
+            if not self.verify_edit_password():
+                return
+
+            customer_code = self.customer_table.item(row, 0).text()
+            customer_name = "{} {}".format(self.customer_table.item(row, 1).text(), self.customer_table.item(row, 2).text())
+            
+            # ดึงข้อมูลลูกค้าจากฐานข้อมูล
+            customer_data = self.db.get_customer_by_code(customer_code)
+            if not customer_data:
+                QMessageBox.warning(self, "ไม่พบข้อมูล", "ไม่พบข้อมูลลูกค้าที่ต้องการแก้ไข")
+                return
+            
+            # เปิดหน้าต่างแก้ไขข้อมูลลูกค้า
+            from dialogs import CustomerDialog
+            dialog = CustomerDialog(self, customer_data)
+            if dialog.exec():
+                # รีเฟรชข้อมูลหลังจากแก้ไข
+                self.load_data()
+                QMessageBox.information(self, "สำเร็จ", "แก้ไขข้อมูลลูกค้า {} เรียบร้อยแล้ว".format(customer_name))
+                    
+        except Exception as e:
+            QMessageBox.critical(self, "ข้อผิดพลาด", "เกิดข้อผิดพลาดในการแก้ไขข้อมูล: {}".format(str(e)))

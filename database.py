@@ -1136,6 +1136,19 @@ class PawnShopDatabase:
             row = cursor.fetchone()
             return row[0] if row else None
     
+    def get_customer_by_code(self, customer_code: str) -> Optional[Dict]:
+        """ดึงข้อมูลลูกค้าตามรหัสลูกค้า"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM customers WHERE customer_code = ?
+            ''', (customer_code,))
+            row = cursor.fetchone()
+            if row:
+                columns = [description[0] for description in cursor.description]
+                return dict(zip(columns, row))
+            return None
+    
     def get_product_id_by_serial(self, serial_number: str) -> Optional[int]:
         """ดึง ID ของสินค้าตามหมายเลขซีเรียล"""
         with self.get_connection() as conn:
