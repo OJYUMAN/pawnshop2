@@ -1320,6 +1320,54 @@ class RedemptionDialog(QDialog):
         
         layout.addWidget(date_group)
         
+        # ข้อมูลสัญญาและลูกค้า
+        contract_group = QGroupBox("ข้อมูลสัญญาและลูกค้า")
+        contract_layout = QGridLayout(contract_group)
+        
+        # ฟิลด์แสดงข้อมูล (read-only)
+        self.contract_number_display = QLineEdit()
+        self.contract_number_display.setReadOnly(True)
+        self.contract_number_display.setStyleSheet("""
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px;
+        """)
+        
+        self.customer_name_display = QLineEdit()
+        self.customer_name_display.setReadOnly(True)
+        self.customer_name_display.setStyleSheet("""
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px;
+        """)
+        
+        self.product_name_display = QLineEdit()
+        self.product_name_display.setReadOnly(True)
+        self.product_name_display.setStyleSheet("""
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px;
+        """)
+        
+        self.pawn_amount_display = QLineEdit()
+        self.pawn_amount_display.setReadOnly(True)
+        self.pawn_amount_display.setStyleSheet("""
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 5px;
+        """)
+        
+        contract_layout.addWidget(QLabel("เลขที่สัญญา:"), 0, 0)
+        contract_layout.addWidget(self.contract_number_display, 0, 1)
+        contract_layout.addWidget(QLabel("ชื่อลูกค้า:"), 1, 0)
+        contract_layout.addWidget(self.customer_name_display, 1, 1)
+        contract_layout.addWidget(QLabel("ชื่อสินค้า:"), 2, 0)
+        contract_layout.addWidget(self.product_name_display, 2, 1)
+        contract_layout.addWidget(QLabel("ยอดเงินต้น:"), 3, 0)
+        contract_layout.addWidget(self.pawn_amount_display, 3, 1)
+        
+        layout.addWidget(contract_group)
+        
         # ข้อมูลจำนวนเงิน
         amount_group = QGroupBox(language_manager.get_text("redemption_amount_group"))
         amount_layout = QGridLayout(amount_group)
@@ -1488,6 +1536,24 @@ class RedemptionDialog(QDialog):
             return
         
         try:
+            # แสดงข้อมูลสัญญาและลูกค้า
+            self.contract_number_display.setText(self.contract_data.get('contract_number', ''))
+            
+            # ดึงข้อมูลลูกค้าและสินค้า
+            customer = self.db.get_customer_by_id(self.contract_data.get('customer_id'))
+            product = self.db.get_product_by_id(self.contract_data.get('product_id'))
+            
+            if customer:
+                customer_name = f"{customer.get('first_name', '')} {customer.get('last_name', '')}"
+                self.customer_name_display.setText(customer_name)
+            
+            if product:
+                self.product_name_display.setText(product.get('name', ''))
+            
+            # แสดงยอดเงินต้น
+            pawn_amount = self.contract_data.get('pawn_amount', 0)
+            self.pawn_amount_display.setText(f"{pawn_amount:,.2f} บาท")
+            
             # ตั้งค่าวันที่
             if 'start_date' in self.contract_data:
                 start_date = QDate.fromString(self.contract_data['start_date'], "yyyy-MM-dd")
@@ -1687,6 +1753,7 @@ class RedemptionDialog(QDialog):
                 contract_data=redemption_pdf_data,
                 customer_data=customer_data,
                 product_data=product_data,
+                original_contract_data=original_contract_data,
                 shop_data=shop_data
             )
             

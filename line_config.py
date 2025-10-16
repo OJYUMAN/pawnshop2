@@ -62,7 +62,7 @@ MESSAGE_TEMPLATE = {
 💎 จำนวนเงินซื้อเครื่องคืน: {redemption_amount:,.2f} บาท
 📅 วันเริ่มต้น: {start_date}
 📅 วันสิ้นสุด: {end_date}
-📅 วันไถ่คืน: {redemption_date}
+📅 วันซื้อเครื่องคืน: {redemption_date}
 ⏰ จำนวนวัน: {days_count} วัน
 
 ⏰ เวลาที่ซื้อเครื่องคืน: {timestamp}
@@ -82,7 +82,6 @@ MESSAGE_TEMPLATE = {
 📊 สรุปรายได้รายวัน - {date}
 
 📋 สัญญาใหม่: {new_contracts} สัญญา
-🔄 การต่อดอก: {renewals} ครั้ง
 💎 การซื้อเครื่องคืน: {redemptions} ครั้ง
 
 💎 จำนวนเงินซื้อเครื่องคืน: {total_redemption_amount:,.2f} บาท

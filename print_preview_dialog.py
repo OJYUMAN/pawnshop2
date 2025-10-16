@@ -36,6 +36,7 @@ class PrintPreviewDialog(QDialog):
                  contract_data=None,
                  customer_data=None,
                  product_data=None,
+                 original_contract_data=None,
                  shop_data=None):
         super().__init__(parent)
         
@@ -44,6 +45,7 @@ class PrintPreviewDialog(QDialog):
         self.contract_data = contract_data or {}
         self.customer_data = customer_data or {}
         self.product_data = product_data or {}
+        self.original_contract_data = original_contract_data or {}
         self.shop_data = shop_data or {}
         
         self.temp_pdf_path = None
@@ -251,7 +253,7 @@ class PrintPreviewDialog(QDialog):
                         redemption_data=self.contract_data,
                         customer_data=self.customer_data,
                         product_data=self.product_data,
-                        original_contract_data=self.contract_data,
+                        original_contract_data=self.original_contract_data,
                         shop_data=self.shop_data,
                         output_file=self.temp_pdf_path
                     )
@@ -438,7 +440,7 @@ class PrintPreviewDialog(QDialog):
 # ฟังก์ชันช่วยสำหรับการเรียกใช้
 def show_print_preview(parent, contract_type, pdf_generator_func,
                       contract_data, customer_data, 
-                      product_data, shop_data=None):
+                      product_data, original_contract_data=None, shop_data=None):
     """
     แสดงหน้าตาพรีวิวและเลือกการปริ้น
     
@@ -461,6 +463,7 @@ def show_print_preview(parent, contract_type, pdf_generator_func,
         contract_data=contract_data,
         customer_data=customer_data,
         product_data=product_data,
+        original_contract_data=original_contract_data,
         shop_data=shop_data
     )
     

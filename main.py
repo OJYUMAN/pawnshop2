@@ -3070,6 +3070,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             renewals = self.db.get_renewals_by_date(date)
             daily_income['renewals'] = len(renewals)
             
+            # คำนวณค่าธรรมเนียมจากการต่อดอก
+            for renewal in renewals:
+                daily_income['total_interest'] += renewal.get('total_amount', 0)
             
             # นับการไถ่คืน
             redemptions = self.db.get_redemptions_by_date(date)
@@ -3077,9 +3080,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             # คำนวณจำนวนเงินไถ่คืน
             for redemption in redemptions:
-                daily_income['total_redemption_amount'] += redemption.get('amount', 0)
+                daily_income['total_redemption_amount'] += redemption.get('redemption_amount', 0)
             
-            # คำนวณรายได้สุทธิ
+            # คำนวณรายได้สุทธิ (ดอกเบี้ย + ค่าธรรมเนียม - จำนวนเงินไถ่คืน)
             daily_income['net_income'] = daily_income['total_interest'] - daily_income['total_redemption_amount']
             
             return daily_income
