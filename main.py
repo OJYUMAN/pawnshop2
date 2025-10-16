@@ -61,6 +61,7 @@ class PawnShopUI(QMainWindow):
         self.current_customer = None
         self.current_product = None
         self.current_contract = None
+        self.is_loading_existing_contract = False
         
         self.setWindowTitle("Phoneshop Management System")
         self.setMinimumSize(1024, 700)
@@ -2165,6 +2166,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
         if self.current_contract:
+            # ตั้งค่าสถานะการโหลดสัญญาเดิม
+            self.is_loading_existing_contract = True
+            
             # โหลดข้อมูลสัญญา
             self.contract_number_edit.setText(self.current_contract.get('contract_number', ''))
             
@@ -2212,8 +2216,16 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 self.days_spin.setValue(days_count)
             
             
-            # คำนวณยอดต่างๆ ใหม่
-            self.calculate_amounts()
+            # คำนวณยอดต่างๆ ใหม่ (เฉพาะสัญญาใหม่)
+            if not self.is_loading_existing_contract:
+                self.calculate_amounts()
+            else:
+                # สำหรับสัญญาเดิม ให้แสดงยอดไถ่คืนตามข้อมูลเดิม
+                redemption_amount = self.current_contract.get('total_redemption', 0)
+                self.calculated_redemption_label.setText(f"{redemption_amount:,.2f} บาท")
+            
+            # รีเซ็ตสถานะการโหลดสัญญาเดิม
+            self.is_loading_existing_contract = False
             
             # อัปเดตสถานะสัญญา
             status = self.current_contract.get('status', 'active')
@@ -2233,6 +2245,10 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def calculate_amounts(self):
         """คำนวณยอดต่างๆ"""
         try:
+            # ข้ามการคำนวณถ้ากำลังโหลดสัญญาเดิม
+            if self.is_loading_existing_contract:
+                return
+                
             # ใช้อัตราดอกเบี้ยจาก UI แทนการโหลดจาก config
             interest_rate = self.interest_rate_spin.value()
             
@@ -2286,8 +2302,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     
     def on_interest_rate_changed(self, value):
         """จัดการการเปลี่ยนแปลงอัตราดอกเบี้ย"""
-        # คำนวณยอดไถ่คืนใหม่เมื่ออัตราดอกเบี้ยเปลี่ยน
-        self.calculate_amounts()
+        # คำนวณยอดไถ่คืนใหม่เมื่ออัตราดอกเบี้ยเปลี่ยน (เฉพาะสัญญาใหม่)
+        if not self.is_loading_existing_contract:
+            self.calculate_amounts()
         
         # บันทึกการตั้งค่าอัตราดอกเบี้ยใหม่
         self.save_interest_rate_to_config(value)
@@ -2349,6 +2366,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.current_customer = None
         self.current_product = None
         self.current_contract = None
+        self.is_loading_existing_contract = False
         
         # ล้างข้อมูลลูกค้า
         self.customer_code_edit.clear()
