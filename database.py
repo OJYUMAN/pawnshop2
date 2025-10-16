@@ -1427,3 +1427,36 @@ class PawnShopDatabase:
                 columns = [description[0] for description in cursor.description]
                 return [dict(zip(columns, row)) for row in rows]
             return []
+
+    def is_contract_redeemed(self, contract_id: int) -> bool:
+        """ตรวจสอบว่าสัญญาได้รับการไถ่คืนแล้วหรือไม่"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT status FROM contracts WHERE id = ?
+            ''', (contract_id,))
+            
+            row = cursor.fetchone()
+            if row:
+                return row[0] == 'redeemed'
+            return False
+
+    def get_contract_redemption_history(self, contract_id: int) -> List[Dict]:
+        """ดึงประวัติการไถ่คืนของสัญญา"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT r.*, c.contract_number, cu.first_name, cu.last_name, p.name as product_name
+                FROM redemptions r
+                JOIN contracts c ON r.contract_id = c.id
+                JOIN customers cu ON c.customer_id = cu.id
+                JOIN products p ON c.product_id = p.id
+                WHERE r.contract_id = ?
+                ORDER BY r.redemption_date DESC
+            ''', (contract_id,))
+            
+            rows = cursor.fetchall()
+            if rows:
+                columns = [description[0] for description in cursor.description]
+                return [dict(zip(columns, row)) for row in rows]
+            return []

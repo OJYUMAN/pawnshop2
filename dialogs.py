@@ -1211,7 +1211,11 @@ class RedemptionDialog(QDialog):
         self.contract_data = contract_data
         self.setup_ui()
         if contract_data:
-            self.load_contract_data()
+            # ตรวจสอบสถานะสัญญาก่อนโหลดข้อมูล
+            if self.check_contract_status():
+                self.load_contract_data()
+            else:
+                self.close()
     
     def setup_ui(self):
         self.setWindowTitle(language_manager.get_text("redemption_title"))
@@ -1530,6 +1534,52 @@ class RedemptionDialog(QDialog):
         except Exception as e:
             print(f"Error calculating amounts: {e}")
     
+    def check_contract_status(self):
+        """ตรวจสอบสถานะสัญญาก่อนการไถ่คืน"""
+        if not self.contract_data:
+            return False
+        
+        try:
+            contract_id = self.contract_data.get('id')
+            if not contract_id:
+                return False
+            
+            # ตรวจสอบว่าสัญญาได้รับการไถ่คืนแล้วหรือไม่
+            if self.db.is_contract_redeemed(contract_id):
+                # ดึงประวัติการไถ่คืน
+                redemption_history = self.db.get_contract_redemption_history(contract_id)
+                
+                # สร้างข้อความแจ้งเตือน
+                message = "สัญญานี้ได้รับการไถ่คืนแล้ว\n\n"
+                if redemption_history:
+                    message += "ประวัติการไถ่คืน:\n"
+                    for i, redemption in enumerate(redemption_history, 1):
+                        redemption_date = redemption.get('redemption_date', '')
+                        redemption_amount = redemption.get('redemption_amount', 0)
+                        message += f"{i}. วันที่: {redemption_date} ยอด: {redemption_amount:,.2f} บาท\n"
+                
+                message += "\nต้องการออกใบไถ่คืนอีกครั้งหรือไม่?"
+                
+                # แสดง popup ยืนยัน
+                reply = QMessageBox.question(
+                    self,
+                    "สัญญาได้รับการไถ่คืนแล้ว",
+                    message,
+                    QMessageBox.Yes | QMessageBox.No,
+                    QMessageBox.No
+                )
+                
+                if reply == QMessageBox.Yes:
+                    return True
+                else:
+                    return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error checking contract status: {e}")
+            return False
+
     def load_contract_data(self):
         """โหลดข้อมูลสัญญา"""
         if not self.contract_data:
