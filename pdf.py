@@ -73,7 +73,7 @@ def money(n):
         return str(n)
 
 def esc(s):
-    return html.escape(s or "")
+    return html.escape(str(s) if s is not None else "")
 
 # ---------- Font Setup ----------
 def ensure_fonts(font_path='angsa.ttf', bold_font_path='angsa.ttf'):
@@ -239,61 +239,62 @@ def generate_pawn_ticket_pdf_data(
 
     place_line = f"{shop_name} {shop_branch}".strip()
 
-    # 3) หน้า A4 เต็ม + margin ปกติ
+    # 3) หน้า A4 เต็ม + margin 0.5mm
     PAGE_W, PAGE_H = A4[0], A4[1]  # 210 x 297 mm
+    margin = 0.5*mm
     doc = BaseDocTemplate(
         output_file,
         pagesize=(PAGE_W, PAGE_H),
-        leftMargin=20*mm, rightMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm
+        leftMargin=margin, rightMargin=margin, topMargin=margin, bottomMargin=margin
     )
-    frame = Frame(20*mm, 20*mm, PAGE_W-40*mm, PAGE_H-40*mm, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0, showBoundary=0)
-    doc.addPageTemplates([PageTemplate(id="A4-normal-margin", frames=[frame])])
+    frame = Frame(margin, margin, PAGE_W-2*margin, PAGE_H-2*margin, leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0, showBoundary=0)
+    doc.addPageTemplates([PageTemplate(id="A4-small-margin", frames=[frame])])
 
-    # 4) สไตล์: ปรับให้เหมาะกับหน้า A4 เต็ม
+    # 4) สไตล์: ตัวหนังสือใหญ่ + line spacing น้อยที่สุด
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle(
         name="TH-Title",
         fontName="Angsa-Bold",
-        fontSize=24,           # หัวเรื่องใหญ่
-        leading=30,            # เพิ่ม leading กันวรรณยุกต์ชน
+        fontSize=31,           # หัวเรื่องใหญ่ (ลด 1)
+        leading=35,            # line spacing น้อยที่สุด
         alignment=TA_CENTER,
-        spaceAfter=6
+        spaceAfter=3
     ))
     styles.add(ParagraphStyle(
         name="TH-Big",
         fontName="Angsa",
-        fontSize=14,           # เนื้อหาหลัก ขนาดปกติ
-        leading=20,            # ~1.4x เพื่อกันวรรณยุกต์ทับ
+        fontSize=19,           # เนื้อหาหลัก (ลด 1)
+        leading=21,            # line spacing น้อยที่สุด
         alignment=TA_LEFT,
-        spaceBefore=2,
-        spaceAfter=2,
+        spaceBefore=1,
+        spaceAfter=1,
         wordWrap="CJK"
     ))
     styles.add(ParagraphStyle(
         name="TH-BigBold",
         fontName="Angsa-Bold",
-        fontSize=14,
-        leading=20,
+        fontSize=19,           # (ลด 1)
+        leading=21,
         alignment=TA_LEFT,
-        spaceBefore=2,
-        spaceAfter=2,
+        spaceBefore=1,
+        spaceAfter=1,
         wordWrap="CJK"
     ))
     styles.add(ParagraphStyle(
         name="TH-Terms",
         fontName="Angsa",
-        fontSize=11,           # เงื่อนไข ขนาดเล็ก
-        leading=16,            # ~1.45x พออ่านสบาย
+        fontSize=15,           # เงื่อนไข (ลด 1)
+        leading=17,            # line spacing น้อยที่สุด
         alignment=TA_JUSTIFY,
-        spaceBefore=2,
-        spaceAfter=2,
+        spaceBefore=1,
+        spaceAfter=1,
         wordWrap="CJK"
     ))
     styles.add(ParagraphStyle(
         name="TH-Foot",
         fontName="Angsa",
-        fontSize=10,
-        leading=14,
+        fontSize=13,           # (ลด 1)
+        leading=15,
         alignment=TA_RIGHT,
         spaceBefore=0,
         spaceAfter=0
@@ -302,7 +303,7 @@ def generate_pawn_ticket_pdf_data(
     # 5) สร้างเนื้อหาให้เหมาะกับหน้า A4 เต็ม
     story = []
     # หัวเรื่อง
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 2*mm))
     story.append(Paragraph("สัญญาขายฝาก (โทรศัพท์มือถือ)", styles["TH-Title"]))
 
     # บรรทัดสัญญาเลขที่ / ฉบับที่ / ทำที่ / วันที่
@@ -313,7 +314,7 @@ def generate_pawn_ticket_pdf_data(
             [Paragraph("ทำที่:", styles["TH-BigBold"]), Paragraph(esc(place_line), styles["TH-Big"]),
              Paragraph("วันที่:", styles["TH-BigBold"]), Paragraph(esc(start_date_th), styles["TH-Big"])],
         ],
-        colWidths=[40*mm, 60*mm, 30*mm, 60*mm],  # จัดให้พอดีกว้างหน้า
+        colWidths=[50*mm, 70*mm, 40*mm, 50*mm],  # จัดให้พอดีกว้างหน้า (ปรับตาม margin)
         hAlign='LEFT'
     )
     meta_tbl.setStyle(TableStyle([
@@ -325,7 +326,7 @@ def generate_pawn_ticket_pdf_data(
         ('BOTTOMPADDING', (0,0), (-1,-1), 2),
     ]))
     story.append(meta_tbl)
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 2*mm))
 
     # คู่สัญญา
     party_text = (
@@ -336,7 +337,7 @@ def generate_pawn_ticket_pdf_data(
         f"โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า \"ผู้ซื้อฝาก\""
     )
     story.append(Paragraph(party_text, styles["TH-Big"]))
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 2*mm))
 
     # รายละเอียดทรัพย์สิน
     prod_text = (
@@ -348,7 +349,7 @@ def generate_pawn_ticket_pdf_data(
         f"สภาพ{esc(condition)} อุปกรณ์: {esc(accessories)}"
     )
     story.append(Paragraph(prod_text, styles["TH-Big"]))
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 2*mm))
 
     # ข้อตกลงและเงื่อนไข
     terms_text = (
@@ -361,7 +362,7 @@ def generate_pawn_ticket_pdf_data(
         "ข้อ 6. ศาลในเขตที่ตั้งผู้ซื้อฝากมีอำนาจพิจารณาข้อพิพาท"
     )
     story.append(Paragraph(terms_text, styles["TH-Terms"]))
-    story.append(Spacer(1, 5*mm))
+    story.append(Spacer(1, 2*mm))
 
     # การรับเงินและยืนยัน
     confirm_text = (
@@ -370,7 +371,7 @@ def generate_pawn_ticket_pdf_data(
         f"ทำ ณ {esc(place_line)} วันที่ {esc(start_signed)}"
     )
     story.append(Paragraph(confirm_text, styles["TH-Big"]))
-    story.append(Spacer(1, 10*mm))
+    story.append(Spacer(1, 5*mm))
 
     # ลายเซ็น (3 ช่อง)
     sig_tbl = Table(
@@ -385,7 +386,7 @@ def generate_pawn_ticket_pdf_data(
              Paragraph("ผู้ซื้อฝาก", styles["TH-Big"]),
              Paragraph("พยาน", styles["TH-Big"])],
         ],
-        colWidths=[(PAGE_W-40*mm)/3.0, (PAGE_W-40*mm)/3.0, (PAGE_W-40*mm)/3.0],
+        colWidths=[(PAGE_W-2*margin)/3.0, (PAGE_W-2*margin)/3.0, (PAGE_W-2*margin)/3.0],
         hAlign='CENTER'
     )
     sig_tbl.setStyle(TableStyle([
@@ -399,7 +400,7 @@ def generate_pawn_ticket_pdf_data(
     story.append(sig_tbl)
 
     # Footer
-    story.append(Spacer(1, 10*mm))
+    story.append(Spacer(1, 5*mm))
     foot_text = f"เอกสารสร้างโดยระบบ | เลขที่: {contract_number} | {datetime.now().strftime('%d/%m/%Y %H:%M')}"
     story.append(Paragraph(foot_text, styles["TH-Foot"]))
 
@@ -512,13 +513,13 @@ def generate_pawn_contract_html(
       box-sizing: border-box;
     }}
 
-    /* ตั้งฐาน font ใหญ่ (22pt) + line-height ค่อนข้างแน่น เพื่อให้พอดีครึ่งหน้า */
+    /* ตั้งฐาน font ใหญ่ + line-height น้อยที่สุด */
     body {{
       font-family: "TH Sarabun New", "Noto Sans Thai", system-ui, sans-serif;
       color: #000;
       background: #fff;
-      font-size: 22pt;            /* ใหญ่สุดที่ยังใช้ได้ทั่วไป */
-      line-height: 1.32;          /* แน่น เพื่อประหยัดพื้นที่แนวดิ่ง */
+      font-size: 27pt;            /* ใหญ่ (ลด 1) */
+      line-height: 1.15;          /* น้อยที่สุดเพื่อประหยัดพื้นที่ */
     }}
 
     /* ครึ่งหน้า A4 สูง 148.5mm — ไม่เว้น padding */
@@ -534,9 +535,9 @@ def generate_pawn_contract_html(
 
     h1 {{
       text-align: center;
-      font-size: 28pt;   /* ใหญ่กว่าตัวเนื้อหาเล็กน้อย */
+      font-size: 35pt;   /* ใหญ่ (ลด 1) */
       margin: 0;
-      line-height: 1.2;
+      line-height: 1.1;
       padding: 1mm 2mm 0 2mm;
     }}
 
@@ -565,10 +566,10 @@ def generate_pawn_contract_html(
     }}
     .indent {{ text-indent: 7mm; }}
 
-    /* เงื่อนไขเป็นย่อหน้าเดียวและตัวเล็กลงเหลือ 12pt */
+    /* เงื่อนไขเป็นย่อหน้าเดียวและตัวใหญ่ */
     .terms {{
-      font-size: 12pt;
-      line-height: 1.3;
+      font-size: 19pt;  /* (ลด 1) */
+      line-height: 1.15;
       margin-top: 0.5mm;
       text-align: justify;
       padding: 0 2mm;
@@ -585,11 +586,11 @@ def generate_pawn_contract_html(
     .sig-line {{ white-space: nowrap; }}
 
     .foot {{
-      font-size: 12pt;
+      font-size: 15pt;  /* (ลด 1) */
       text-align: right;
       padding: 0 2mm;
       margin: 0;
-      line-height: 1.2;
+      line-height: 1.1;
     }}
 
     @media print {{
