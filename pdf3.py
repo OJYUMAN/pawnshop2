@@ -22,16 +22,18 @@ from shop_config_loader import load_shop_config
 
 
 # ---------- Font & Date ----------
-def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf'):
+def ensure_fonts(font_path='NotoSansThai-Regular.ttf', bold_font_path='NotoSansThai-Bold.ttf'):
+    """Setup Thai fonts for PDF generation with improved rendering"""
     from resource_path import get_font_path
     font_path = get_font_path(font_path)
     bold_font_path = get_font_path(bold_font_path)
     if not (os.path.exists(font_path) and os.path.exists(bold_font_path)):
         raise FileNotFoundError(f"ไม่พบไฟล์ฟอนต์: {font_path} หรือ {bold_font_path}")
-    if 'THSarabun' not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont('THSarabun', font_path))
-    if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
+    if 'NotoSansThai' not in pdfmetrics.getRegisteredFontNames():
+        # ใช้ subfontIndex=0 เพื่อให้รองรับตัวอักษรไทยได้ดีขึ้น
+        pdfmetrics.registerFont(TTFont('NotoSansThai', font_path, subfontIndex=0))
+    if 'NotoSansThai-Bold' not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont('NotoSansThai-Bold', bold_font_path, subfontIndex=0))
 
 def thai_date(date_val: Optional[str]) -> str:
     month_map = {
@@ -75,36 +77,37 @@ class A4Doc(BaseDocTemplate):
         self.addPageTemplates(PageTemplate(id='A4Full', frames=[frame]))
 
 
-# ---------- Styles (ชิดซ้าย + CJK wrap เพื่อตัดปัญหาช่องไฟ) ----------
+# ---------- Styles (ชิดซ้าย + CJK wrap เพื่อตัดปัญหาช่องไฟ + ปรับปรุงการแสดงผลภาษาไทย) ----------
 def make_styles():
     styles = getSampleStyleSheet()
 
-    common = dict(leading=15.2, alignment=TA_LEFT, wordWrap='CJK', spaceBefore=0, spaceAfter=2)
+    # เพิ่ม leading และขนาดตัวอักษรเพื่อแก้ปัญหาวรรณยุกต์ซ้อนกับสระ
+    common = dict(leading=18, alignment=TA_LEFT, wordWrap='CJK', spaceBefore=0, spaceAfter=2)
 
-    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=13.5, **common))
-    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=13.5, **common))
+    styles.add(ParagraphStyle(name="TH", fontName="NotoSansThai", fontSize=15, **common))  # เพิ่มจาก 13.5 เป็น 15
+    styles.add(ParagraphStyle(name="TH-bold", fontName="NotoSansThai-Bold", fontSize=15, **common))  # เพิ่มจาก 13.5 เป็น 15
 
     styles.add(ParagraphStyle(
-        name="TH-h1", fontName="THSarabun-Bold", fontSize=20, leading=22.5,
+        name="TH-h1", fontName="NotoSansThai-Bold", fontSize=22, leading=26,  # เพิ่มจาก 20 เป็น 22, leading จาก 22.5 เป็น 26
         alignment=TA_CENTER, spaceAfter=4
     ))
     styles.add(ParagraphStyle(
-        name="TH-meta", fontName="THSarabun", fontSize=12, leading=13.4,
+        name="TH-meta", fontName="NotoSansThai", fontSize=13, leading=16,  # เพิ่มจาก 12 เป็น 13, leading จาก 13.4 เป็น 16
         alignment=TA_LEFT, wordWrap='CJK', spaceBefore=0, spaceAfter=1
     ))
     styles.add(ParagraphStyle(
-        name="TH-section", fontName="THSarabun-Bold", fontSize=13.5, leading=15.2,
+        name="TH-section", fontName="NotoSansThai-Bold", fontSize=15, leading=18,  # เพิ่มจาก 13.5 เป็น 15, leading จาก 15.2 เป็น 18
         alignment=TA_LEFT, wordWrap='CJK', spaceBefore=4, spaceAfter=0
     ))
     styles.add(ParagraphStyle(
-        name="TH-indent", fontName="THSarabun", fontSize=13.5,
+        name="TH-indent", fontName="NotoSansThai", fontSize=15,  # เพิ่มจาก 13.5 เป็น 15
         leftIndent=12*mm, **common
     ))
     styles.add(ParagraphStyle(
-        name="TH-mini", fontName="THSarabun", fontSize=10.5, leading=11.6, textColor=colors.black
+        name="TH-mini", fontName="NotoSansThai", fontSize=12, leading=15, textColor=colors.black  # เพิ่มจาก 10.5 เป็น 12, leading จาก 11.6 เป็น 15
     ))
     styles.add(ParagraphStyle(
-        name="TH-right", fontName="THSarabun", fontSize=13.5, leading=15.2, alignment=TA_RIGHT
+        name="TH-right", fontName="NotoSansThai", fontSize=15, leading=18, alignment=TA_RIGHT  # เพิ่มจาก 13.5 เป็น 15, leading จาก 15.2 เป็น 18
     ))
     return styles
 
@@ -402,7 +405,7 @@ def generate_redemption_receipt_pdf(redemption_data: Dict, customer_data: Dict,
     def _boxed(tbl, colWidths, header_rows=1, font_size=13.5):
         t = Table(tbl, colWidths=colWidths)
         t.setStyle(TableStyle([
-            ('FONT', (0,0), (-1,-1), 'THSarabun', font_size),
+            ('FONT', (0,0), (-1,-1), 'NotoSansThai', font_size),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('BOX', (0,0), (-1,-1), 0.25, colors.grey),
             ('INNERGRID', (0,header_rows), (-1,-1), 0.25, colors.grey),

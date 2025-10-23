@@ -4,7 +4,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib import colors
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, Table, TableStyle,
@@ -30,16 +30,18 @@ def select_output_folder(title="เลือกโฟลเดอร์สำห
 
 
 # ----------------- Fonts & Date -----------------
-def ensure_fonts(font_path='THSarabun.ttf', bold_font_path='THSarabun Bold.ttf'):
+def ensure_fonts(font_path='NotoSansThai-Regular.ttf', bold_font_path='NotoSansThai-Bold.ttf'):
+    """Setup Thai fonts for PDF generation with improved rendering"""
     from resource_path import get_font_path
     font_path = get_font_path(font_path)
     bold_font_path = get_font_path(bold_font_path)
     if not (os.path.exists(font_path) and os.path.exists(bold_font_path)):
         raise FileNotFoundError(f"ไม่พบไฟล์ฟอนต์: {font_path} หรือ {bold_font_path}")
-    if 'THSarabun' not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont('THSarabun', font_path))
-    if 'THSarabun-Bold' not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
+    if 'NotoSansThai' not in pdfmetrics.getRegisteredFontNames():
+        # ใช้ subfontIndex=0 เพื่อให้รองรับตัวอักษรไทยได้ดีขึ้น
+        pdfmetrics.registerFont(TTFont('NotoSansThai', font_path, subfontIndex=0))
+    if 'NotoSansThai-Bold' not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont('NotoSansThai-Bold', bold_font_path, subfontIndex=0))
 
 
 def thai_date(date_str: Optional[str]) -> str:
@@ -86,13 +88,59 @@ class TopHalfDoc(BaseDocTemplate):
 
 # ----------------- Styles (compact) -----------------
 def make_styles():
+    """Create paragraph styles for PDF generation with improved Thai text rendering"""
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name="TH", fontName="THSarabun", fontSize=9.6, leading=11))
-    styles.add(ParagraphStyle(name="TH-bold", fontName="THSarabun-Bold", fontSize=9.6, leading=11))
-    styles.add(ParagraphStyle(name="TH-h", fontName="THSarabun-Bold", fontSize=16, leading=18, alignment=TA_CENTER))
-    styles.add(ParagraphStyle(name="TH-sub", fontName="THSarabun-Bold", fontSize=11, leading=12.5, alignment=TA_CENTER))
-    styles.add(ParagraphStyle(name="TH-right", fontName="THSarabun", fontSize=9.6, leading=11, alignment=TA_RIGHT))
-    styles.add(ParagraphStyle(name="TH-mini", fontName="THSarabun", fontSize=8.6, leading=10))
+    
+    # เพิ่ม leading และขนาดตัวอักษรเพื่อแก้ปัญหาวรรณยุกต์ซ้อนกับสระ
+    styles.add(ParagraphStyle(
+        name="TH", 
+        fontName="NotoSansThai", 
+        fontSize=14,  # เพิ่มจาก 12 เป็น 14
+        leading=18,  # เพิ่มจาก 14 เป็น 18
+        alignment=TA_LEFT,
+        wordWrap='CJK'
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-bold", 
+        fontName="NotoSansThai-Bold", 
+        fontSize=14,  # เพิ่มจาก 12 เป็น 14
+        leading=18,  # เพิ่มจาก 14 เป็น 18
+        alignment=TA_LEFT,
+        wordWrap='CJK'
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-h", 
+        fontName="NotoSansThai-Bold", 
+        fontSize=20,  # เพิ่มจาก 18 เป็น 20
+        leading=24,  # เพิ่มจาก 20 เป็น 24
+        alignment=TA_CENTER,
+        wordWrap='CJK'
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-sub", 
+        fontName="NotoSansThai-Bold", 
+        fontSize=16,  # เพิ่มจาก 14 เป็น 16
+        leading=20,  # เพิ่มจาก 16 เป็น 20
+        alignment=TA_CENTER,
+        wordWrap='CJK'
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-right", 
+        fontName="NotoSansThai", 
+        fontSize=14,  # เพิ่มจาก 12 เป็น 14
+        leading=18,  # เพิ่มจาก 14 เป็น 18
+        alignment=TA_RIGHT,
+        wordWrap='CJK'
+    ))
+    styles.add(ParagraphStyle(
+        name="TH-mini", 
+        fontName="NotoSansThai", 
+        fontSize=12,  # เพิ่มจาก 10 เป็น 12
+        leading=16,  # เพิ่มจาก 12 เป็น 16
+        alignment=TA_LEFT,
+        wordWrap='CJK'
+    ))
+    
     return styles
 
 
@@ -215,7 +263,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     def boxed(tbl, col1=28*mm, col2=54*mm):
         t = Table(tbl, colWidths=[col1, col2])
         t.setStyle(TableStyle([
-            ('FONT', (0,0), (-1,-1), 'THSarabun', 9.6),
+            ('FONT', (0,0), (-1,-1), 'NotoSansThai', 9.6),
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('INNERGRID', (0,1), (-1,-1), 0.25, colors.grey),
             ('BOX', (0,0), (-1,-1), 0.25, colors.grey),
@@ -249,7 +297,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     ]
     cust_prod_t = Table(cust_prod, colWidths=[(width-16*mm)/2, (width-16*mm)/2])
     cust_prod_t.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('FONT',(0,0),(-1,-1),'NotoSansThai',12),
         ('VALIGN',(0,0),(-1,-1),'TOP'),
         ('BOX',(0,0),(-1,-1),0.25,colors.grey),
         ('INNERGRID',(0,0),(-1,-1),0.25,colors.grey),
@@ -269,7 +317,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     ]
     money_t = Table(money, colWidths=[28*mm, 28*mm, 28*mm, (width-16*mm) - 84*mm])
     money_t.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('FONT',(0,0),(-1,-1),'NotoSansThai',12),
         ('VALIGN',(0,0),(-1,-1),'TOP'),
         ('BOX',(0,0),(-1,-1),0.25,colors.grey),
         ('INNERGRID',(0,0),(-1,-1),0.25,colors.grey),
@@ -304,7 +352,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
          cell_para(f"วันที่: {renewal_date_disp}", "TH")],
     ], colWidths=[(width-16*mm)/2, (width-16*mm)/2])
     sig.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('FONT',(0,0),(-1,-1),'NotoSansThai',12),
         ('VALIGN',(0,0),(-1,-1),'TOP'),
         ('LEFTPADDING',(0,0),(-1,-1),2),
         ('RIGHTPADDING',(0,0),(-1,-1),2),
@@ -401,7 +449,7 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
         [Paragraph("<b>ยอดรวม</b>", styles["TH-bold"]), Paragraph(f"<b>{total_amount:,.2f}</b>", styles["TH-right"])],
     ], colWidths=[60*mm, (width-16*mm)-60*mm])
     info.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('FONT',(0,0),(-1,-1),'NotoSansThai',12),
         ('VALIGN',(0,0),(-1,-1),'TOP'),
         ('BOX',(0,0),(-1,-1),0.25,colors.grey),
         ('INNERGRID',(0,1),(-1,-1),0.25,colors.grey),
@@ -419,7 +467,7 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
          Paragraph(f"สถานะ: ชำระแล้ว<br/>วันที่: {renewal_date_disp}<br/>จำนวน: {total_amount:,.2f} บาท", styles["TH"])],
     ], colWidths=[(width-16*mm)/2, (width-16*mm)/2])
     cust.setStyle(TableStyle([
-        ('FONT',(0,0),(-1,-1),'THSarabun',9.6),
+        ('FONT',(0,0),(-1,-1),'NotoSansThai',12),
         ('VALIGN',(0,0),(-1,-1),'TOP'),
         ('BOX',(0,0),(-1,-1),0.25,colors.grey),
         ('INNERGRID',(0,0),(-1,-1),0.25,colors.grey),

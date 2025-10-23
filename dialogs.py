@@ -945,6 +945,12 @@ class ProductDialog(QDialog):
         self.image_browse_btn.setMaximumWidth(160)
         image_container.addWidget(self.image_browse_btn)
         
+        # ปุ่มถ่ายรูปจากกล้อง
+        self.image_webcam_btn = QPushButton("ถ่ายจากกล้อง")
+        self.image_webcam_btn.setMaximumWidth(160)
+        self.image_webcam_btn.clicked.connect(self.capture_from_webcam)
+        image_container.addWidget(self.image_webcam_btn)
+        
         # ฟิลด์ path (ซ่อนไว้)
         self.image_path_edit = QLineEdit()
         self.image_path_edit.setReadOnly(True)
@@ -1076,6 +1082,28 @@ class ProductDialog(QDialog):
                 self.image_preview.setPixmap(pix.scaled(self.image_preview.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
             else:
                 self.image_preview.setText("ดูตัวอย่างไม่ได้")
+
+    def capture_from_webcam(self):
+        """เปิด dialog พรีวิวกล้อง พร้อม ถ่าย/ถ่ายใหม่/บันทึก"""
+        try:
+            from webcam_capture_dialog import WebcamCaptureDialog
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถโหลดหน้าต่างกล้องได้: {str(e)}")
+            return
+
+        from PySide6.QtWidgets import QDialog as _QDialog
+        dlg = WebcamCaptureDialog(self)
+        if dlg.exec() == _QDialog.Accepted:
+            captured_path = dlg.get_captured_path()
+            if captured_path and os.path.exists(captured_path):
+                # อัปเดต path ต้นทางและแสดงตัวอย่าง
+                self._image_source_path = captured_path
+                self.image_path_edit.setText(captured_path)
+                pix = QPixmap(captured_path)
+                if not pix.isNull():
+                    self.image_preview.setPixmap(pix.scaled(self.image_preview.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                else:
+                    self.image_preview.setText("ดูตัวอย่างไม่ได้")
 
 class InterestPaymentDialog(QDialog):
     def __init__(self, parent=None, contract_data=None):

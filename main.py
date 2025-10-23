@@ -38,6 +38,8 @@ from app_services import (
     copy_product_image as svc_copy_product_image,
 )
 from language_manager import language_manager
+import cv2
+import numpy as np
 #hi
 # Icon mapping for toolbar buttons
 ICON_MAP = {
@@ -911,6 +913,13 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         self.product_add_image_browse_btn.clicked.connect(self.browse_product_image)
         self.product_add_image_browse_btn.setIcon(QIcon.fromTheme("document-open"))
         image_layout.addWidget(self.product_add_image_browse_btn)
+        
+        # ปุ่มถ่ายรูปจาก webcam
+        self.product_add_webcam_btn = QPushButton("📷")
+        self.product_add_webcam_btn.clicked.connect(self.capture_from_webcam)
+        self.product_add_webcam_btn.setToolTip("ถ่ายรูปจากกล้อง")
+        self.product_add_webcam_btn.setMaximumWidth(50)
+        image_layout.addWidget(self.product_add_webcam_btn)
         
         self.product_add_layout.addLayout(image_layout, 6, 1, 1, 3)
         
@@ -2644,6 +2653,28 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             else:
                 self.product_image_preview.setText("ไม่สามารถโหลดรูปภาพได้")
             
+    def capture_from_webcam(self):
+        """ถ่ายรูปจาก webcam ด้วย dialog มีพรีวิว/ถ่ายใหม่/บันทึก"""
+        try:
+            from webcam_capture_dialog import WebcamCaptureDialog
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถโหลดหน้าต่างกล้องได้: {str(e)}")
+            return
+
+        from PySide6.QtWidgets import QDialog as _QDialog
+        dlg = WebcamCaptureDialog(self)
+        if dlg.exec() == _QDialog.Accepted:
+            captured_path = dlg.get_captured_path()
+            if captured_path and os.path.exists(captured_path):
+                self.product_add_image_path_edit.setText(captured_path)
+                pixmap = QPixmap(captured_path)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(
+                        self.product_image_preview.size(), 
+                        Qt.KeepAspectRatio, 
+                        Qt.SmoothTransformation
+                    )
+                    self.product_image_preview.setPixmap(scaled_pixmap)
 
     def copy_product_image(self, source_path: str) -> str:
         """คัดลอกรูปภาพสินค้าไปยังโฟลเดอร์ของโปรแกรม (delegate to app_services)"""

@@ -26,17 +26,20 @@ class ContractPDFGenerator(QObject):
         self.setup_fonts()
     
     def setup_fonts(self):
-        """ตั้งค่าฟอนต์ภาษาไทย"""
+        """ตั้งค่าฟอนต์ภาษาไทยด้วยการปรับปรุงการแสดงผล"""
         try:
             from resource_path import get_font_path
-            font_path = get_font_path('THSarabun.ttf')
-            bold_font_path = get_font_path('THSarabun Bold.ttf')
+            font_path = get_font_path('NotoSansThai-Regular.ttf')
+            bold_font_path = get_font_path('NotoSansThai-Bold.ttf')
             
             if not os.path.exists(font_path) or not os.path.exists(bold_font_path):
                 raise FileNotFoundError(f"ไม่พบไฟล์ฟอนต์: {font_path} หรือ {bold_font_path}")
             
-            pdfmetrics.registerFont(TTFont('THSarabun', font_path))
-            pdfmetrics.registerFont(TTFont('THSarabun-Bold', bold_font_path))
+            # ใช้ subfontIndex=0 เพื่อให้รองรับตัวอักษรไทยได้ดีขึ้น
+            pdfmetrics.registerFont(TTFont('NotoSansThai', font_path, subfontIndex=0))
+            pdfmetrics.registerFont(TTFont('NotoSansThai-Bold', bold_font_path, subfontIndex=0))
+            
+            print("ฟอนต์ภาษาไทยโหลดสำเร็จ - NotoSansThai และ NotoSansThai-Bold")
             
         except Exception as e:
             print(f"เกิดข้อผิดพลาดในการโหลดฟอนต์: {e}")
@@ -173,18 +176,18 @@ class ContractPDFGenerator(QObject):
     def _draw_header(self, c: canvas.Canvas, width: float, height: float, y_pos: float):
         """วาดส่วนหัวเอกสาร"""
         # หัวข้อหลัก
-        c.setFont("THSarabun-Bold", 24)
+        c.setFont("NotoSansThai-Bold", 28)
         c.drawCentredString(width / 2.0, y_pos, "ใบขายฝาก")
         
         # ชื่อร้าน - โหลดจาก shop_config.json
         from shop_config_loader import load_shop_config
         shop_config = load_shop_config()
         
-        c.setFont("THSarabun-Bold", 16)
+        c.setFont("NotoSansThai-Bold", 18)
         c.drawCentredString(width / 2.0, y_pos - 30, f"{shop_config['name']} ({shop_config['branch']})")
         
         # ที่อยู่ร้าน
-        c.setFont("THSarabun", 12)
+        c.setFont("NotoSansThai", 16)
         c.drawCentredString(width / 2.0, y_pos - 50, shop_config['address'])
     
     def _draw_contract_info(self, c: canvas.Canvas, contract_data: Dict, width: float, y_pos: float) -> float:
@@ -192,7 +195,7 @@ class ContractPDFGenerator(QObject):
         left_margin = 50
         right_margin = width - 50
         
-        c.setFont("THSarabun", 14)
+        c.setFont("NotoSansThai", 16)
         c.drawString(left_margin, y_pos, f"สัญญาเลขที่: {contract_data['contract_number']}")
         
         # แปลงวันที่
@@ -206,11 +209,11 @@ class ContractPDFGenerator(QObject):
         """วาดข้อมูลลูกค้า"""
         left_margin = 50
         
-        c.setFont("THSarabun-Bold", 14)
+        c.setFont("NotoSansThai-Bold", 16)
         c.drawString(left_margin, y_pos, "ข้อมูลผู้ขายฝาก:")
         y_pos -= 20
         
-        c.setFont("THSarabun", 14)
+        c.setFont("NotoSansThai", 16)
         customer_name = f"{customer_data.get('first_name', '')} {customer_data.get('last_name', '')}"
         c.drawString(left_margin + 15, y_pos, f"ชื่อ: {customer_name}")
         y_pos -= 20
@@ -247,11 +250,11 @@ class ContractPDFGenerator(QObject):
         c.line(left_margin, y_pos, right_margin, y_pos)
         y_pos -= 20
         
-        c.setFont("THSarabun-Bold", 14)
+        c.setFont("NotoSansThai-Bold", 16)
         c.drawString(left_margin, y_pos, "รายการทรัพย์สินที่ขายฝาก:")
         y_pos -= 20
         
-        c.setFont("THSarabun", 14)
+        c.setFont("NotoSansThai", 16)
         
         # ชื่อสินค้า
         product_name = product_data.get('model', '') or product_data.get('name', '')
@@ -277,11 +280,11 @@ class ContractPDFGenerator(QObject):
         c.line(left_margin, y_pos, right_margin, y_pos)
         y_pos -= 20
         
-        c.setFont("THSarabun-Bold", 14)
+        c.setFont("NotoSansThai-Bold", 16)
         c.drawString(left_margin, y_pos, "เงื่อนไขและข้อตกลง:")
         y_pos -= 15
         
-        c.setFont("THSarabun", 12)
+        c.setFont("NotoSansThai", 16)
         
         terms = [
             "1. ข้าพเจ้าขอรับรองว่าสินค้าที่นำมาขายฝากเป็นกรรมสิทธิ์ของผู้ขายฝากอย่างแท้จริง ไม่มีการติดค้างชำระ",
@@ -307,11 +310,11 @@ class ContractPDFGenerator(QObject):
         """วาดหมายเหตุ"""
         left_margin = 50
         
-        c.setFont("THSarabun-Bold", 12)
+        c.setFont("NotoSansThai-Bold", 12)
         c.drawString(left_margin, y_pos, "หมายเหตุ:")
         y_pos -= 15
         
-        c.setFont("THSarabun", 12)
+        c.setFont("NotoSansThai", 16)
         
         notes = [
             "กรณีสินค้าหายหรือสูญหายซึ่งพิสูจน์ได้ว่าถูกโจรกรรม หรือเนื่องจากภัยธรรมชาติ",
@@ -331,7 +334,7 @@ class ContractPDFGenerator(QObject):
         """วาดข้อมูลการไถ่คืน"""
         left_margin = 50
         
-        c.setFont("THSarabun-Bold", 16)
+        c.setFont("NotoSansThai-Bold", 18)
         total_redemption = contract_data['total_redemption']
         c.drawString(left_margin, y_pos, f"ยอดไถ่คืน: {total_redemption:,.2f} บาท")
         y_pos -= 25
@@ -347,7 +350,7 @@ class ContractPDFGenerator(QObject):
         """วาดส่วนลายเซ็น"""
         left_margin = 50
         
-        c.setFont("THSarabun", 14)
+        c.setFont("NotoSansThai", 16)
         
         # ลายเซ็นผู้รับฝาก
         c.drawString(left_margin + 30, y_pos, "ลงชื่อ _________________________ ผู้รับฝาก")
