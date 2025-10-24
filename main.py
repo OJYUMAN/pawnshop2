@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+
+# Set up environment for WeasyPrint on macOS
+if sys.platform == "darwin":  # macOS
+    os.environ["DYLD_LIBRARY_PATH"] = "/opt/homebrew/lib:" + os.environ.get("DYLD_LIBRARY_PATH", "")
+    os.environ["PKG_CONFIG_PATH"] = "/opt/homebrew/lib/pkgconfig:" + os.environ.get("PKG_CONFIG_PATH", "")
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QComboBox, QTabWidget, QGroupBox,

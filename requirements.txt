@@ -7,3 +7,4 @@ pyscard>=2.0.0
 pyinstaller>=5.0.0
 opencv-python>=4.5.0
 numpy>=1.21.0
+weasyprint>=66.0
