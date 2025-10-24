@@ -203,15 +203,15 @@ def _build_contract_html(
     condition = product_data.get("condition", "สภาพโดยรวมดี")
     accessories = product_data.get("accessories", "สายชาร์จและกล่องเดิม")
 
-    # เงื่อนไข: ย่อหน้าเดียว
+    # เงื่อนไข: ย่อหน้าเดียว (ย่อให้กระชับ)
     terms_text = (
-        f"ข้อ 1. ผู้ซื้อฝากตกลงรับซื้อฝากทรัพย์สินในราคา {money(pawn_amount)} บาท ผู้ขายฝากได้รับเงินครบแล้ว "
-        f"ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนภายใน {esc(str(days_count)) if days_count else '-'} วัน โดยชำระเงิน {money(redemption_amount)} บาท "
+        f"ข้อ 1. ผู้ซื้อฝากรับซื้อฝากในราคา {money(pawn_amount)} บาท ผู้ขายฝากได้รับเงินครบแล้ว "
+        f"ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนภายใน {esc(str(days_count)) if days_count else '-'} วัน ชำระ {money(redemption_amount)} บาท "
         f"ภายในวันที่ {esc(end_date_th)} เวลา 18.00 น. "
-        "ข้อ 3. หากไม่ชำระภายในกำหนด ถือว่าสละสิทธิ และผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน "
-        "ข้อ 4. ผู้ขายฝากรับรองว่าทรัพย์สินเป็นกรรมสิทธิ์ของตน ไม่มีภาระผูกพัน และยินยอมให้ตรวจสอบ IMEI/Serial "
-        "ข้อ 5. กรณีสูญหาย/โจรกรรม ผู้ขายฝากต้องแจ้งความและแจ้งผู้ซื้อฝากทันที "
-        "ข้อ 6. ศาลในเขตที่ตั้งผู้ซื้อฝากมีอำนาจพิจารณาข้อพิพาท"
+        "ข้อ 3. หากไม่ชำระภายในกำหนด สละสิทธิ ผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน "
+        "ข้อ 4. ผู้ขายฝากรับรองกรรมสิทธิ์ ไม่มีภาระผูกพัน ยินยอมตรวจสอบ IMEI/Serial "
+        "ข้อ 5. กรณีสูญหาย/โจรกรรม แจ้งความและแจ้งผู้ซื้อฝากทันที "
+        "ข้อ 6. ศาลในเขตผู้ซื้อฝากมีอำนาจพิจารณาข้อพิพาท"
     )
 
     # ฟุตเตอร์เวลา
@@ -244,8 +244,8 @@ def _build_contract_html(
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
       background: #fff;
-      font-size: 27pt;           /* ใหญ่ */
-      line-height: 1.15;         /* แน่น */
+      font-size: 22pt;           /* ลดขนาดตัวอักษร */
+      line-height: 1.1;          /* แน่นขึ้น */
     }}
 
     .page {{
@@ -255,67 +255,73 @@ def _build_contract_html(
       padding: 0;
       display: grid;
       grid-template-rows: auto 1fr auto auto; /* header / content / signatures / foot */
-      row-gap: 2mm;
+      row-gap: 1mm;              /* ลดระยะห่าง */
     }}
 
     h1 {{
       text-align: center;
       font-weight: 700;
-      font-size: 35pt;
+      font-size: 28pt;           /* ลดขนาดหัวข้อ */
       margin: 0;
-      line-height: 1.1;
-      padding: 1mm 2mm 0 2mm;
+      line-height: 1.0;
+      padding: 0.5mm 1mm 0 1mm;  /* ลด padding */
     }}
 
     .meta {{
-      padding: 0 2mm;
+      padding: 0 1mm;            /* ลด padding */
       margin: 0;
     }}
     .meta .row {{
       display: flex;
       justify-content: space-between;
-      gap: 3mm;
-      margin: 0.5mm 0;
+      gap: 2mm;                  /* ลด gap */
+      margin: 0.3mm 0;           /* ลด margin */
+      font-size: 20pt;           /* ลดขนาดตัวอักษร */
     }}
 
     .section-title {{
       font-weight: 700;
-      margin: 1mm 0 0.5mm 0;
-      padding: 0 2mm;
-      line-height: 1.2;
+      margin: 0.5mm 0 0.3mm 0;   /* ลด margin */
+      padding: 0 1mm;            /* ลด padding */
+      line-height: 1.1;
+      font-size: 24pt;           /* ลดขนาดหัวข้อ */
     }}
 
     p {{
-      margin: 0.5mm 0;
-      padding: 0 2mm;
+      margin: 0.3mm 0;           /* ลด margin */
+      padding: 0 1mm;            /* ลด padding */
       text-align: justify;
     }}
-    .indent {{ text-indent: 7mm; }}
+    .indent {{ text-indent: 5mm; }} /* ลดการเยื้อง */
 
     .terms {{
-      font-size: 19pt;
-      line-height: 1.15;
-      margin-top: 0.5mm;
+      font-size: 16pt;           /* ลดขนาดตัวอักษร */
+      line-height: 1.1;          /* แน่นขึ้น */
+      margin-top: 0.3mm;         /* ลด margin */
       text-align: justify;
-      padding: 0 2mm;
+      padding: 0 1mm;            /* ลด padding */
     }}
 
     .signatures {{
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 1.5mm;
+      gap: 1mm;                  /* ลด gap */
       text-align: center;
-      padding: 0 2mm;
+      padding: 0 1mm;            /* ลด padding */
       margin: 0;
+      font-size: 18pt;           /* ลดขนาดตัวอักษร */
     }}
-    .sig-line {{ white-space: nowrap; }}
+    .sig-line {{ 
+      white-space: nowrap;
+      line-height: 1.0;          /* แน่นขึ้น */
+    }}
 
     .foot {{
-      font-size: 15pt;
+      font-size: 12pt;           /* ลดขนาดตัวอักษร */
       text-align: right;
-      padding: 0 2mm;
+      padding: 0 1mm;            /* ลด padding */
       margin: 0;
-      line-height: 1.1;
+      line-height: 1.0;          /* แน่นขึ้น */
     }}
   </style>
 </head>
@@ -332,10 +338,7 @@ def _build_contract_html(
     <div>
       <div class="section-title">คู่สัญญา</div>
       <p class="indent">
-        ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age,(int,float)) else ""} เลขบัตรประจำตัวประชาชน {esc(id_card)}
-        ที่อยู่ {esc(addr_text)} โทร {esc(phone)} ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>"
-        กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)} ที่ตั้ง {esc(shop_address)} โทร {esc(shop_phone)}
-        โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
+        ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age,(int,float)) else ""} เลขบัตรประชาชน {esc(id_card)} ที่อยู่ {esc(addr_text)} โทร {esc(phone)} ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>" กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)} ที่ตั้ง {esc(shop_address)} โทร {esc(shop_phone)} โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
       </p>
 
       <div class="section-title">รายละเอียดทรัพย์สิน</div>
@@ -348,9 +351,7 @@ def _build_contract_html(
 
       <div class="section-title">การรับเงินและยืนยัน</div>
       <p class="indent">
-        ผู้ขายฝากได้รับเงิน {money(pawn_amount)} บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน
-        คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา
-        ทำ ณ {esc(place_line)} วันที่ {esc(thai_date(contract_data.get('signed_date') or start_date_raw))}
+        ผู้ขายฝากได้รับเงิน {money(pawn_amount)} บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา ทำ ณ {esc(place_line)} วันที่ {esc(thai_date(contract_data.get('signed_date') or start_date_raw))}
       </p>
     </div>
 
