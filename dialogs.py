@@ -1822,7 +1822,7 @@ class RedemptionDialog(QDialog):
             
             # ใช้ระบบพรีวิวใหม่
             from print_preview_dialog import show_print_preview
-            from pdf3 import generate_redemption_contract_pdf as pdf_generator
+            from pdf3 import generate_redemption_ticket_pdf_data as pdf_generator
             
             success = show_print_preview(
                 parent=self,

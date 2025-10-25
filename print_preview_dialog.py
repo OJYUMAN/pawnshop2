@@ -224,9 +224,9 @@ class PrintPreviewDialog(QDialog):
                     )
                 else:
                     self.pdf_generator_func(
-                        redemption_data=self.contract_type, customer_data=self.customer_data,
-                        product_data=self.product_data, original_contract_data=self.original_contract_data,
-                        shop_data=self.shop_data, output_file=self.temp_pdf_path
+                        contract_data=self.contract_data, customer_data=self.customer_data,
+                        product_data=self.product_data, shop_data=self.shop_data,
+                        output_file=self.temp_pdf_path
                     )
             else:
                 # ตัวอย่าง minimal
