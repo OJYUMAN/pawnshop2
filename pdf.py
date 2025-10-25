@@ -279,6 +279,11 @@ def _build_contract_html(
       font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
       line-height: 1.3;
     }}
+    .contract-number {{
+      font-size: 18pt;           /* ใหญ่ขึ้น */
+      font-weight: 700;          /* ตัวหนา */
+      color: #000;
+    }}
 
     .section-title {{
       font-weight: 700;
@@ -325,6 +330,13 @@ def _build_contract_html(
       margin: 0;
       line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
     }}
+
+    .amount-underline {{
+      border-bottom: 2px solid #000;
+      padding: 0 50px;
+      display: inline-block;
+      min-width: 30px;
+    }}
   </style>
 </head>
 <body>
@@ -332,7 +344,7 @@ def _build_contract_html(
     <div>
       <h1>สัญญาขายฝาก (โทรศัพท์มือถือ)</h1>
       <div class="meta">
-        <div class="row"><span>สัญญาเลขที่: {esc(contract_number)}</span><span>ฉบับที่: {esc(copy_number)}</span></div>
+        <div class="row"><span class="contract-number">สัญญาเลขที่: {esc(contract_number)}</span></div>
         <div class="row"><span>ทำที่: {esc(place_line)}</span><span>วันที่: {esc(start_date_th)}</span></div>
       </div>
     </div>
@@ -353,7 +365,7 @@ def _build_contract_html(
 
       <div class="section-title">การรับเงินและยืนยัน</div>
       <p class="indent">
-        ผู้ขายฝากได้รับเงิน {money(pawn_amount)} บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา ทำ ณ {esc(place_line)} วันที่ {esc(thai_date(contract_data.get('signed_date') or start_date_raw))}
+        ผู้ขายฝากได้รับเงิน <span class="amount-underline">{money(pawn_amount)}</span> บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา ทำ ณ {esc(place_line)} วันที่ {esc(thai_date(contract_data.get('signed_date') or start_date_raw))}
       </p>
     </div>
 
