@@ -80,7 +80,11 @@ class DataViewerDialog(QDialog):
         contract_tab = self.create_contract_tab()
         tab_widget.addTab(contract_tab, "ข้อมูลสัญญา")
         
-        # Tab 4: รายงานสรุป
+        # Tab 4: รายการหลุด
+        forfeited_tab = self.create_forfeited_tab()
+        tab_widget.addTab(forfeited_tab, "รายการหลุด")
+        
+        # Tab 5: รายงานสรุป
         summary_tab = self.create_summary_tab()
         tab_widget.addTab(summary_tab, "รายงานสรุป")
         
@@ -190,6 +194,50 @@ class DataViewerDialog(QDialog):
         
         return widget
     
+    def create_forfeited_tab(self):
+        """สร้าง Tab รายการหลุด"""
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        
+        # ตัวกรอง
+        filter_layout = QHBoxLayout()
+        filter_layout.addWidget(QLabel("ค้นหา:"))
+        self.forfeited_search_edit = QLineEdit()
+        self.forfeited_search_edit.setPlaceholderText("เลขที่สัญญา, ชื่อลูกค้า, ชื่อสินค้า")
+        self.forfeited_search_edit.textChanged.connect(self.filter_forfeited_contracts)
+        filter_layout.addWidget(self.forfeited_search_edit)
+        
+        # ตัวกรองวันที่
+        filter_layout.addWidget(QLabel("วันที่หลุด:"))
+        self.forfeited_date_from = QDateEdit()
+        self.forfeited_date_from.setDate(QDate.currentDate().addDays(-30))
+        self.forfeited_date_from.setCalendarPopup(True)
+        self.forfeited_date_from.dateChanged.connect(self.filter_forfeited_contracts)
+        filter_layout.addWidget(self.forfeited_date_from)
+        
+        filter_layout.addWidget(QLabel("ถึง"))
+        self.forfeited_date_to = QDateEdit()
+        self.forfeited_date_to.setDate(QDate.currentDate())
+        self.forfeited_date_to.setCalendarPopup(True)
+        self.forfeited_date_to.dateChanged.connect(self.filter_forfeited_contracts)
+        filter_layout.addWidget(self.forfeited_date_to)
+        
+        layout.addLayout(filter_layout)
+        
+        # ตารางรายการหลุด
+        self.forfeited_table = QTableWidget()
+        self.forfeited_table.setColumnCount(9)
+        self.forfeited_table.setHorizontalHeaderLabels([
+            "เลขที่สัญญา", "ชื่อลูกค้า", "เบอร์โทรศัพท์", "ชื่อสินค้า", "ยี่ห้อ", 
+            "ยอดฝาก", "วันที่ครบกำหนด", "วันที่หลุด", "การดำเนินการ"
+        ])
+        self.forfeited_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.forfeited_table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
+        self.forfeited_table.setColumnWidth(8, 100)
+        layout.addWidget(self.forfeited_table)
+        
+        return widget
+    
     def create_summary_tab(self):
         """สร้าง Tab รายงานสรุป"""
         widget = QWidget()
@@ -278,6 +326,7 @@ class DataViewerDialog(QDialog):
         self.load_customers()
         self.load_products()
         self.load_contracts()
+        self.load_forfeited_contracts()
         self.load_summary()
         self.load_expiring_contracts()
     
@@ -435,6 +484,166 @@ class DataViewerDialog(QDialog):
                 
         except Exception as e:
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสัญญา: {}".format(str(e)))
+    
+    def load_forfeited_contracts(self):
+        """โหลดข้อมูลสินค้าที่หลุดจำนำ"""
+        try:
+            forfeited_contracts = self.db.get_forfeited_contracts()
+            self.forfeited_table.setRowCount(len(forfeited_contracts))
+            
+            for row, contract in enumerate(forfeited_contracts):
+                self.forfeited_table.setItem(row, 0, QTableWidgetItem(contract.get('contract_number', '')))
+                
+                customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
+                self.forfeited_table.setItem(row, 1, QTableWidgetItem(customer_name))
+                
+                self.forfeited_table.setItem(row, 2, QTableWidgetItem(contract.get('phone', '')))
+                self.forfeited_table.setItem(row, 3, QTableWidgetItem(contract.get('product_name', '')))
+                self.forfeited_table.setItem(row, 4, QTableWidgetItem(contract.get('product_brand', '')))
+                self.forfeited_table.setItem(row, 5, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
+                
+                # วันที่ครบกำหนด
+                end_date = contract.get('end_date', '')
+                if end_date:
+                    try:
+                        date_obj = datetime.fromisoformat(end_date)
+                        date_str = date_obj.strftime('%d/%m/%Y')
+                    except:
+                        date_str = end_date
+                else:
+                    date_str = ''
+                self.forfeited_table.setItem(row, 6, QTableWidgetItem(date_str))
+                
+                # วันที่หลุด (วันที่ครบกำหนด)
+                forfeited_date = end_date
+                if forfeited_date:
+                    try:
+                        date_obj = datetime.fromisoformat(forfeited_date)
+                        date_str = date_obj.strftime('%d/%m/%Y')
+                    except:
+                        date_str = forfeited_date
+                else:
+                    date_str = ''
+                self.forfeited_table.setItem(row, 7, QTableWidgetItem(date_str))
+                
+                # เพิ่มปุ่มดูรายละเอียด
+                view_button = QPushButton("ดูรายละเอียด")
+                view_button.setStyleSheet("QPushButton { background-color: #007bff; color: white; border: none; padding: 5px; }")
+                view_button.clicked.connect(lambda checked, row=row: self.view_forfeited_details(row))
+                self.forfeited_table.setCellWidget(row, 8, view_button)
+                
+        except Exception as e:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลรายการหลุด: {}".format(str(e)))
+    
+    def filter_forfeited_contracts(self):
+        """กรองข้อมูลรายการหลุด"""
+        search_term = self.forfeited_search_edit.text().strip()
+        date_from = self.forfeited_date_from.date().toString('yyyy-MM-dd')
+        date_to = self.forfeited_date_to.date().toString('yyyy-MM-dd')
+        
+        try:
+            # ดึงข้อมูลรายการหลุดทั้งหมดก่อน
+            forfeited_contracts = self.db.get_forfeited_contracts()
+            filtered_contracts = []
+            
+            for contract in forfeited_contracts:
+                # กรองตามคำค้นหา
+                if search_term:
+                    search_fields = [
+                        contract.get('contract_number', ''),
+                        contract.get('first_name', ''),
+                        contract.get('last_name', ''),
+                        contract.get('product_name', ''),
+                        contract.get('product_brand', '')
+                    ]
+                    if not any(search_term.lower() in field.lower() for field in search_fields):
+                        continue
+                
+                # กรองตามวันที่
+                end_date = contract.get('end_date', '')
+                if end_date:
+                    try:
+                        contract_date = datetime.fromisoformat(end_date).strftime('%Y-%m-%d')
+                        if contract_date < date_from or contract_date > date_to:
+                            continue
+                    except:
+                        continue
+                
+                filtered_contracts.append(contract)
+            
+            # แสดงผลในตาราง
+            self.forfeited_table.setRowCount(len(filtered_contracts))
+            
+            for row, contract in enumerate(filtered_contracts):
+                self.forfeited_table.setItem(row, 0, QTableWidgetItem(contract.get('contract_number', '')))
+                
+                customer_name = "{} {}".format(contract.get('first_name', ''), contract.get('last_name', ''))
+                self.forfeited_table.setItem(row, 1, QTableWidgetItem(customer_name))
+                
+                self.forfeited_table.setItem(row, 2, QTableWidgetItem(contract.get('phone', '')))
+                self.forfeited_table.setItem(row, 3, QTableWidgetItem(contract.get('product_name', '')))
+                self.forfeited_table.setItem(row, 4, QTableWidgetItem(contract.get('product_brand', '')))
+                self.forfeited_table.setItem(row, 5, QTableWidgetItem("{:,.2f}".format(contract.get('pawn_amount', 0))))
+                
+                # วันที่ครบกำหนด
+                end_date = contract.get('end_date', '')
+                if end_date:
+                    try:
+                        date_obj = datetime.fromisoformat(end_date)
+                        date_str = date_obj.strftime('%d/%m/%Y')
+                    except:
+                        date_str = end_date
+                else:
+                    date_str = ''
+                self.forfeited_table.setItem(row, 6, QTableWidgetItem(date_str))
+                
+                # วันที่หลุด (วันที่ครบกำหนด)
+                forfeited_date = end_date
+                if forfeited_date:
+                    try:
+                        date_obj = datetime.fromisoformat(forfeited_date)
+                        date_str = date_obj.strftime('%d/%m/%Y')
+                    except:
+                        date_str = forfeited_date
+                else:
+                    date_str = ''
+                self.forfeited_table.setItem(row, 7, QTableWidgetItem(date_str))
+                
+                # เพิ่มปุ่มดูรายละเอียด
+                view_button = QPushButton("ดูรายละเอียด")
+                view_button.setStyleSheet("QPushButton { background-color: #007bff; color: white; border: none; padding: 5px; }")
+                view_button.clicked.connect(lambda checked, row=row: self.view_forfeited_details(row))
+                self.forfeited_table.setCellWidget(row, 8, view_button)
+                
+        except Exception as e:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลรายการหลุด: {}".format(str(e)))
+    
+    def view_forfeited_details(self, row: int):
+        """ดูรายละเอียดสินค้าที่หลุดจำนำ"""
+        try:
+            contract_number = self.forfeited_table.item(row, 0).text()
+            customer_name = self.forfeited_table.item(row, 1).text()
+            product_name = self.forfeited_table.item(row, 3).text()
+            pawn_amount = self.forfeited_table.item(row, 5).text()
+            end_date = self.forfeited_table.item(row, 6).text()
+            
+            # สร้างข้อความรายละเอียด
+            details = f"""
+รายละเอียดสินค้าหลุดจำนำ
+
+เลขที่สัญญา: {contract_number}
+ชื่อลูกค้า: {customer_name}
+ชื่อสินค้า: {product_name}
+ยอดฝาก: {pawn_amount} บาท
+วันที่ครบกำหนด: {end_date}
+
+หมายเหตุ: สินค้านี้หลุดจำนำเนื่องจากครบกำหนดแล้วแต่ยังไม่ได้ไถ่คืน
+            """
+            
+            QMessageBox.information(self, "รายละเอียดสินค้าหลุดจำนำ", details)
+            
+        except Exception as e:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถดูรายละเอียดได้: {}".format(str(e)))
     
     def load_summary(self):
         """โหลดข้อมูลสรุป"""
