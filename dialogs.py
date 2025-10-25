@@ -1279,7 +1279,7 @@ class RedemptionDialog(QDialog):
                 border: 2px solid #D2691E;
                 border-radius: 5px;
                 padding: 5px;
-                background-color: white;
+                background-color: #F9FAFB;
                 color: #8B4513;
             }
             QPushButton {
@@ -1406,7 +1406,7 @@ class RedemptionDialog(QDialog):
         
         self.principal_amount_label = QLabel("0")
         self.principal_amount_label.setStyleSheet("""
-            background-color: white;
+            background-color: #F9FAFB;
             border: 2px solid #D2691E;
             border-radius: 5px;
             padding: 5px;
@@ -1417,7 +1417,7 @@ class RedemptionDialog(QDialog):
         
         self.penalty_amount_label = QLabel("0")
         self.penalty_amount_label.setStyleSheet("""
-            background-color: white;
+            background-color: #F9FAFB;
             border: 2px solid #D2691E;
             border-radius: 5px;
             padding: 5px;
@@ -1427,7 +1427,7 @@ class RedemptionDialog(QDialog):
         
         self.discount_amount_label = QLabel("0")
         self.discount_amount_label.setStyleSheet("""
-            background-color: white;
+            background-color: #F9FAFB;
             border: 2px solid #D2691E;
             border-radius: 5px;
             padding: 5px;

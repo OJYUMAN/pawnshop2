@@ -94,14 +94,14 @@ QWidget {
   font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
   font-size: 12px;
   color: #0F172A;
-  background: #F6F8FB;
+  background: #E5E7EB;
 }
 
 /* ---------------- Card / Group ---------------- */
 QGroupBox {
   margin-top: 12px;
-  background: #FFFFFF;
-  border: 1px solid #E5EAF2;
+  background: #F3F4F6;
+  border: 1px solid #D1D5DB;
   border-radius: 12px;
   font-weight: 600;
   color: #0F172A;
@@ -120,20 +120,23 @@ QGroupBox::title {
 #TopLeftGroup::title, #TopMiddleGroup::title, #SearchGroup::title {
   height: 0; margin: 0; padding: 0; color: transparent;
 }
-#TopLeftGroup   { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                      stop:0 rgba(16,185,129,0.08), stop:1 #FFFFFF);
-                  border-color: rgba(16,185,129,0.35); }   /* Emerald tint */
-#TopMiddleGroup { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                      stop:0 rgba(245,158,11,0.10), stop:1 #FFFFFF);
-                  border-color: rgba(245,158,11,0.40); }   /* Amber tint */
-#SearchGroup    { background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                      stop:0 rgba(59,130,246,0.10), stop:1 #FFFFFF);
-                  border-color: rgba(59,130,246,0.40); }   /* Primary tint */
+#TopLeftGroup   { background: #E8F5E8;  /* Light Green - Contract Info */
+                  border-color: #4CAF50; }   
+#TopMiddleGroup { background: #FFF3E0;  /* Light Orange - Deposit/Results */
+                  border-color: #FF9800; }   
+#SearchGroup    { background: #E3F2FD;  /* Light Blue - Search */
+                  border-color: #2196F3; }   
+
+/* Customer and Product sections with distinct colors */
+#CustomerGroup  { background: #F3E5F5;  /* Light Purple - Customer */
+                  border-color: #9C27B0; }   
+#ProductGroup   { background: #FFF8E1;  /* Light Yellow - Product */
+                  border-color: #FFC107; }
 
 /* ---------------- Inputs ---------------- */
 QLineEdit, QDateEdit, QSpinBox, QDoubleSpinBox, QComboBox {
-  background: #FFFFFF;
-  border: 1px solid #E5EAF2;
+  background: #F9FAFB;
+  border: 1px solid #D1D5DB;
   border-radius: 10px;
   padding: 9px 12px;
 }
@@ -167,9 +170,9 @@ QPushButton:disabled{ background: #E5EAF2; color: #94A3B8; }
 
 /* ปุ่มรองแบบเส้น (ตั้ง objectName="OutlineButton") */
 #OutlineButton {
-  background: #FFFFFF;
+  background: #F9FAFB;
   color: #0F172A;
-  border: 1px solid #D7DEEA;
+  border: 1px solid #D1D5DB;
 }
 #OutlineButton:hover   { background: #F2F6FC; }
 #OutlineButton:pressed { background: #E9EEF7; }
@@ -193,9 +196,9 @@ QPushButton:disabled{ background: #E5EAF2; color: #94A3B8; }
 
 /* ---------------- Tool Buttons (แถบล่าง) ---------------- */
 QToolButton {
-  background: #FFFFFF;
+  background: #F9FAFB;
   color: #0F172A;
-  border: 1px solid #E5EAF2;
+  border: 1px solid #D1D5DB;
   border-radius: 12px;
   padding: 10px 12px;
   min-width: 70px; min-height: 44px;
@@ -211,17 +214,17 @@ QToolButton:checked {
 
 /* ---------------- Tables ---------------- */
 QTableWidget {
-  background: #FFFFFF;
-  border: 1px solid #E5EAF2;
+  background: #F9FAFB;
+  border: 1px solid #D1D5DB;
   border-radius: 12px;
-  gridline-color: #E5EAF2;
-  alternate-background-color: #F8FAFE;
+  gridline-color: #D1D5DB;
+  alternate-background-color: #F3F4F6;
 }
 QHeaderView::section {
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-              stop:0 #F3F6FC, stop:1 #FFFFFF);
+              stop:0 #E5E7EB, stop:1 #F3F4F6);
   color: #334155;
-  border: 1px solid #E5EAF2;
+  border: 1px solid #D1D5DB;
   padding: 9px;
   font-weight: 800;
 }
@@ -233,9 +236,9 @@ QTableWidget::item:selected {
 /* ---------------- Tabs ---------------- */
 #TabWidget, #TabWidget > QWidget > QWidget { background: transparent; }
 QTabBar::tab {
-  background: #FFFFFF;
+  background: #F9FAFB;
   color: #334155;
-  border: 1px solid #E5EAF2;
+  border: 1px solid #D1D5DB;
   border-bottom: none;
   padding: 9px 14px;
   margin-right: 6px;
@@ -251,8 +254,8 @@ QTabBar::tab:hover { background: #F2F6FC; }
 
 /* ---------------- Toolbar ---------------- */
 QToolBar {
-  background: #FFFFFF;
-  border-top: 1px solid #E5EAF2;
+  background: #F9FAFB;
+  border-top: 1px solid #D1D5DB;
   padding: 8px;
   spacing: 8px;
 }
@@ -477,7 +480,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """สร้างส่วนข้อมูลลูกค้า (รองรับหลายภาษา)"""
         # สร้าง GroupBox หลักสำหรับข้อมูลลูกค้า
         main_group = QGroupBox()
-        main_group.setObjectName("TopLeftGroup")
+        main_group.setObjectName("CustomerGroup")
         self.customer_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
         layout = QVBoxLayout(main_group)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
@@ -738,7 +741,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         """สร้างส่วนข้อมูลสินค้า"""
         # สร้าง GroupBox หลักสำหรับข้อมูลสินค้า
         main_group = QGroupBox()
-        main_group.setObjectName("TopMiddleGroup")
+        main_group.setObjectName("ProductGroup")
         self.product_main_group = main_group  # เก็บอ้างอิงเพื่ออัปเดตชื่อ
         layout = QVBoxLayout(main_group)
         layout.setSpacing(20)  # เพิ่มระยะห่างระหว่างกลุ่ม
@@ -3448,14 +3451,14 @@ if __name__ == '__main__':
     # Force a consistent light theme regardless of OS dark mode
     app.setStyle("Fusion")
     light_palette = QPalette()
-    light_palette.setColor(QPalette.Window, QColor(248, 249, 250))
+    light_palette.setColor(QPalette.Window, QColor(229, 231, 235))
     light_palette.setColor(QPalette.WindowText, QColor(33, 37, 41))
-    light_palette.setColor(QPalette.Base, QColor(255, 255, 255))
-    light_palette.setColor(QPalette.AlternateBase, QColor(248, 249, 250))
-    light_palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.Base, QColor(249, 250, 251))
+    light_palette.setColor(QPalette.AlternateBase, QColor(243, 244, 246))
+    light_palette.setColor(QPalette.ToolTipBase, QColor(249, 250, 251))
     light_palette.setColor(QPalette.ToolTipText, QColor(33, 37, 41))
     light_palette.setColor(QPalette.Text, QColor(33, 37, 41))
-    light_palette.setColor(QPalette.Button, QColor(255, 255, 255))
+    light_palette.setColor(QPalette.Button, QColor(249, 250, 251))
     light_palette.setColor(QPalette.ButtonText, QColor(33, 37, 41))
     light_palette.setColor(QPalette.BrightText, QColor(220, 53, 69))
     light_palette.setColor(QPalette.Highlight, QColor(0, 123, 255))

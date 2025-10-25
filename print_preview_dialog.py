@@ -85,7 +85,7 @@ class PrintPreviewDialog(QDialog):
         self.preview_area = QScrollArea()
         self.preview_area.setWidgetResizable(True)
         self.preview_area.setMinimumHeight(430)
-        self.preview_area.setStyleSheet("QScrollArea{border:2px solid #bdc3c7;border-radius:6px;background:white}")
+        self.preview_area.setStyleSheet("QScrollArea{border:2px solid #bdc3c7;border-radius:6px;background:#F3F4F6}")
         self.preview_label = QLabel("กำลังสร้างตัวอย่างเอกสาร...")
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("QLabel{color:#7f8c8d;padding:24px}")

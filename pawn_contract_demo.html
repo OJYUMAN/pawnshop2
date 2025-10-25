@@ -1,24 +1,25 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="utf-8" />
   <title>สัญญาขายฝาก – สมชาย ใจดี – CF-20259192</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    
     @font-face {
       font-family: 'THSarabunLocal';
       src: local('TH Sarabun New'), local('Sarabun');
       font-weight: 400;
       font-style: normal;
     }
+
     @font-face {
       font-family: 'THSarabunLocal';
       src: local('TH Sarabun New Bold'), local('Sarabun Bold');
       font-weight: 700;
       font-style: normal;
     }
-    
+
 
     @font-face {
       font-family: 'NotoThaiLocal';
@@ -26,15 +27,19 @@
       font-weight: 400;
       font-style: normal;
     }
-    
+
 
     @page {
       size: A4;
       margin: 0;
     }
-    html, body {
-      margin: 0; padding: 0;
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
     }
+
     * {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
@@ -44,87 +49,121 @@
     body {
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
-      background: #fff;
-      font-size: 15pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
-      line-height: 1.4;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      background: #F3F4F6;
+      font-size: 15pt;
+      /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      line-height: 1.4;
+      /* เพิ่มระยะห่างระหว่างบรรทัด */
     }
 
     .page {
       width: 210mm;
-      height: 148.5mm;           /* ครึ่งหน้า A4 */
+      height: 148.5mm;
+      /* ครึ่งหน้า A4 */
       margin: 0 auto;
       padding: 0;
       display: grid;
-      grid-template-rows: auto 1fr auto auto; /* header / content / signatures / foot */
-      row-gap: 1mm;              /* ลดระยะห่าง */
+      grid-template-rows: auto 1fr auto auto;
+      /* header / content / signatures / foot */
+      row-gap: 1mm;
+      /* ลดระยะห่าง */
     }
 
     h1 {
       text-align: center;
       font-weight: 700;
-      font-size: 21pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
+      font-size: 21pt;
+      /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
       margin: 0;
       line-height: 1.2;
-      padding: 0.5mm 1mm 0 1mm;  /* ลด padding */
+      padding: 0.5mm 1mm 0 1mm;
+      /* ลด padding */
     }
 
     .meta {
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
+      /* ลด padding */
       margin: 0;
     }
+
     .meta .row {
       display: flex;
       justify-content: space-between;
-      gap: 2mm;                  /* ลด gap */
-      margin: 0.3mm 0;           /* ลด margin */
-      font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      gap: 2mm;
+      /* ลด gap */
+      margin: 0.3mm 0;
+      /* ลด margin */
+      font-size: 13pt;
+      /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
       line-height: 1.3;
     }
 
     .section-title {
       font-weight: 700;
-      margin: 0.5mm 0 0.3mm 0;   /* ลด margin */
-      padding: 0 1mm;            /* ลด padding */
+      margin: 0.5mm 0 0.3mm 0;
+      /* ลด margin */
+      padding: 0 1mm;
+      /* ลด padding */
       line-height: 1.3;
-      font-size: 17pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
+      font-size: 17pt;
+      /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
     }
 
     p {
-      margin: 0.3mm 0;           /* ลด margin */
-      padding: 0 1mm;            /* ลด padding */
+      margin: 0.3mm 0;
+      /* ลด margin */
+      padding: 0 1mm;
+      /* ลด padding */
       text-align: justify;
       line-height: 1.4;
     }
-    .indent { text-indent: 5mm; } /* ลดการเยื้อง */
+
+    .indent {
+      text-indent: 5mm;
+    }
+
+    /* ลดการเยื้อง */
 
     .terms {
-      font-size: 11pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
-      line-height: 1.5;          /* เพิ่มระยะห่างระหว่างบรรทัด */
-      margin-top: 0.3mm;         /* ลด margin */
+      font-size: 11pt;
+      /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      line-height: 1.5;
+      /* เพิ่มระยะห่างระหว่างบรรทัด */
+      margin-top: 0.3mm;
+      /* ลด margin */
       text-align: justify;
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
+      /* ลด padding */
     }
 
     .signatures {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 1mm;                  /* ลด gap */
+      gap: 1mm;
+      /* ลด gap */
       text-align: center;
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
+      /* ลด padding */
       margin: 0;
-      font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      font-size: 13pt;
+      /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
     }
-    .sig-line { 
+
+    .sig-line {
       white-space: nowrap;
-      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      line-height: 1.3;
+      /* เพิ่มระยะห่างระหว่างบรรทัด */
     }
 
     .foot {
-      font-size: 8pt;            /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      font-size: 8pt;
+      /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
       text-align: right;
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
+      /* ลด padding */
       margin: 0;
-      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      line-height: 1.3;
+      /* เพิ่มระยะห่างระหว่างบรรทัด */
     }
 
     .amount-underline {
@@ -134,33 +173,45 @@
     }
   </style>
 </head>
+
 <body>
   <div class="page">
     <div>
       <h1>สัญญาขายฝาก (โทรศัพท์มือถือ)</h1>
       <div class="meta">
         <div class="row"><span>สัญญาเลขที่: CF-20259192</span><span>ฉบับที่: 1</span></div>
-        <div class="row"><span>ทำที่: ร้านไอโปรโปรโมบาย สาขาหล่มสัก</span><span>วันที่: 14 ตุลาคม 2568 เวลา 10:30 น.</span></div>
+        <div class="row"><span>ทำที่: ร้านไอโปรโปรโมบาย สาขาหล่มสัก</span><span>วันที่: 14 ตุลาคม 2568 เวลา 10:30
+            น.</span></div>
       </div>
     </div>
 
     <div>
       <div class="section-title">คู่สัญญา</div>
       <p class="indent">
-        ระหว่าง สมชาย ใจดี อายุ 32 ปี เลขบัตรประชาชน 1-2345-67890-12-3 ที่อยู่ 99/9 ถ.ตัวอย่าง แขวงตัวอย่าง เขตตัวอย่าง กรุงเทพมหานคร 10000 โทร 08-1234-5678 ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>" กับ ร้านไอโปรโปรโมบาย สาขาหล่มสัก เลขประจำตัวผู้เสียภาษี 1234567890123 ที่ตั้ง 14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110 โทร 02-123-4567 โดยTest Signer เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
+        ระหว่าง สมชาย ใจดี อายุ 32 ปี เลขบัตรประชาชน 1-2345-67890-12-3 ที่อยู่ 99/9 ถ.ตัวอย่าง แขวงตัวอย่าง เขตตัวอย่าง
+        กรุงเทพมหานคร 10000 โทร 08-1234-5678 ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>" กับ ร้านไอโปรโปรโมบาย สาขาหล่มสัก
+        เลขประจำตัวผู้เสียภาษี 1234567890123 ที่ตั้ง 14-15 ถ.พินิจ ต.หล่มสัก อ.หล่มสัก จ.เพชรบูรณ์ 67110 โทร 02-123-4567
+        โดยTest Signer เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
       </p>
 
       <div class="section-title">รายละเอียดทรัพย์สิน</div>
       <p class="indent">
-        โทรศัพท์มือถือยี่ห้อ Apple รุ่น iPhone 17 สี ดำ IMEI1: 3567 8901 2345 678 IMEI2: 3567 8901 2345 679 Serial: SN1234567890 สภาพดี มีรอยขนแมวเล็กน้อย อุปกรณ์: สายชาร์จแท้และกล่องเดิม
+        โทรศัพท์มือถือยี่ห้อ Apple รุ่น iPhone 17 สี ดำ IMEI1: 3567 8901 2345 678 IMEI2: 3567 8901 2345 679 Serial:
+        SN1234567890 สภาพดี มีรอยขนแมวเล็กน้อย อุปกรณ์: สายชาร์จแท้และกล่องเดิม
       </p>
 
       <div class="section-title">ข้อตกลงและเงื่อนไข</div>
-      <p class="terms">ข้อ 1. ผู้ซื้อฝากรับซื้อฝากในราคา 10,000 บาท ผู้ขายฝากได้รับเงินครบแล้ว ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนภายใน 30 วัน ชำระ 11,000 บาท ภายในวันที่ 13 พฤศจิกายน 2568 เวลา 18.00 น. ข้อ 3. หากไม่ชำระภายในกำหนด สละสิทธิ ผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน ข้อ 4. ผู้ขายฝากรับรองกรรมสิทธิ์ ไม่มีภาระผูกพัน ยินยอมตรวจสอบ IMEI/Serial ข้อ 5. กรณีสูญหาย/โจรกรรม แจ้งความและแจ้งผู้ซื้อฝากทันที ข้อ 6. ศาลในเขตผู้ซื้อฝากมีอำนาจพิจารณาข้อพิพาท</p>
+      <p class="terms">ข้อ 1. ผู้ซื้อฝากรับซื้อฝากในราคา 10,000 บาท ผู้ขายฝากได้รับเงินครบแล้ว ข้อ 2.
+        ผู้ขายฝากมีสิทธิไถ่ถอนภายใน 30 วัน ชำระ 11,000 บาท ภายในวันที่ 13 พฤศจิกายน 2568 เวลา 18.00 น. ข้อ 3.
+        หากไม่ชำระภายในกำหนด สละสิทธิ ผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน ข้อ 4. ผู้ขายฝากรับรองกรรมสิทธิ์ ไม่มีภาระผูกพัน
+        ยินยอมตรวจสอบ IMEI/Serial ข้อ 5. กรณีสูญหาย/โจรกรรม แจ้งความและแจ้งผู้ซื้อฝากทันที ข้อ 6.
+        ศาลในเขตผู้ซื้อฝากมีอำนาจพิจารณาข้อพิพาท</p>
 
       <div class="section-title">การรับเงินและยืนยัน</div>
       <p class="indent">
-        ผู้ขายฝากได้รับเงิน <span class="amount-underline">10,000</span> บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา ทำ ณ ร้านไอโปรโปรโมบาย สาขาหล่มสัก วันที่ 14 ตุลาคม 2568
+        ผู้ขายฝากได้รับเงิน <span class="amount-underline">10,000</span> บาท พร้อมส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วน
+        คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงลงนามและยอมรับผูกพันตามสัญญา ทำ ณ ร้านไอโปรโปรโมบาย สาขาหล่มสัก
+        วันที่ 14 ตุลาคม 2568
       </p>
     </div>
 
@@ -187,4 +238,5 @@
     </div>
   </div>
 </body>
+
 </html>

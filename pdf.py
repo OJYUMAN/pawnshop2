@@ -243,7 +243,7 @@ def _build_contract_html(
     body {{
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
-      background: #fff;
+      background: #F3F4F6;
       font-size: 15pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
       line-height: 1.4;          /* เพิ่มระยะห่างระหว่างบรรทัด */
     }}
