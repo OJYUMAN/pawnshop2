@@ -223,11 +223,27 @@ class PrintPreviewDialog(QDialog):
                         output_file=self.temp_pdf_path
                     )
                 else:
-                    self.pdf_generator_func(
-                        contract_data=self.contract_data, customer_data=self.customer_data,
-                        product_data=self.product_data, shop_data=self.shop_data,
-                        output_file=self.temp_pdf_path
-                    )
+                    # For redemption contracts, use original_contract_data for contract info
+                    # but merge with redemption data for amounts
+                    if self.contract_type == "redemption" and self.original_contract_data:
+                        # Merge original contract data with redemption data
+                        merged_contract_data = {
+                            **self.original_contract_data,
+                            'total_redemption': self.contract_data.get('redemption_amount', 0),
+                            'redemption_date': self.contract_data.get('redemption_date', ''),
+                            'signed_date': self.contract_data.get('redemption_date', '')
+                        }
+                        self.pdf_generator_func(
+                            contract_data=merged_contract_data, customer_data=self.customer_data,
+                            product_data=self.product_data, shop_data=self.shop_data,
+                            output_file=self.temp_pdf_path
+                        )
+                    else:
+                        self.pdf_generator_func(
+                            contract_data=self.contract_data, customer_data=self.customer_data,
+                            product_data=self.product_data, shop_data=self.shop_data,
+                            output_file=self.temp_pdf_path
+                        )
             else:
                 # ตัวอย่าง minimal
                 from reportlab.lib.pagesizes import A4

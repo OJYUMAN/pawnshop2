@@ -1781,10 +1781,12 @@ class RedemptionDialog(QDialog):
             original_contract_data = {
                 'contract_number': self.contract_data.get('contract_number', ''),
                 'start_date': self.contract_data.get('start_date', ''),
+                'start_time': self.contract_data.get('start_time', ''),
                 'end_date': self.contract_data.get('end_date', ''),
                 'days_count': self.contract_data.get('days_count', 0),
                 'pawn_amount': self.contract_data.get('pawn_amount', 0),
-                'estimated_value': self.contract_data.get('estimated_value', 0)
+                'estimated_value': self.contract_data.get('estimated_value', 0),
+                'copy_number': self.contract_data.get('copy_number', 1)
             }
             
             # สร้างข้อมูลลูกค้าที่ครบถ้วน
@@ -1794,29 +1796,42 @@ class RedemptionDialog(QDialog):
                 'last_name': customer.get('last_name', ''),
                 'phone': customer.get('phone', ''),
                 'id_card': customer.get('id_card', ''),
+                'age': customer.get('age', ''),
                 'house_number': customer.get('house_number', ''),
                 'street': customer.get('street', ''),
                 'subdistrict': customer.get('subdistrict', ''),
                 'district': customer.get('district', ''),
-                'province': customer.get('province', '')
+                'province': customer.get('province', ''),
+                'postcode': customer.get('postcode', '')
             }
             
             default_shop_config = load_shop_config()
             # ข้อมูลร้านค้า
             shop_data = {
-                'name': default_shop_config['name'],
-                'branch': default_shop_config['branch'],
-                'address': default_shop_config['address']
+                'name': default_shop_config.get('name', ''),
+                'branch': default_shop_config.get('branch', ''),
+                'address': default_shop_config.get('address', ''),
+                'tax_id': default_shop_config.get('tax_id', ''),
+                'phone': default_shop_config.get('phone', ''),
+                'authorized_signer': default_shop_config.get('authorized_signer', ''),
+                'buyer_signer_name': default_shop_config.get('buyer_signer_name', ''),
+                'witness_name': default_shop_config.get('witness_name', '')
             }
-
+            
             # สร้างข้อมูลสินค้าที่ครบถ้วน
             product_data = {
                 'name': product.get('name', ''),
                 'brand': product.get('brand', ''),
+                'model': product.get('model', ''),
+                'color': product.get('color', ''),
+                'imei1': product.get('imei1', ''),
+                'imei2': product.get('imei2', ''),
+                'serial_number': product.get('serial_number', ''),
+                'condition': product.get('condition', 'สภาพโดยรวมดี'),
+                'accessories': product.get('accessories', 'สายชาร์จและกล่องเดิม'),
                 'size': product.get('size', ''),
                 'weight': product.get('weight', ''),
                 'weight_unit': product.get('weight_unit', ''),
-                'serial_number': product.get('serial_number', ''),
                 'other_details': product.get('other_details', '')
             }
             
