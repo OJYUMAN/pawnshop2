@@ -244,8 +244,8 @@ def _build_contract_html(
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
       background: #fff;
-      font-size: 22pt;           /* ลดขนาดตัวอักษร */
-      line-height: 1.1;          /* แน่นขึ้น */
+      font-size: 15pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      line-height: 1.4;          /* เพิ่มระยะห่างระหว่างบรรทัด */
     }}
 
     .page {{
@@ -261,9 +261,9 @@ def _build_contract_html(
     h1 {{
       text-align: center;
       font-weight: 700;
-      font-size: 28pt;           /* ลดขนาดหัวข้อ */
+      font-size: 21pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
       margin: 0;
-      line-height: 1.0;
+      line-height: 1.2;
       padding: 0.5mm 1mm 0 1mm;  /* ลด padding */
     }}
 
@@ -276,27 +276,29 @@ def _build_contract_html(
       justify-content: space-between;
       gap: 2mm;                  /* ลด gap */
       margin: 0.3mm 0;           /* ลด margin */
-      font-size: 20pt;           /* ลดขนาดตัวอักษร */
+      font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      line-height: 1.3;
     }}
 
     .section-title {{
       font-weight: 700;
       margin: 0.5mm 0 0.3mm 0;   /* ลด margin */
       padding: 0 1mm;            /* ลด padding */
-      line-height: 1.1;
-      font-size: 24pt;           /* ลดขนาดหัวข้อ */
+      line-height: 1.3;
+      font-size: 17pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น */
     }}
 
     p {{
       margin: 0.3mm 0;           /* ลด margin */
       padding: 0 1mm;            /* ลด padding */
       text-align: justify;
+      line-height: 1.4;
     }}
     .indent {{ text-indent: 5mm; }} /* ลดการเยื้อง */
 
     .terms {{
-      font-size: 16pt;           /* ลดขนาดตัวอักษร */
-      line-height: 1.1;          /* แน่นขึ้น */
+      font-size: 11pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
+      line-height: 1.5;          /* เพิ่มระยะห่างระหว่างบรรทัด */
       margin-top: 0.3mm;         /* ลด margin */
       text-align: justify;
       padding: 0 1mm;            /* ลด padding */
@@ -309,19 +311,19 @@ def _build_contract_html(
       text-align: center;
       padding: 0 1mm;            /* ลด padding */
       margin: 0;
-      font-size: 18pt;           /* ลดขนาดตัวอักษร */
+      font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
     }}
     .sig-line {{ 
       white-space: nowrap;
-      line-height: 1.0;          /* แน่นขึ้น */
+      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
     }}
 
     .foot {{
-      font-size: 12pt;           /* ลดขนาดตัวอักษร */
+      font-size: 8pt;            /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น */
       text-align: right;
       padding: 0 1mm;            /* ลด padding */
       margin: 0;
-      line-height: 1.0;          /* แน่นขึ้น */
+      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
     }}
   </style>
 </head>
