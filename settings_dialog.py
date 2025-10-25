@@ -102,6 +102,13 @@ class SettingsDialog(QDialog):
         self.buyer_signer_name_edit = QLineEdit()
         self.witness_name_edit = QLineEdit()
         
+        # Paper mode setting
+        self.paper_mode_combo = QComboBox()
+        self.paper_mode_combo.addItems([
+            "A4 เต็มแผ่น (210×297 mm)",
+            "ต่อเนื่อง ครึ่ง A4 (210×148.5 mm) → 2 หน้า/แผ่น A4"
+        ])
+        
         # เพิ่มฟิลด์ลงในฟอร์ม
         pdf_layout.addRow(language_manager.get_text("shop_name"), self.shop_name_edit)
         pdf_layout.addRow(language_manager.get_text("shop_branch"), self.shop_branch_edit)
@@ -111,6 +118,7 @@ class SettingsDialog(QDialog):
         pdf_layout.addRow(language_manager.get_text("authorized_signer"), self.authorized_signer_edit)
         pdf_layout.addRow(language_manager.get_text("buyer_signer_name"), self.buyer_signer_name_edit)
         pdf_layout.addRow(language_manager.get_text("witness_name"), self.witness_name_edit)
+        pdf_layout.addRow("โหมดกระดาษเริ่มต้น:", self.paper_mode_combo)
         
         self.tab_widget.addTab(pdf_widget, language_manager.get_text("pdf_settings"))
     
@@ -162,6 +170,10 @@ class SettingsDialog(QDialog):
         self.buyer_signer_name_edit.setText(shop_config.get('buyer_signer_name', ''))
         self.witness_name_edit.setText(shop_config.get('witness_name', ''))
         
+        # Load paper mode setting
+        default_paper_mode = shop_config.get('default_paper_mode', 1)
+        self.paper_mode_combo.setCurrentIndex(default_paper_mode)
+        
         # อัปเดตข้อความใน ComboBox ตามภาษาปัจจุบัน
         self.update_combo_texts()
         
@@ -188,7 +200,8 @@ class SettingsDialog(QDialog):
             'buyer_signer_name': self.buyer_signer_name_edit.text(),
             'witness_name': self.witness_name_edit.text(),
             'interest_rate': self.interest_rate_spin.value(),
-            'auto_calculate_interest': self.auto_calculate_checkbox.isChecked()
+            'auto_calculate_interest': self.auto_calculate_checkbox.isChecked(),
+            'default_paper_mode': self.paper_mode_combo.currentIndex()
         }
         save_shop_config(shop_data)
         

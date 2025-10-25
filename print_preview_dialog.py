@@ -115,6 +115,8 @@ class PrintPreviewDialog(QDialog):
             "A4 เต็มแผ่น (210×297 mm)",
             "ต่อเนื่อง ครึ่ง A4 (210×148.5 mm) → 2 หน้า/แผ่น A4"
         ])
+        # Set default paper mode from configuration
+        self._set_default_paper_mode()
         row1.addWidget(self.mode_combo)
 
         row1.addWidget(QLabel("Scale %:"))
@@ -208,6 +210,18 @@ class PrintPreviewDialog(QDialog):
         except Exception as e:
             print("load printers error:", e)
             self.printer_combo.addItem("ไม่สามารถโหลดรายการเครื่องปริ้น"); self.print_radio.setEnabled(False)
+
+    def _set_default_paper_mode(self):
+        """Set default paper mode from shop configuration"""
+        try:
+            from shop_config_loader import load_shop_config
+            shop_config = load_shop_config()
+            default_mode = shop_config.get('default_paper_mode', 1)  # Default to Half-A4 continuous
+            self.mode_combo.setCurrentIndex(default_mode)
+        except Exception as e:
+            print("Error loading paper mode setting:", e)
+            # Default to Half-A4 continuous (index 1)
+            self.mode_combo.setCurrentIndex(1)
 
     def _generate_preview(self):
         try:

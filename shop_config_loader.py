@@ -39,7 +39,8 @@ def load_shop_config(config_file="shop_config.json"):
                     'buyer_signer_name': config.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
                     'witness_name': config.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง'),
                     'interest_rate': config.get('interest_rate', 10.0),
-                    'auto_calculate_interest': config.get('auto_calculate_interest', True)
+                    'auto_calculate_interest': config.get('auto_calculate_interest', True),
+                    'default_paper_mode': config.get('default_paper_mode', 1)
                 }
         else:
             print("Warning: Shop config file not found at {}, using defaults".format(config_path))
@@ -66,7 +67,8 @@ def get_default_shop_config():
         'buyer_signer_name': 'นายประเสริฐ ใจดี',
         'witness_name': 'นางสาวมั่นใจ ถูกต้อง',
         'interest_rate': 10.0,
-        'auto_calculate_interest': True
+        'auto_calculate_interest': True,
+        'default_paper_mode': 1  # 0=A4, 1=Half-A4 continuous
     }
 
 
