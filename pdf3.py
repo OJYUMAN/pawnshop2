@@ -226,9 +226,15 @@ def _build_redemption_contract_html(
     contract_number_font = scale_font(16)
     section_title_font = scale_font(15)
     term_large_font = scale_font(11)
-    term_small_font = scale_font(9)
+    term_small_font = scale_font(10)
     signature_font = scale_font(11)
     foot_font = scale_font(6)
+    # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
+    # ที่ขนาด 85 (multiplier = 0.85) ระยะห่างเป็น 0
+    if abs(font_size_multiplier - 0.85) < 0.01:
+        signature_margin_top = -20
+    else:
+        signature_margin_top = 8 * font_size_multiplier
 
     # HTML + CSS (inline) — ครึ่งหน้า A4, 0 margin, ตัวอักษรใหญ่
     html_doc = f"""<!DOCTYPE html>
@@ -256,7 +262,7 @@ def _build_redemption_contract_html(
     body {{
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
-      background: #F3F4F6;
+      background: white;
       font-size: {body_font}pt;
       line-height: 1.4;
     }}
@@ -340,7 +346,7 @@ def _build_redemption_contract_html(
       gap: 1mm;
       text-align: center;
       padding: 0 1mm;
-      margin: 0;
+      margin: {signature_margin_top}mm 0 0 0;
       font-size: {signature_font}pt;
     }}
     .sig-line {{ 
@@ -423,6 +429,7 @@ def generate_redemption_contract_html(
     shop_data: Optional[Dict] = None,
     output_file: Optional[str] = None,
     witness_name: Optional[str] = None,  # kept for API compatibility (handled in shop_data/witness)
+    font_size_multiplier: float = 1.0,
 ) -> str:
     """
     เขียนไฟล์ HTML ของสัญญาไถ่คืน (ครึ่ง A4, margin=0, ตัวอักษรใหญ่)
@@ -432,7 +439,7 @@ def generate_redemption_contract_html(
         shop_data = dict(shop_data or {})
         shop_data["witness_name"] = witness_name
 
-    html_doc = _build_redemption_contract_html(contract_data, customer_data, product_data, shop_data)
+    html_doc = _build_redemption_contract_html(contract_data, customer_data, product_data, shop_data, font_size_multiplier)
 
     if not output_file:
         contract_number = contract_data.get("contract_number", "unknown")

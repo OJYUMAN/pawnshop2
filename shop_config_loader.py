@@ -4,6 +4,30 @@ Utility module for loading shop configuration from JSON file
 """
 import json
 import os
+import sys
+
+
+def get_config_file_path(config_file="shop_config.json"):
+    """
+    Get the correct path for the config file based on execution mode
+    
+    Args:
+        config_file: Name of the config file
+        
+    Returns:
+        Absolute path to where the config file should be read/written
+    """
+    # Check if running from PyInstaller bundle
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        # Get the directory where the exe is located
+        exe_dir = os.path.dirname(sys.executable)
+        config_path = os.path.join(exe_dir, config_file)
+    else:
+        # Running in development mode
+        config_path = os.path.join(os.path.dirname(__file__), config_file)
+    
+    return config_path
 
 
 def load_shop_config(config_file="shop_config.json"):
@@ -20,14 +44,11 @@ def load_shop_config(config_file="shop_config.json"):
         - address: Shop address
     """
     try:
-        # Try to find the config file in the current directory
-        if not os.path.isabs(config_file):
-            config_path = os.path.join(os.path.dirname(__file__), config_file)
-        else:
-            config_path = config_file
+        # Get the correct config path based on execution mode
+        config_path = get_config_file_path(config_file)
             
         if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
+            with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
                 return {
                     'name': config.get('shop_name', 'ร้าน ไอโปรโมบาย'),
@@ -41,7 +62,7 @@ def load_shop_config(config_file="shop_config.json"):
                     'interest_rate': config.get('interest_rate', 10.0),
                     'auto_calculate_interest': config.get('auto_calculate_interest', True),
                     'default_paper_mode': config.get('default_paper_mode', 1),
-                    'font_size_percent': config.get('font_size_percent', 100)
+                    'font_size_percent': config.get('font_size_percent', 55)
                 }
         else:
             print("Warning: Shop config file not found at {}, using defaults".format(config_path))
@@ -70,7 +91,7 @@ def get_default_shop_config():
         'interest_rate': 10.0,
         'auto_calculate_interest': True,
         'default_paper_mode': 1,  # 0=A4, 1=Half-A4 continuous
-        'font_size_percent': 100  # Default 100%
+        'font_size_percent': 55  # Default 55% (0.55) เพื่อให้พอดีครึ่งหน้า A4
     }
 
 
@@ -86,10 +107,8 @@ def save_shop_config(shop_data, config_file="shop_config.json"):
         True if successful, False otherwise
     """
     try:
-        if not os.path.isabs(config_file):
-            config_path = os.path.join(os.path.dirname(__file__), config_file)
-        else:
-            config_path = config_file
+        # Get the correct config path based on execution mode
+        config_path = get_config_file_path(config_file)
             
         config = {
             'shop_name': shop_data.get('name', 'ร้าน ไอโปรโมบาย'),
@@ -103,14 +122,23 @@ def save_shop_config(shop_data, config_file="shop_config.json"):
             'interest_rate': shop_data.get('interest_rate', 10.0),
             'auto_calculate_interest': shop_data.get('auto_calculate_interest', True),
             'default_paper_mode': shop_data.get('default_paper_mode', 1),
-            'font_size_percent': shop_data.get('font_size_percent', 100)
+            'font_size_percent': shop_data.get('font_size_percent', 55)
         }
         
-        with open(config_path, 'w') as f:
+        # Ensure the directory exists
+        config_dir = os.path.dirname(config_path)
+        if config_dir and not os.path.exists(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, ensure_ascii=False, indent=2)
+        
+        print("Successfully saved shop config to: {}".format(config_path))
         return True
     except Exception as e:
         print("Error saving shop config: {}".format(e))
+        import traceback
+        traceback.print_exc()
         return False
 
 

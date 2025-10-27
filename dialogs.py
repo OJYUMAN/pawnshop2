@@ -1835,27 +1835,65 @@ class RedemptionDialog(QDialog):
                 'other_details': product.get('other_details', '')
             }
             
-            # ใช้ระบบพรีวิวใหม่
-            from print_preview_dialog import show_print_preview
+            # สร้าง PDF และเปิดด้วย Microsoft Edge
             from pdf3 import generate_redemption_ticket_pdf_data as pdf_generator
+            import tempfile
+            import subprocess
+            import os
+            import platform
             
-            success = show_print_preview(
-                parent=self,
-                contract_type="redemption",
-                pdf_generator_func=pdf_generator,
-                contract_data=redemption_pdf_data,
+            # ดึงค่า font_size_percent จาก config
+            font_size_percent = default_shop_config.get('font_size_percent', 55)
+            font_size_multiplier = font_size_percent / 100.0
+            
+            # สร้างข้อมูลสัญญาแบบ merged
+            merged_contract_data = {
+                **original_contract_data,
+                'total_redemption': redemption_data.get('redemption_amount', 0),
+                'redemption_date': redemption_data.get('redemption_date', ''),
+                'signed_date': redemption_data.get('redemption_date', ''),
+                'original_contract_number': original_contract_data.get('contract_number', '')
+            }
+            
+            # สร้างไฟล์ PDF ชั่วคราว
+            temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+            temp_file.close()
+            
+            # สร้าง PDF
+            pdf_generator(
+                contract_data=merged_contract_data,
                 customer_data=customer_data,
                 product_data=product_data,
-                original_contract_data=original_contract_data,
-                shop_data=shop_data
+                shop_data=shop_data,
+                output_file=temp_file.name,
+                font_size_multiplier=font_size_multiplier
             )
             
-            if success:
-                QMessageBox.information(self, "สำเร็จ", "ดำเนินการเสร็จสิ้น")
-                # ในกรณีเป็นการไถ่คืนจริง สามารถสั่งพิมพ์ต่อได้ถ้าต้องการ
-                if redemption_id is not None:
-                    # เปิดหน้าต่างเลือกเครื่องปริ้นอีกครั้งถ้าต้องการ
-                    pass
+            # เปิดด้วย Microsoft Edge บน Windows
+            if platform.system() == "Windows":
+                # ลองหาตำแหน่ง msedge
+                edge_paths = [
+                    os.path.join(os.environ.get('PROGRAMFILES(X86)', r'C:\Program Files (x86)'), 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                    os.path.join(os.environ.get('PROGRAMFILES', r'C:\Program Files'), 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                    r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+                    r'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+                ]
+                
+                edge_found = False
+                for edge_path in edge_paths:
+                    if os.path.exists(edge_path):
+                        subprocess.Popen([edge_path, temp_file.name])
+                        edge_found = True
+                        break
+                
+                if not edge_found:
+                    # ถ้าไม่เจอ Edge ให้ใช้โปรแกรม default
+                    os.startfile(temp_file.name)
+            else:
+                # สำหรับ macOS และ Linux
+                subprocess.Popen(["xdg-open" if platform.system() == "Linux" else "open", temp_file.name])
+            
+            QMessageBox.information(self, "สำเร็จ", "เปิดเอกสารด้วย Microsoft Edge แล้ว")
                 
         except ImportError:
             QMessageBox.critical(self, "ผิดพลาด", "ไม่สามารถนำเข้า pdf3.py ได้\nกรุณาตรวจสอบว่าไฟล์ pdf3.py อยู่ในโฟลเดอร์เดียวกัน")

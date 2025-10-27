@@ -1,8 +1,33 @@
 import json
 import os
+import sys
 from PySide6.QtCore import QObject, Signal
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.json")
+
+def get_config_file_path(config_file="config.json"):
+    """
+    Get the correct path for the config file based on execution mode
+    
+    Args:
+        config_file: Name of the config file
+        
+    Returns:
+        Absolute path to where the config file should be read/written
+    """
+    # Check if running from PyInstaller bundle
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        # Get the directory where the exe is located
+        exe_dir = os.path.dirname(sys.executable)
+        config_path = os.path.join(exe_dir, config_file)
+    else:
+        # Running in development mode
+        config_path = os.path.join(os.path.dirname(__file__), config_file)
+    
+    return config_path
+
+
+CONFIG_FILE = get_config_file_path("config.json")
 
 _TRANSLATIONS = {
     "th": {
@@ -786,9 +811,17 @@ class LanguageManager(QObject):
 
     def _save_language_to_config(self):
         try:
+            # Ensure the directory exists
+            config_dir = os.path.dirname(CONFIG_FILE)
+            if config_dir and not os.path.exists(config_dir):
+                os.makedirs(config_dir, exist_ok=True)
+            
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump({"language": self._current_language}, f, ensure_ascii=False, indent=2)
-        except Exception:
+        except Exception as e:
+            print(f"Error saving language config: {e}")
+            import traceback
+            traceback.print_exc()
             pass
 
     def get_current_language(self) -> str:

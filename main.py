@@ -79,7 +79,10 @@ ICON_MAP = {
 class PawnShopUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.db = PawnShopDatabase()
+        
+        # Get writable database path for both dev and exe modes
+        db_path = self._get_database_path()
+        self.db = PawnShopDatabase(db_path)
         self.current_customer = None
         self.current_product = None
         self.current_contract = None
@@ -2735,22 +2738,58 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             product_data = self.current_product
             shop_data = self.get_shop_data()
             
-            # ใช้ระบบพรีวิวใหม่
-            from print_preview_dialog import show_print_preview
+            # สร้าง PDF และเปิดด้วย Microsoft Edge
             from pdf import generate_pawn_ticket_from_data as pdf_generator
+            from shop_config_loader import load_shop_config
+            import tempfile
+            import subprocess
+            import os
+            import platform
             
-            success = show_print_preview(
-                parent=self,
-                contract_type="pawn",
-                pdf_generator_func=pdf_generator,
+            # ดึงค่า font_size_percent จาก config
+            config = load_shop_config() or {}
+            font_size_percent = config.get('font_size_percent', 55)
+            font_size_multiplier = font_size_percent / 100.0
+            
+            # สร้างไฟล์ PDF ชั่วคราว
+            temp_file = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
+            temp_file.close()
+            
+            # สร้าง PDF
+            pdf_generator(
                 contract_data=contract_data,
                 customer_data=customer_data,
                 product_data=product_data,
-                shop_data=shop_data
+                shop_data=shop_data,
+                output_file=temp_file.name,
+                font_size_multiplier=font_size_multiplier
             )
             
-            if success:
-                QMessageBox.information(self, "สำเร็จ", "ดำเนินการเสร็จสิ้น")
+            # เปิดด้วย Microsoft Edge บน Windows
+            if platform.system() == "Windows":
+                # ลองหาตำแหน่ง msedge
+                edge_paths = [
+                    os.path.join(os.environ.get('PROGRAMFILES(X86)', r'C:\Program Files (x86)'), 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                    os.path.join(os.environ.get('PROGRAMFILES', r'C:\Program Files'), 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+                    r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+                    r'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+                ]
+                
+                edge_found = False
+                for edge_path in edge_paths:
+                    if os.path.exists(edge_path):
+                        subprocess.Popen([edge_path, temp_file.name])
+                        edge_found = True
+                        break
+                
+                if not edge_found:
+                    # ถ้าไม่เจอ Edge ให้ใช้โปรแกรม default
+                    os.startfile(temp_file.name)
+            else:
+                # สำหรับ macOS และ Linux
+                subprocess.Popen(["xdg-open" if platform.system() == "Linux" else "open", temp_file.name])
+            
+            QMessageBox.information(self, "สำเร็จ", "เปิดเอกสารด้วย Microsoft Edge แล้ว")
 
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", "เกิดข้อผิดพลาดในการสร้าง/พรีวิว PDF: " + str(e))
@@ -3449,6 +3488,20 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
         except Exception as e:
             print(f"เกิดข้อผิดพลาดในการตรวจสอบสัญญาหมดอายุ: {e}")
 
+    def _get_database_path(self):
+        """Get writable database path for both development and PyInstaller executable modes"""
+        # Check if running from PyInstaller bundle
+        if getattr(sys, 'frozen', False):
+            # Running as compiled executable
+            # Get the directory where the exe is located
+            exe_dir = os.path.dirname(sys.executable)
+            db_path = os.path.join(exe_dir, 'pawnshop.db')
+        else:
+            # Running in development mode
+            db_path = os.path.join(os.path.dirname(__file__), 'pawnshop.db')
+        
+        return db_path
+    
     def show_pdf_generation_dialog(self, contract_data):
         """แสดง dialog ให้เลือกสร้าง PDF หลังจากบันทึกสัญญา"""
         try:
