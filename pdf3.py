@@ -140,6 +140,7 @@ def _build_redemption_contract_html(
     customer_data: Dict,
     product_data: Dict,
     shop_data: Optional[Dict] = None,
+    font_size_multiplier: float = 1.0,
 ) -> str:
     # ร้าน
     default_shop = {}
@@ -215,6 +216,20 @@ def _build_redemption_contract_html(
     # ฟุตเตอร์เวลา
     now_str = datetime.now().strftime('%d/%m/%Y %H:%M')
 
+    # คำนวณขนาดตัวอักษรตาม multiplier
+    def scale_font(base_size):
+        return base_size * font_size_multiplier
+    
+    body_font = scale_font(13)
+    h1_font = scale_font(19)
+    meta_font = scale_font(11)
+    contract_number_font = scale_font(16)
+    section_title_font = scale_font(15)
+    term_large_font = scale_font(11)
+    term_small_font = scale_font(9)
+    signature_font = scale_font(11)
+    foot_font = scale_font(6)
+
     # HTML + CSS (inline) — ครึ่งหน้า A4, 0 margin, ตัวอักษรใหญ่
     html_doc = f"""<!DOCTYPE html>
 <html lang="th">
@@ -242,8 +257,8 @@ def _build_redemption_contract_html(
       font-family: 'THSarabunLocal', 'NotoThaiLocal', 'Noto Sans Thai', system-ui, sans-serif;
       color: #000;
       background: #F3F4F6;
-      font-size: 13pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น (ลดจาก 15pt) */
-      line-height: 1.4;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      font-size: {body_font}pt;
+      line-height: 1.4;
     }}
 
     .page {{
@@ -259,61 +274,61 @@ def _build_redemption_contract_html(
     h1 {{
       text-align: center;
       font-weight: 700;
-      font-size: 19pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น (ลดจาก 21pt) */
+      font-size: {h1_font}pt;
       margin: 0;
       line-height: 1.2;
-      padding: 0.5mm 1mm 0 1mm;  /* ลด padding */
+      padding: 0.5mm 1mm 0 1mm;
     }}
 
     .meta {{
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
       margin: 0;
     }}
     .meta .row {{
       display: flex;
       justify-content: space-between;
-      gap: 2mm;                  /* ลด gap */
-      margin: 0.3mm 0;           /* ลด margin */
-      font-size: 11pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น (ลดจาก 13pt) */
+      gap: 2mm;
+      margin: 0.3mm 0;
+      font-size: {meta_font}pt;
       line-height: 1.3;
     }}
     .contract-number {{
-      font-size: 16pt;           /* ใหญ่ขึ้น (ลดจาก 18pt) */
-      font-weight: 700;          /* ตัวหนา */
+      font-size: {contract_number_font}pt;
+      font-weight: 700;
       color: #000;
     }}
 
     .section-title {{
       font-weight: 700;
-      margin: 0.5mm 0 0.3mm 0;   /* ลด margin */
-      padding: 0 1mm;            /* ลด padding */
+      margin: 0.5mm 0 0.3mm 0;
+      padding: 0 1mm;
       line-height: 1.3;
-      font-size: 15pt;           /* ลดขนาดหัวข้อให้อ่านง่ายขึ้น (ลดจาก 17pt) */
+      font-size: {section_title_font}pt;
     }}
 
     p {{
-      margin: 0.3mm 0;           /* ลด margin */
-      padding: 0 1mm;            /* ลด padding */
+      margin: 0.3mm 0;
+      padding: 0 1mm;
       text-align: justify;
       line-height: 1.4;
     }}
-    .indent {{ text-indent: 5mm; }} /* ลดการเยื้อง */
+    .indent {{ text-indent: 5mm; }}
 
     .terms {{
-      margin-top: 0.3mm;         /* ลด margin */
-      padding: 0 1mm;            /* ลด padding */
+      margin-top: 0.3mm;
+      padding: 0 1mm;
     }}
     
     .term-large {{
-      font-size: 11pt;           /* ข้อ 1-2 ตัวใหญ่ขึ้น (ลดจาก 13pt) */
-      font-weight: 700;          /* ตัวหนา */
+      font-size: {term_large_font}pt;
+      font-weight: 700;
       line-height: 1.6;
       margin: 1mm 0;
       text-align: justify;
     }}
     
     .term-small {{
-      font-size: 9pt;            /* ข้อ 3-5 ตัวเล็กเท่าเดิม (ลดจาก 11pt) */
+      font-size: {term_small_font}pt;
       line-height: 1.5;
       margin: 1mm 0;
       text-align: justify;
@@ -322,23 +337,23 @@ def _build_redemption_contract_html(
     .signatures {{
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1mm;                  /* ลด gap */
+      gap: 1mm;
       text-align: center;
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
       margin: 0;
-      font-size: 11pt;           /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น (ลดจาก 13pt) */
+      font-size: {signature_font}pt;
     }}
     .sig-line {{ 
       white-space: nowrap;
-      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      line-height: 1.3;
     }}
 
     .foot {{
-      font-size: 6pt;            /* ลดขนาดตัวอักษรให้อ่านง่ายขึ้น (ลดจาก 8pt) */
+      font-size: {foot_font}pt;
       text-align: right;
-      padding: 0 1mm;            /* ลด padding */
+      padding: 0 1mm;
       margin: 0;
-      line-height: 1.3;          /* เพิ่มระยะห่างระหว่างบรรทัด */
+      line-height: 1.3;
     }}
 
     .amount-underline {{
@@ -432,11 +447,12 @@ def generate_redemption_ticket_pdf_data(
     product_data: Dict,
     shop_data: Optional[Dict] = None,
     output_file: Optional[str] = None,
+    font_size_multiplier: float = 1.0,
 ) -> str:
     """
     สร้าง PDF สัญญาไถ่คืนแบบครึ่งหน้า A4 ด้วย WeasyPrint เท่านั้น
     """
-    html_doc = _build_redemption_contract_html(contract_data, customer_data, product_data, shop_data)
+    html_doc = _build_redemption_contract_html(contract_data, customer_data, product_data, shop_data, font_size_multiplier)
 
     if not output_file:
         contract_number = contract_data.get("contract_number", "unknown")
@@ -459,7 +475,8 @@ def generate_redemption_ticket_from_data(
     product_data: Dict,
     shop_data: Optional[Dict] = None,
     show_preview: bool = False,  # kept for API compatibility (unused)
-    output_file: Optional[str] = None
+    output_file: Optional[str] = None,
+    font_size_multiplier: float = 1.0,
 ) -> str:
     """
     Alias (เพื่อความเข้ากันได้กับโค้ดเดิม)
@@ -469,7 +486,8 @@ def generate_redemption_ticket_from_data(
         customer_data=customer_data,
         product_data=product_data,
         shop_data=shop_data,
-        output_file=output_file
+        output_file=output_file,
+        font_size_multiplier=font_size_multiplier
     )
 
 # ---------- Quick demo ----------

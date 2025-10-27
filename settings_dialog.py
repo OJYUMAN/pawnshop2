@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
     QPushButton, QGroupBox, QFormLayout, QTabWidget, QLineEdit, QTextEdit,
-    QDoubleSpinBox, QCheckBox
+    QDoubleSpinBox, QCheckBox, QSpinBox
 )
 from PySide6.QtCore import Qt
 from language_manager import language_manager
@@ -109,6 +109,13 @@ class SettingsDialog(QDialog):
             "ต่อเนื่อง ครึ่ง A4 (210×148.5 mm) → 2 หน้า/แผ่น A4"
         ])
         
+        # Font size setting
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(50, 200)
+        self.font_size_spin.setSuffix(" %")
+        self.font_size_spin.setValue(100)  # Default 100% (1.0 multiplier)
+        self.font_size_spin.setToolTip("ปรับขนาดตัวอักษรในเอกสาร PDF (50% - 200%)")
+        
         # เพิ่มฟิลด์ลงในฟอร์ม
         pdf_layout.addRow(language_manager.get_text("shop_name"), self.shop_name_edit)
         pdf_layout.addRow(language_manager.get_text("shop_branch"), self.shop_branch_edit)
@@ -119,6 +126,7 @@ class SettingsDialog(QDialog):
         pdf_layout.addRow(language_manager.get_text("buyer_signer_name"), self.buyer_signer_name_edit)
         pdf_layout.addRow(language_manager.get_text("witness_name"), self.witness_name_edit)
         pdf_layout.addRow("โหมดกระดาษเริ่มต้น:", self.paper_mode_combo)
+        pdf_layout.addRow("ขนาดตัวอักษร:", self.font_size_spin)
         
         self.tab_widget.addTab(pdf_widget, language_manager.get_text("pdf_settings"))
     
@@ -174,6 +182,10 @@ class SettingsDialog(QDialog):
         default_paper_mode = shop_config.get('default_paper_mode', 1)
         self.paper_mode_combo.setCurrentIndex(default_paper_mode)
         
+        # Load font size setting
+        font_size_percent = shop_config.get('font_size_percent', 100)
+        self.font_size_spin.setValue(font_size_percent)
+        
         # อัปเดตข้อความใน ComboBox ตามภาษาปัจจุบัน
         self.update_combo_texts()
         
@@ -201,7 +213,8 @@ class SettingsDialog(QDialog):
             'witness_name': self.witness_name_edit.text(),
             'interest_rate': self.interest_rate_spin.value(),
             'auto_calculate_interest': self.auto_calculate_checkbox.isChecked(),
-            'default_paper_mode': self.paper_mode_combo.currentIndex()
+            'default_paper_mode': self.paper_mode_combo.currentIndex(),
+            'font_size_percent': self.font_size_spin.value()
         }
         save_shop_config(shop_data)
         

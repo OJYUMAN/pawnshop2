@@ -2797,6 +2797,12 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             
             # นำเข้าฟังก์ชันจาก pdf.py
             from pdf import generate_pawn_ticket_from_data
+            from shop_config_loader import load_shop_config
+            
+            # โหลดการตั้งค่า font size
+            shop_config = load_shop_config()
+            font_size_percent = shop_config.get('font_size_percent', 100)
+            font_size_multiplier = font_size_percent / 100.0
             
             # สร้างข้อมูลสัญญาจาก UI
             contract_data = {
@@ -2825,7 +2831,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
                 product_data=self.current_product,
                 shop_data=shop_data,
                 output_file=file_path,
-                renewal_data=renewal_data
+                font_size_multiplier=font_size_multiplier
             )
             
             if not result:

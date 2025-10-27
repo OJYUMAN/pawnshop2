@@ -40,7 +40,8 @@ def load_shop_config(config_file="shop_config.json"):
                     'witness_name': config.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง'),
                     'interest_rate': config.get('interest_rate', 10.0),
                     'auto_calculate_interest': config.get('auto_calculate_interest', True),
-                    'default_paper_mode': config.get('default_paper_mode', 1)
+                    'default_paper_mode': config.get('default_paper_mode', 1),
+                    'font_size_percent': config.get('font_size_percent', 100)
                 }
         else:
             print("Warning: Shop config file not found at {}, using defaults".format(config_path))
@@ -68,7 +69,8 @@ def get_default_shop_config():
         'witness_name': 'นางสาวมั่นใจ ถูกต้อง',
         'interest_rate': 10.0,
         'auto_calculate_interest': True,
-        'default_paper_mode': 1  # 0=A4, 1=Half-A4 continuous
+        'default_paper_mode': 1,  # 0=A4, 1=Half-A4 continuous
+        'font_size_percent': 100  # Default 100%
     }
 
 
@@ -99,7 +101,9 @@ def save_shop_config(shop_data, config_file="shop_config.json"):
             'buyer_signer_name': shop_data.get('buyer_signer_name', 'นายประเสริฐ ใจดี'),
             'witness_name': shop_data.get('witness_name', 'นางสาวมั่นใจ ถูกต้อง'),
             'interest_rate': shop_data.get('interest_rate', 10.0),
-            'auto_calculate_interest': shop_data.get('auto_calculate_interest', True)
+            'auto_calculate_interest': shop_data.get('auto_calculate_interest', True),
+            'default_paper_mode': shop_data.get('default_paper_mode', 1),
+            'font_size_percent': shop_data.get('font_size_percent', 100)
         }
         
         with open(config_path, 'w') as f:

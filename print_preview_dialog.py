@@ -49,7 +49,7 @@ class PrintPreviewDialog(QDialog):
     def __init__(self, parent=None, contract_type="pawn",
                  pdf_generator_func=None,
                  contract_data=None, customer_data=None, product_data=None,
-                 original_contract_data=None, shop_data=None):
+                 original_contract_data=None, shop_data=None, font_size_multiplier=None):
         super().__init__(parent)
 
         self.contract_type = contract_type
@@ -59,6 +59,18 @@ class PrintPreviewDialog(QDialog):
         self.product_data = product_data or {}
         self.original_contract_data = original_contract_data or {}
         self.shop_data = shop_data or {}
+        
+        # Store font_size_multiplier if provided, otherwise load from config
+        if font_size_multiplier is not None:
+            self.font_size_multiplier = font_size_multiplier
+        else:
+            try:
+                from shop_config_loader import load_shop_config
+                shop_config = load_shop_config() or {}
+                font_size_percent = shop_config.get('font_size_percent', 100)
+                self.font_size_multiplier = font_size_percent / 100.0
+            except Exception:
+                self.font_size_multiplier = 1.0
 
         self.temp_pdf_path = None
         self.printers = []
@@ -234,7 +246,8 @@ class PrintPreviewDialog(QDialog):
                     self.pdf_generator_func(
                         contract_data=self.contract_data, customer_data=self.customer_data,
                         product_data=self.product_data, shop_data=self.shop_data,
-                        output_file=self.temp_pdf_path
+                        output_file=self.temp_pdf_path,
+                        font_size_multiplier=self.font_size_multiplier
                     )
                 else:
                     # For redemption contracts, use original_contract_data for contract info
@@ -250,13 +263,15 @@ class PrintPreviewDialog(QDialog):
                         self.pdf_generator_func(
                             contract_data=merged_contract_data, customer_data=self.customer_data,
                             product_data=self.product_data, shop_data=self.shop_data,
-                            output_file=self.temp_pdf_path
+                            output_file=self.temp_pdf_path,
+                            font_size_multiplier=self.font_size_multiplier
                         )
                     else:
                         self.pdf_generator_func(
                             contract_data=self.contract_data, customer_data=self.customer_data,
                             product_data=self.product_data, shop_data=self.shop_data,
-                            output_file=self.temp_pdf_path
+                            output_file=self.temp_pdf_path,
+                            font_size_multiplier=self.font_size_multiplier
                         )
             else:
                 # ตัวอย่าง minimal
@@ -676,13 +691,13 @@ class PrintPreviewDialog(QDialog):
 # ---------- helper ----------
 def show_print_preview(parent, contract_type, pdf_generator_func,
                        contract_data, customer_data, product_data,
-                       original_contract_data=None, shop_data=None):
+                       original_contract_data=None, shop_data=None, font_size_multiplier=None):
     dlg = PrintPreviewDialog(
         parent=parent, contract_type=contract_type,
         pdf_generator_func=pdf_generator_func,
         contract_data=contract_data, customer_data=customer_data,
         product_data=product_data, original_contract_data=original_contract_data,
-        shop_data=shop_data
+        shop_data=shop_data, font_size_multiplier=font_size_multiplier
     )
     ok = dlg.exec_()
     dlg.cleanup()

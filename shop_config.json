@@ -8,5 +8,7 @@
   "buyer_signer_name": "Test Buyer",
   "witness_name": "Test Witness",
   "interest_rate": 10.0,
-  "auto_calculate_interest": true
+  "auto_calculate_interest": true,
+  "default_paper_mode": 1,
+  "font_size_percent": 80
 }
