@@ -361,7 +361,7 @@ def generate_renewal_contract_pdf(original_contract_data: Dict, customer_data: D
     ]))
 
     footer = cell_para(
-        f"เอกสารต่อดอกสร้างโดยระบบ | เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        f"เลขที่สัญญา: {original_contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         "TH-mini"
     )
 
@@ -479,7 +479,7 @@ def generate_renewal_receipt_pdf(renewal_data: Dict, customer_data: Dict,
     ]))
 
     footer = Paragraph(
-        f"เอกสารสร้างโดยระบบ | เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        f"เลขที่สัญญา: {contract_number} | สร้างเมื่อ: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         styles["TH-mini"]
     )
 

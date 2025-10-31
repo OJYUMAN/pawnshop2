@@ -204,13 +204,9 @@ def _build_redemption_contract_html(
     condition = product_data.get("condition", "สภาพโดยรวมดี")
     accessories = product_data.get("accessories", "สายชาร์จและกล่องเดิม")
 
-    # เงื่อนไข: แยกแต่ละข้อ เพื่อให้กำหนดขนาดตัวอักษรได้ - สำหรับการไถ่คืน
+    # เงื่อนไข: ข้อ 1-5 ติดกันและเป็นตัวหนาทั้งหมด - สำหรับการไถ่คืน
     terms_text = f"""
-    <div class="term-large">ข้อ 1. ผู้ขายฝากได้ชำระเงินไถ่ถอนครบถ้วนจำนวน <span class="amount-underline">{money(redemption_amount)}</span> บาท ตามกำหนดเวลา</div>
-    <div class="term-large">ข้อ 2. ผู้ซื้อฝากได้ส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วนให้ผู้ขายฝากแล้ว</div>
-    <div class="term-small">ข้อ 3. สัญญาขายฝากเดิมเลขที่ {esc(contract_data.get('original_contract_number', contract_number))} สิ้นสุดลง</div>
-    <div class="term-small">ข้อ 4. ผู้ขายฝากรับรองว่าได้รับทรัพย์สินและอุปกรณ์ครบถ้วนในสภาพเดิม</div>
-    <div class="term-small">ข้อ 5. คู่สัญญาไม่มีข้อพิพาทใดๆ ต่อกัน</div>
+    <div class="term-bold-continuous">ข้อ 1. ผู้ขายฝากได้ชำระเงินไถ่ถอนครบถ้วนจำนวน <span class="amount-underline">{money(redemption_amount)}</span> บาท ตามกำหนดเวลา ข้อ 2. ผู้ซื้อฝากได้ส่งมอบทรัพย์สินและอุปกรณ์ครบถ้วนให้ผู้ขายฝากแล้ว ข้อ 3. สัญญาขายฝากเดิมเลขที่ {esc(contract_data.get('original_contract_number', contract_number))} สิ้นสุดลง ข้อ 4. ผู้ขายฝากรับรองว่าได้รับทรัพย์สินและอุปกรณ์ครบถ้วนในสภาพเดิม ข้อ 5. คู่สัญญาไม่มีข้อพิพาทใดๆ ต่อกัน</div>
     """
 
     # ฟุตเตอร์เวลา
@@ -226,7 +222,7 @@ def _build_redemption_contract_html(
     contract_number_font = scale_font(16)
     section_title_font = scale_font(15)
     term_large_font = scale_font(11)
-    term_small_font = scale_font(10)
+    term_small_font = scale_font(11)
     signature_font = scale_font(11)
     foot_font = scale_font(6)
     # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
@@ -339,6 +335,14 @@ def _build_redemption_contract_html(
       margin: 1mm 0;
       text-align: justify;
     }}
+    
+    .term-bold-continuous {{
+      font-size: {term_large_font}pt;
+      font-weight: 700;
+      line-height: 1.6;
+      margin: 1mm 0;
+      text-align: justify;
+    }}
 
     .signatures {{
       display: grid;
@@ -413,9 +417,7 @@ def _build_redemption_contract_html(
       </div>
     </div>
 
-    <div class="foot">
-      เอกสารสร้างโดยระบบ | เลขที่: {esc(contract_number)} | {esc(now_str)}
-    </div>
+  
   </div>
 </body>
 </html>"""

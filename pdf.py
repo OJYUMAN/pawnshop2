@@ -219,13 +219,9 @@ def _build_contract_html(
     condition = product_data.get("condition", "สภาพโดยรวมดี")
     accessories = product_data.get("accessories", "สายชาร์จและกล่องเดิม")
 
-    # เงื่อนไข: แยกแต่ละข้อ เพื่อให้กำหนดขนาดตัวอักษรได้
+    # เงื่อนไข: ข้อ 1-5 ติดกันและเป็นตัวหนาทั้งหมด
     terms_text = f"""
-    <div class="term-large">ข้อ 1. ผู้ซื้อฝากรับซื้อฝากในราคา <span class="amount-underline">{money(pawn_amount)}</span> บาท ผู้ขายฝากได้รับเงินครบแล้ว</div>
-    <div class="term-large">ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนภายใน {esc(str(days_count)) if days_count else '-'} วัน ชำระ <span class="amount-underline">{money(redemption_amount)}</span> บาท ภายในวันที่ {esc(end_date_th)} เวลา 18.00 น.</div>
-    <div class="term-small">ข้อ 3. หากไม่ชำระภายในกำหนด สละสิทธิ ผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน</div>
-    <div class="term-small">ข้อ 4. ผู้ขายฝากรับรองกรรมสิทธิ์ ไม่มีภาระผูกพัน ยินยอมตรวจสอบ IMEI/Serial</div>
-    <div class="term-small">ข้อ 5. กรณีสูญหาย/โจรกรรม แจ้งความและแจ้งผู้ซื้อฝากทันที</div>
+    <div class="term-bold-continuous">ข้อ 1. ผู้ซื้อฝากรับซื้อฝากในราคา <span class="amount-underline">{money(pawn_amount)}</span> บาท ผู้ขายฝากได้รับเงินครบแล้ว ข้อ 2. ผู้ขายฝากมีสิทธิไถ่ถอนภายใน {esc(str(days_count)) if days_count else '-'} วัน ชำระ <span class="amount-underline">{money(redemption_amount)}</span> บาท ภายในวันที่ {esc(end_date_th)} เวลา 18.00 น. ข้อ 3. หากไม่ชำระภายในกำหนด สละสิทธิ ผู้ซื้อฝากมีสิทธิจัดการทรัพย์สิน ข้อ 4. ผู้ขายฝากรับรองกรรมสิทธิ์ ไม่มีภาระผูกพัน ยินยอมตรวจสอบ IMEI/Serial ข้อ 5. กรณีสูญหาย/โจรกรรม แจ้งความและแจ้งผู้ซื้อฝากทันที</div>
     """
 
     # ฟุตเตอร์เวลา
@@ -241,7 +237,7 @@ def _build_contract_html(
     contract_number_font = scale_font(16)
     section_title_font = scale_font(15)
     term_large_font = scale_font(11)
-    term_small_font = scale_font(10)
+    term_small_font = scale_font(11)
     signature_font = scale_font(11)
     foot_font = scale_font(6)
     # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
@@ -354,6 +350,14 @@ def _build_contract_html(
       margin: 1mm 0;
       text-align: justify;
     }}
+    
+    .term-bold-continuous {{
+      font-size: {term_large_font}pt;
+      font-weight: 700;
+      line-height: 1.6;
+      margin: 1mm 0;
+      text-align: justify;
+    }}
 
     .signatures {{
       display: grid;
@@ -428,9 +432,7 @@ def _build_contract_html(
       </div>
     </div>
 
-    <div class="foot">
-      เอกสารสร้างโดยระบบ | เลขที่: {esc(contract_number)} | {esc(now_str)}
-    </div>
+ 
   </div>
 </body>
 </html>"""
