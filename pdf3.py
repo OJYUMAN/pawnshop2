@@ -226,11 +226,8 @@ def _build_redemption_contract_html(
     signature_font = scale_font(11)
     foot_font = scale_font(6)
     # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
-    # ที่ขนาด 85 (multiplier = 0.85) ระยะห่างเป็น 0
-    if abs(font_size_multiplier - 0.85) < 0.01:
-        signature_margin_top = -20
-    else:
-        signature_margin_top = 8 * font_size_multiplier
+    # ตั้งค่าให้ช่องลงชื่อชิดกับแถวสุดท้ายของข้อมูล
+    signature_margin_top = -10
 
     # HTML + CSS (inline) — ครึ่งหน้า A4, 0 margin, ตัวอักษรใหญ่
     html_doc = f"""<!DOCTYPE html>
@@ -260,6 +257,7 @@ def _build_redemption_contract_html(
       color: #000;
       background: white;
       font-size: {body_font}pt;
+      font-weight: 700;
       line-height: 1.4;
     }}
 
@@ -292,6 +290,7 @@ def _build_redemption_contract_html(
       gap: 2mm;
       margin: 0.3mm 0;
       font-size: {meta_font}pt;
+      font-weight: 700;
       line-height: 1.3;
     }}
     .contract-number {{
@@ -312,6 +311,7 @@ def _build_redemption_contract_html(
       margin: 0.3mm 0;
       padding: 0 1mm;
       text-align: justify;
+      font-weight: 700;
       line-height: 1.4;
     }}
     .indent {{ text-indent: 5mm; }}
@@ -331,6 +331,7 @@ def _build_redemption_contract_html(
     
     .term-small {{
       font-size: {term_small_font}pt;
+      font-weight: 700;
       line-height: 1.5;
       margin: 1mm 0;
       text-align: justify;
@@ -352,6 +353,7 @@ def _build_redemption_contract_html(
       padding: 0 1mm;
       margin: {signature_margin_top}mm 0 0 0;
       font-size: {signature_font}pt;
+      font-weight: 700;
     }}
     .sig-line {{ 
       white-space: nowrap;
@@ -360,6 +362,7 @@ def _build_redemption_contract_html(
 
     .foot {{
       font-size: {foot_font}pt;
+      font-weight: 700;
       text-align: right;
       padding: 0 1mm;
       margin: 0;
