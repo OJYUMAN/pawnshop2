@@ -4,7 +4,7 @@
 Generate Thai pawn-contract PDF using WeasyPrint only.
 
 - ใช้ WeasyPrint เรนเดอร์ HTML → PDF (ไม่มี ReportLab)
-- ครึ่งหน้า A4 (สูง 148.5mm), margin = 0
+- HA4 แนวนอน (210mm × 148.5mm), margin = 5mm รอบด้าน
 - ฟอนต์ไทย: พยายามใช้ "TH Sarabun New" ถ้ามีในระบบ, สำรองเป็น "Sarabun", "Noto Sans Thai"
 - รองรับฟังก์ชันชื่อเดิม: generate_pawn_ticket_pdf_data(), generate_pawn_contract_html(), generate_pawn_ticket_from_data()
 - ใช้พารามิเตอร์ข้อมูลแบบเดิม (contract_data, customer_data, product_data, shop_data)
@@ -242,7 +242,7 @@ def _build_contract_html(
     foot_font = scale_font(6)
     # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
     # ตั้งค่าให้ช่องลงชื่อชิดกับแถวสุดท้ายของข้อมูล
-    signature_margin_top = -40
+    signature_margin_top = -25
 
     # HTML + CSS (inline) — ครึ่งหน้า A4, 0 margin, ตัวอักษรใหญ่
     html_doc = f"""<!DOCTYPE html>
@@ -255,8 +255,8 @@ def _build_contract_html(
     {_font_face_block()}
 
     @page {{
-      size: A4;
-      margin: 5mm;
+      size: 210mm 148.5mm;        /* HA4 แนวนอน: กว้าง 210mm × สูง 148.5mm */
+      margin: 5mm;                /* margin 5mm รอบด้าน */
     }}
     html, body {{
       margin: 0; padding: 0;
@@ -273,17 +273,25 @@ def _build_contract_html(
       background: white;
       font-size: {body_font}pt;
       font-weight: 700;
-      line-height: 1.4;
+      line-height: 1.3;
     }}
 
     .page {{
-      width: 200mm;
-      height: 138.5mm;           /* ครึ่งหน้า A4 minus margin */
+      width: 200mm;               /* กว้าง 210mm - margin 5mm × 2 = 200mm */
+      height: 138.5mm;            /* สูง 148.5mm - margin 5mm × 2 = 138.5mm */
       margin: 0 auto;
       padding: 0;
       display: grid;
-      grid-template-rows: auto 1fr auto auto; /* header / content / signatures / foot */
-      row-gap: 1mm;              /* ลดระยะห่าง */
+      grid-template-rows: auto 1fr auto; /* header / content / signatures */
+      row-gap: 0mm;               /* ลบระยะห่างระหว่าง grid rows */
+      max-height: 138.5mm;        /* จำกัดความสูงให้พอดีหน้า */
+      overflow: hidden;            /* ป้องกันเนื้อหาล้น */
+    }}
+    
+    .page > div:nth-child(2) {{
+      overflow: hidden;            /* ป้องกันเนื้อหาล้นในส่วน content */
+      min-height: 0;               /* อนุญาตให้ย่อได้ */
+      margin-bottom: -10mm;        /* ลดระยะห่างด้านล่างเพื่อให้ชิดกับลายเซ็น */
     }}
 
     h1 {{
@@ -291,8 +299,8 @@ def _build_contract_html(
       font-weight: 700;
       font-size: {h1_font}pt;
       margin: 0;
-      line-height: 1.2;
-      padding: 0.5mm 1mm 0 1mm;
+      line-height: 1.1;
+      padding: 0.3mm 1mm 0 1mm;
     }}
 
     .meta {{
@@ -303,10 +311,10 @@ def _build_contract_html(
       display: flex;
       justify-content: space-between;
       gap: 2mm;
-      margin: 0.3mm 0;
+      margin: 0.2mm 0;
       font-size: {meta_font}pt;
       font-weight: 700;
-      line-height: 1.3;
+      line-height: 1.2;
     }}
     .contract-number {{
       font-size: {contract_number_font}pt;
@@ -316,9 +324,9 @@ def _build_contract_html(
 
     .section-title {{
       font-weight: 700;
-      margin: 0.5mm 0 0.3mm 0;
+      margin: 0.2mm 0 0.1mm 0;
       padding: 0 1mm;
-      line-height: 1.3;
+      line-height: 1.2;
       font-size: {section_title_font}pt;
       display: block;
     }}
@@ -329,16 +337,16 @@ def _build_contract_html(
     }}
 
     p {{
-      margin: 0.3mm 0;
+      margin: 0.2mm 0;
       padding: 0 1mm;
       text-align: justify;
       font-weight: 700;
-      line-height: 1.4;
+      line-height: 1.25;
     }}
     .indent {{ text-indent: 5mm; }}
 
     .terms {{
-      margin-top: 0.3mm;
+      margin-top: 0.1mm;
       padding: 0 1mm;
     }}
     
@@ -361,8 +369,8 @@ def _build_contract_html(
     .term-bold-continuous {{
       font-size: {term_large_font}pt;
       font-weight: 700;
-      line-height: 1.6;
-      margin: 1mm 0;
+      line-height: 1.4;
+      margin: 0.5mm 0;
       text-align: justify;
     }}
 
@@ -375,10 +383,11 @@ def _build_contract_html(
       margin: {signature_margin_top}mm 0 0 0;
       font-size: {signature_font}pt;
       font-weight: 700;
+      align-self: start;           /* จัดให้อยู่ด้านบนของ grid row เพื่อให้ margin-top ทำงาน */
     }}
     .sig-line {{ 
       white-space: nowrap;
-      line-height: 1.3;
+      line-height: 1.2;
     }}
 
     .foot {{
@@ -395,6 +404,15 @@ def _build_contract_html(
       padding: 0 50px;
       display: inline-block;
       min-width: 30px;
+    }}
+    
+    .product-content {{
+      font-size: {term_large_font}pt;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0.2mm 0;
+      padding: 0 1mm;
+      text-align: justify;
     }}
   </style>
 </head>
@@ -414,8 +432,9 @@ def _build_contract_html(
         ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age,(int,float)) else ""} เลขบัตรประชาชน {esc(id_card)} ที่อยู่ {esc(addr_text)} โทร {esc(phone)} ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>" กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)} ที่ตั้ง {esc(shop_address)} โทร {esc(shop_phone)} โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
       </p>
 
-      <p class="indent">
-        <span class="section-title">รายละเอียดทรัพย์สิน:</span> โทรศัพท์มือถือยี่ห้อ {esc(brand or 'ไม่ระบุ')} รุ่น {esc(model or 'ไม่ระบุ')}{(" สี " + esc(color)) if color else ""}{" IMEI1: " + esc(imei1) if imei1 else ""}{" IMEI2: " + esc(imei2) if imei2 else ""}{" Serial: " + esc(serial) if serial else ""} สภาพ{esc(condition)} อุปกรณ์: {esc(accessories)}
+      <div class="section-title">รายละเอียดทรัพย์สิน</div>
+      <p class="product-content indent">
+        โทรศัพท์มือถือยี่ห้อ {esc(brand or 'ไม่ระบุ')} รุ่น {esc(model or 'ไม่ระบุ')}{(" สี " + esc(color)) if color else ""}{" IMEI1: " + esc(imei1) if imei1 else ""}{" IMEI2: " + esc(imei2) if imei2 else ""}{" Serial: " + esc(serial) if serial else ""} สภาพ{esc(condition)} อุปกรณ์: {esc(accessories)}
       </p>
 
       <div class="section-title">ข้อตกลงและเงื่อนไข</div>
@@ -457,7 +476,7 @@ def generate_pawn_contract_html(
     font_size_multiplier: float = 1.0,
 ) -> str:
     """
-    เขียนไฟล์ HTML ของสัญญาขายฝาก (ครึ่ง A4, margin=0, ตัวอักษรใหญ่)
+    เขียนไฟล์ HTML ของสัญญาขายฝาก (HA4 แนวนอน, margin 5mm, ตัวอักษรใหญ่)
     """
     # allow overriding witness by arg
     if witness_name:
@@ -482,7 +501,7 @@ def generate_pawn_ticket_pdf_data(
     font_size_multiplier: float = 1.0,
 ) -> str:
     """
-    สร้าง PDF สัญญาขายฝากแบบครึ่งหน้า A4 ด้วย WeasyPrint เท่านั้น
+    สร้าง PDF สัญญาขายฝากแบบ HA4 แนวนอน (210mm × 148.5mm) ด้วย WeasyPrint เท่านั้น
     """
     html_doc = _build_contract_html(contract_data, customer_data, product_data, shop_data, font_size_multiplier)
 

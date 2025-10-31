@@ -10,5 +10,5 @@
   "interest_rate": 10.0,
   "auto_calculate_interest": true,
   "default_paper_mode": 1,
-  "font_size_percent": 95
+  "font_size_percent": 100
 }
