@@ -227,7 +227,7 @@ def _build_redemption_contract_html(
     foot_font = scale_font(6)
     # คำนวณระยะห่างลายเซ็นตามขนาดตัวอักษร
     # ตั้งค่าให้ช่องลงชื่อชิดกับแถวสุดท้ายของข้อมูล
-    signature_margin_top = -10
+    signature_margin_top = -40
 
     # HTML + CSS (inline) — ครึ่งหน้า A4, 0 margin, ตัวอักษรใหญ่
     html_doc = f"""<!DOCTYPE html>
@@ -305,6 +305,12 @@ def _build_redemption_contract_html(
       padding: 0 1mm;
       line-height: 1.3;
       font-size: {section_title_font}pt;
+      display: block;
+    }}
+    span.section-title {{
+      display: inline;
+      margin: 0;
+      padding: 0;
     }}
 
     p {{
@@ -393,9 +399,8 @@ def _build_redemption_contract_html(
         ระหว่าง {esc(full_name)}{f" อายุ {int(age)} ปี" if isinstance(age,(int,float)) else ""} เลขบัตรประชาชน {esc(id_card)} ที่อยู่ {esc(addr_text)} โทร {esc(phone)} ซึ่งเรียกว่า "<strong>ผู้ขายฝาก</strong>" กับ {esc(shop_name)} {esc(shop_branch)} เลขประจำตัวผู้เสียภาษี {esc(shop_tax_id)} ที่ตั้ง {esc(shop_address)} โทร {esc(shop_phone)} โดย{esc(authorized_signer)} เป็นผู้มีอำนาจลงนาม ซึ่งเรียกว่า "<strong>ผู้ซื้อฝาก</strong>"
       </p>
 
-      <div class="section-title">รายละเอียดทรัพย์สิน</div>
       <p class="indent">
-        โทรศัพท์มือถือยี่ห้อ {esc(brand or 'ไม่ระบุ')} รุ่น {esc(model or 'ไม่ระบุ')}{(" สี " + esc(color)) if color else ""}{" IMEI1: " + esc(imei1) if imei1 else ""}{" IMEI2: " + esc(imei2) if imei2 else ""}{" Serial: " + esc(serial) if serial else ""} สภาพ{esc(condition)} อุปกรณ์: {esc(accessories)}
+        <span class="section-title">รายละเอียดทรัพย์สิน:</span> โทรศัพท์มือถือยี่ห้อ {esc(brand or 'ไม่ระบุ')} รุ่น {esc(model or 'ไม่ระบุ')}{(" สี " + esc(color)) if color else ""}{" IMEI1: " + esc(imei1) if imei1 else ""}{" IMEI2: " + esc(imei2) if imei2 else ""}{" Serial: " + esc(serial) if serial else ""} สภาพ{esc(condition)} อุปกรณ์: {esc(accessories)}
       </p>
 
       <div class="section-title">ข้อตกลงและเงื่อนไข</div>
