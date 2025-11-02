@@ -830,9 +830,27 @@ class CustomerDialog(QDialog):
                     QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตข้อมูลลูกค้าได้")
             else:  # เพิ่มใหม่
                 # ตรวจสอบข้อมูลซ้ำก่อนเพิ่ม
-                if self.db.check_customer_exists(id_card=id_card, customer_code=customer_data['customer_code']):
-                    QMessageBox.warning(self, "แจ้งเตือน", 
-                        "ลูกค้านี้มีอยู่ในระบบแล้ว (เลขบัตรประชาชนหรือรหัสลูกค้าซ้ำ)")
+                existing_customer = None
+                duplicate_type = ""
+                
+                if id_card and self.db.check_customer_exists(id_card=id_card):
+                    existing_customer = self.db.get_customer_by_id_card(id_card)
+                    duplicate_type = "เลขบัตรประชาชน"
+                elif customer_data['customer_code'] and self.db.check_customer_exists(customer_code=customer_data['customer_code']):
+                    existing_customer = self.db.get_customer_by_code(customer_data['customer_code'])
+                    duplicate_type = "รหัสลูกค้า"
+                
+                if existing_customer:
+                    # เลือกใช้ลูกค้าที่มีอยู่แล้ว (ข้อมูลเก่า)
+                    # ส่งข้อมูลกลับไปยัง main app เพื่อทำงานต่อ
+                    self.customer_data = dict(existing_customer)
+                    
+                    customer_name = f"{existing_customer.get('first_name', '')} {existing_customer.get('last_name', '')}".strip()
+                    QMessageBox.information(self, "ข้อมูลลูกค้า", 
+                        f"{duplicate_type} นี้มีอยู่ในระบบแล้ว\nเลือกใช้ข้อมูลลูกค้า: {customer_name}")
+                    
+                    # ส่งข้อมูลกลับไปยัง main app เพื่อทำงานต่อ (เหมือนกดบันทึกสำเร็จ)
+                    self.accept()
                     return
                 
                 customer_id = self.db.add_customer(customer_data)

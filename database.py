@@ -1149,6 +1149,19 @@ class PawnShopDatabase:
                 return dict(zip(columns, row))
             return None
     
+    def get_customer_by_id_card(self, id_card: str) -> Optional[Dict]:
+        """ดึงข้อมูลลูกค้าตามเลขบัตรประชาชน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT * FROM customers WHERE id_card = ?
+            ''', (id_card,))
+            row = cursor.fetchone()
+            if row:
+                columns = [description[0] for description in cursor.description]
+                return dict(zip(columns, row))
+            return None
+    
     def get_product_id_by_serial(self, serial_number: str) -> Optional[int]:
         """ดึง ID ของสินค้าตามหมายเลขซีเรียล"""
         with self.get_connection() as conn:

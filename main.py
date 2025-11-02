@@ -2551,13 +2551,26 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
             return
 
         # ตรวจสอบความซ้ำซ้อนของรหัสลูกค้าและเลขบัตรประชาชน
-        if self.db.check_customer_exists(customer_code=customer_code):
-            QMessageBox.warning(self, "แจ้งเตือน", f"รหัสลูกค้า {customer_code} มีอยู่ในระบบแล้ว กรุณาสร้างรหัสใหม่")
-            self.generate_new_customer_code()
-            return
+        existing_customer = None
+        duplicate_type = ""
         
-        if self.db.check_customer_exists(id_card=id_card):
-            QMessageBox.warning(self, "แจ้งเตือน", f"เลขบัตรประชาชน {id_card} มีอยู่ในระบบแล้ว")
+        if self.db.check_customer_exists(customer_code=customer_code):
+            existing_customer = self.db.get_customer_by_code(customer_code)
+            duplicate_type = "รหัสลูกค้า"
+        
+        if not existing_customer and self.db.check_customer_exists(id_card=id_card):
+            existing_customer = self.db.get_customer_by_id_card(id_card)
+            duplicate_type = "เลขบัตรประชาชน"
+        
+        if existing_customer:
+            # เลือกใช้ลูกค้าที่มีอยู่แล้ว (เหมือนกดบันทึกลูกค้าใหม่)
+            self.current_customer = existing_customer
+            self.load_customer_data()
+            self.toggle_customer_mode()
+            
+            customer_name = f"{existing_customer.get('first_name', '')} {existing_customer.get('last_name', '')}".strip()
+            QMessageBox.information(self, "ข้อมูลลูกค้า", 
+                f"{duplicate_type} นี้มีอยู่ในระบบแล้ว\nเลือกใช้ข้อมูลลูกค้า: {customer_name}")
             return
 
         try:
