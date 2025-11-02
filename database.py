@@ -843,6 +843,57 @@ class PawnShopDatabase:
                 'renewals_amount': renewals[1] or 0
             }
     
+    def get_monthly_summary(self, year: int, month: int) -> Dict:
+        """สรุปรายเดือน"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # สัญญาใหม่
+            cursor.execute('''
+                SELECT COUNT(*), SUM(pawn_amount) FROM contracts 
+                WHERE strftime('%Y-%m', start_date) = ?
+            ''', (f"{year:04d}-{month:02d}",))
+            new_contracts = cursor.fetchone()
+            
+            # การไถ่คืน
+            cursor.execute('''
+                SELECT COUNT(*), SUM(redemption_amount) FROM redemptions 
+                WHERE strftime('%Y-%m', redemption_date) = ?
+            ''', (f"{year:04d}-{month:02d}",))
+            redemptions = cursor.fetchone()
+            
+            # การชำระดอกเบี้ย
+            cursor.execute('''
+                SELECT COUNT(*), SUM(total_amount) FROM interest_payments 
+                WHERE strftime('%Y-%m', payment_date) = ?
+            ''', (f"{year:04d}-{month:02d}",))
+            interest_payments = cursor.fetchone()
+            
+            # การต่อดอก
+            cursor.execute('''
+                SELECT COUNT(*), SUM(total_amount) FROM renewals 
+                WHERE strftime('%Y-%m', renewal_date) = ?
+            ''', (f"{year:04d}-{month:02d}",))
+            renewals = cursor.fetchone()
+            
+            # คำนวณดอกเบี้ยรวมและกำไร
+            total_interest = (interest_payments[1] or 0) + (renewals[1] or 0)
+            
+            return {
+                'year': year,
+                'month': month,
+                'new_contracts_count': new_contracts[0] or 0,
+                'new_contracts_amount': new_contracts[1] or 0,
+                'redemptions_count': redemptions[0] or 0,
+                'redemptions_amount': redemptions[1] or 0,
+                'interest_payments_count': interest_payments[0] or 0,
+                'interest_payments_amount': interest_payments[1] or 0,
+                'renewals_count': renewals[0] or 0,
+                'renewals_amount': renewals[1] or 0,
+                'total_interest': total_interest,
+                'total_profit': total_interest
+            }
+    
     def get_expiring_contracts(self, days: int = 7) -> List[Dict]:
         """ดึงสัญญาที่ใกล้ครบกำหนด"""
         with self.get_connection() as conn:
@@ -866,7 +917,7 @@ class PawnShopDatabase:
             return []
     
     def get_forfeited_contracts(self) -> List[Dict]:
-        """ดึงสัญญาที่หลุดจำนำ (ครบกำหนดแล้วแต่ยังไม่ได้ไถ่คืน)"""
+        """ดึงสัญญาที่ครบกำหนด (ครบกำหนดแล้วแต่ยังไม่ได้ไถ่คืน)"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -877,7 +928,7 @@ class PawnShopDatabase:
                 JOIN customers cu ON c.customer_id = cu.id
                 JOIN products p ON c.product_id = p.id
                 WHERE c.status = 'active' 
-                AND DATE(c.end_date) < DATE('now')
+                AND DATE(c.end_date) <= DATE('now')
                 ORDER BY c.end_date DESC
             ''')
             

@@ -195,7 +195,7 @@ class DataViewerDialog(QDialog):
         return widget
     
     def create_forfeited_tab(self):
-        """สร้าง Tab รายการหลุด"""
+        """สร้าง Tab รายการครบกำหนด"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
@@ -208,7 +208,7 @@ class DataViewerDialog(QDialog):
         filter_layout.addWidget(self.forfeited_search_edit)
         
         # ตัวกรองวันที่
-        filter_layout.addWidget(QLabel("วันที่หลุด:"))
+        filter_layout.addWidget(QLabel("วันที่ครบกำหนด:"))
         self.forfeited_date_from = QDateEdit()
         self.forfeited_date_from.setDate(QDate.currentDate().addDays(-30))
         self.forfeited_date_from.setCalendarPopup(True)
@@ -224,16 +224,16 @@ class DataViewerDialog(QDialog):
         
         layout.addLayout(filter_layout)
         
-        # ตารางรายการหลุด
+        # ตารางรายการครบกำหนด
         self.forfeited_table = QTableWidget()
-        self.forfeited_table.setColumnCount(9)
+        self.forfeited_table.setColumnCount(8)
         self.forfeited_table.setHorizontalHeaderLabels([
             "เลขที่สัญญา", "ชื่อลูกค้า", "เบอร์โทรศัพท์", "ชื่อสินค้า", "ยี่ห้อ", 
-            "ยอดฝาก", "วันที่ครบกำหนด", "วันที่หลุด", "การดำเนินการ"
+            "ยอดฝาก", "วันที่ครบกำหนด", "การดำเนินการ"
         ])
         self.forfeited_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.forfeited_table.horizontalHeader().setSectionResizeMode(8, QHeaderView.Fixed)
-        self.forfeited_table.setColumnWidth(8, 100)
+        self.forfeited_table.horizontalHeader().setSectionResizeMode(7, QHeaderView.Fixed)
+        self.forfeited_table.setColumnWidth(7, 180)
         layout.addWidget(self.forfeited_table)
         
         return widget
@@ -281,6 +281,17 @@ class DataViewerDialog(QDialog):
         summary_layout.addWidget(QLabel("ยอดไถ่คืนรวม:"), 6, 0)
         self.total_redemption_label = QLabel("0.00 บาท")
         summary_layout.addWidget(self.total_redemption_label, 6, 1)
+        
+        # ดอกเบี้ยรวม
+        summary_layout.addWidget(QLabel("ดอกเบี้ยรวม:"), 7, 0)
+        self.total_interest_label = QLabel("0.00 บาท")
+        summary_layout.addWidget(self.total_interest_label, 7, 1)
+        
+        # กำไรสุทธิ
+        summary_layout.addWidget(QLabel("กำไรสุทธิ:"), 8, 0)
+        self.total_profit_label = QLabel("0.00 บาท")
+        self.total_profit_label.setStyleSheet("font-weight: bold; color: #28a745; font-size: 14px;")
+        summary_layout.addWidget(self.total_profit_label, 8, 1)
         
         layout.addWidget(summary_group)
         
@@ -486,7 +497,7 @@ class DataViewerDialog(QDialog):
             QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลสัญญา: {}".format(str(e)))
     
     def load_forfeited_contracts(self):
-        """โหลดข้อมูลสินค้าที่หลุดจำนำ"""
+        """โหลดข้อมูลสินค้าที่ครบกำหนด"""
         try:
             forfeited_contracts = self.db.get_forfeited_contracts()
             self.forfeited_table.setRowCount(len(forfeited_contracts))
@@ -514,29 +525,35 @@ class DataViewerDialog(QDialog):
                     date_str = ''
                 self.forfeited_table.setItem(row, 6, QTableWidgetItem(date_str))
                 
-                # วันที่หลุด (วันที่ครบกำหนด)
-                forfeited_date = end_date
-                if forfeited_date:
-                    try:
-                        date_obj = datetime.fromisoformat(forfeited_date)
-                        date_str = date_obj.strftime('%d/%m/%Y')
-                    except:
-                        date_str = forfeited_date
-                else:
-                    date_str = ''
-                self.forfeited_table.setItem(row, 7, QTableWidgetItem(date_str))
+                # เก็บ contract_id ไว้ใน item
+                self.forfeited_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
                 
-                # เพิ่มปุ่มดูรายละเอียด
-                view_button = QPushButton("ดูรายละเอียด")
-                view_button.setStyleSheet("QPushButton { background-color: #007bff; color: white; border: none; padding: 5px; }")
-                view_button.clicked.connect(lambda checked, row=row: self.view_forfeited_details(row))
-                self.forfeited_table.setCellWidget(row, 8, view_button)
+                # สร้าง widget สำหรับปุ่ม
+                button_widget = QWidget()
+                button_layout = QHBoxLayout(button_widget)
+                button_layout.setContentsMargins(5, 2, 5, 2)
+                button_layout.setSpacing(5)
+                
+                # ปุ่มหลุด
+                forfeit_button = QPushButton("หลุด")
+                forfeit_button.setStyleSheet("QPushButton { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; } QPushButton:hover { background-color: #c82333; }")
+                forfeit_button.clicked.connect(lambda checked, row=row: self.forfeit_contract(row))
+                button_layout.addWidget(forfeit_button)
+                
+                # ปุ่มซื้อคืน
+                buy_back_button = QPushButton("ซื้อคืน")
+                buy_back_button.setStyleSheet("QPushButton { background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; } QPushButton:hover { background-color: #218838; }")
+                buy_back_button.clicked.connect(lambda checked, row=row: self.buy_back_contract(row))
+                button_layout.addWidget(buy_back_button)
+                
+                button_layout.addStretch()
+                self.forfeited_table.setCellWidget(row, 7, button_widget)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลรายการหลุด: {}".format(str(e)))
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถโหลดข้อมูลรายการครบกำหนด: {}".format(str(e)))
     
     def filter_forfeited_contracts(self):
-        """กรองข้อมูลรายการหลุด"""
+        """กรองข้อมูลรายการครบกำหนด"""
         search_term = self.forfeited_search_edit.text().strip()
         date_from = self.forfeited_date_from.date().toString('yyyy-MM-dd')
         date_to = self.forfeited_date_to.date().toString('yyyy-MM-dd')
@@ -597,53 +614,110 @@ class DataViewerDialog(QDialog):
                     date_str = ''
                 self.forfeited_table.setItem(row, 6, QTableWidgetItem(date_str))
                 
-                # วันที่หลุด (วันที่ครบกำหนด)
-                forfeited_date = end_date
-                if forfeited_date:
-                    try:
-                        date_obj = datetime.fromisoformat(forfeited_date)
-                        date_str = date_obj.strftime('%d/%m/%Y')
-                    except:
-                        date_str = forfeited_date
-                else:
-                    date_str = ''
-                self.forfeited_table.setItem(row, 7, QTableWidgetItem(date_str))
+                # เก็บ contract_id ไว้ใน item
+                self.forfeited_table.item(row, 0).setData(Qt.UserRole, contract.get('id'))
                 
-                # เพิ่มปุ่มดูรายละเอียด
-                view_button = QPushButton("ดูรายละเอียด")
-                view_button.setStyleSheet("QPushButton { background-color: #007bff; color: white; border: none; padding: 5px; }")
-                view_button.clicked.connect(lambda checked, row=row: self.view_forfeited_details(row))
-                self.forfeited_table.setCellWidget(row, 8, view_button)
+                # สร้าง widget สำหรับปุ่ม
+                button_widget = QWidget()
+                button_layout = QHBoxLayout(button_widget)
+                button_layout.setContentsMargins(5, 2, 5, 2)
+                button_layout.setSpacing(5)
+                
+                # ปุ่มหลุด
+                forfeit_button = QPushButton("หลุด")
+                forfeit_button.setStyleSheet("QPushButton { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; } QPushButton:hover { background-color: #c82333; }")
+                forfeit_button.clicked.connect(lambda checked, row=row: self.forfeit_contract(row))
+                button_layout.addWidget(forfeit_button)
+                
+                # ปุ่มซื้อคืน
+                buy_back_button = QPushButton("ซื้อคืน")
+                buy_back_button.setStyleSheet("QPushButton { background-color: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; } QPushButton:hover { background-color: #218838; }")
+                buy_back_button.clicked.connect(lambda checked, row=row: self.buy_back_contract(row))
+                button_layout.addWidget(buy_back_button)
+                
+                button_layout.addStretch()
+                self.forfeited_table.setCellWidget(row, 7, button_widget)
                 
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลรายการหลุด: {}".format(str(e)))
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถกรองข้อมูลรายการครบกำหนด: {}".format(str(e)))
     
-    def view_forfeited_details(self, row: int):
-        """ดูรายละเอียดสินค้าที่หลุดจำนำ"""
+    def forfeit_contract(self, row: int):
+        """หลุดจำนำสินค้า"""
         try:
+            # ดึง contract_id จาก table item
+            contract_id = self.forfeited_table.item(row, 0).data(Qt.UserRole)
+            if not contract_id:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
+                return
+            
             contract_number = self.forfeited_table.item(row, 0).text()
             customer_name = self.forfeited_table.item(row, 1).text()
             product_name = self.forfeited_table.item(row, 3).text()
-            pawn_amount = self.forfeited_table.item(row, 5).text()
-            end_date = self.forfeited_table.item(row, 6).text()
             
-            # สร้างข้อความรายละเอียด
-            details = f"""
-รายละเอียดสินค้าหลุดจำนำ
-
-เลขที่สัญญา: {contract_number}
-ชื่อลูกค้า: {customer_name}
-ชื่อสินค้า: {product_name}
-ยอดฝาก: {pawn_amount} บาท
-วันที่ครบกำหนด: {end_date}
-
-หมายเหตุ: สินค้านี้หลุดจำนำเนื่องจากครบกำหนดแล้วแต่ยังไม่ได้ไถ่คืน
-            """
+            # ยืนยันการหลุดจำนำ
+            reply = QMessageBox.question(
+                self,
+                "ยืนยันการหลุดจำนำ",
+                f"คุณต้องการให้สินค้าหลุดจำนำหรือไม่?\n\nเลขที่สัญญา: {contract_number}\nชื่อลูกค้า: {customer_name}\nชื่อสินค้า: {product_name}",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
             
-            QMessageBox.information(self, "รายละเอียดสินค้าหลุดจำนำ", details)
+            if reply == QMessageBox.StandardButton.Yes:
+                # อัปเดตสถานะสัญญาเป็น 'lost'
+                if self.db.update_contract_status(contract_id, 'lost'):
+                    QMessageBox.information(self, "สำเร็จ", f"สินค้าหลุดจำนำเรียบร้อยแล้ว\n\nเลขที่สัญญา: {contract_number}")
+                    # รีเฟรชข้อมูล
+                    self.load_forfeited_contracts()
+                else:
+                    QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถอัปเดตสถานะสัญญาได้")
             
         except Exception as e:
-            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถดูรายละเอียดได้: {}".format(str(e)))
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถหลุดจำนำได้: {}".format(str(e)))
+    
+    def buy_back_contract(self, row: int):
+        """ซื้อคืนสินค้า"""
+        try:
+            # ดึง contract_id จาก table item
+            contract_id = self.forfeited_table.item(row, 0).data(Qt.UserRole)
+            if not contract_id:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
+                return
+            
+            # ดึงข้อมูลสัญญาจากฐานข้อมูล
+            contract = self.db.get_contract_by_id(contract_id)
+            if not contract:
+                QMessageBox.warning(self, "แจ้งเตือน", "ไม่พบข้อมูลสัญญา")
+                return
+            
+            # ดึงข้อมูลลูกค้าและสินค้า
+            customer = self.db.get_customer_by_id(contract.get('customer_id'))
+            product = self.db.get_product_by_id(contract.get('product_id'))
+            
+            # สร้างข้อมูลสัญญาที่ครบถ้วน
+            full_contract_data = {
+                **contract,
+                'customer_id': contract.get('customer_id'),
+                'first_name': customer.get('first_name', '') if customer else '',
+                'last_name': customer.get('last_name', '') if customer else '',
+                'customer_code': customer.get('customer_code', '') if customer else '',
+                'id_card': customer.get('id_card', '') if customer else '',
+                'phone': customer.get('phone', '') if customer else '',
+                'product_name': product.get('name', '') if product else '',
+                'brand': product.get('brand', '') if product else '',
+                'serial_number': product.get('serial_number', '') if product else ''
+            }
+            
+            # เปิด dialog ซื้อคืน
+            from dialogs import RedemptionDialog
+            dialog = RedemptionDialog(self, full_contract_data)
+            if dialog.exec() == QDialog.Accepted:
+                QMessageBox.information(self, "สำเร็จ", "ซื้อคืนสินค้าเรียบร้อยแล้ว")
+                # รีเฟรชข้อมูล
+                self.load_forfeited_contracts()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "แจ้งเตือน", "ไม่สามารถซื้อคืนได้: {}".format(str(e)))
     
     def load_summary(self):
         """โหลดข้อมูลสรุป"""
@@ -681,6 +755,20 @@ class DataViewerDialog(QDialog):
             cursor.execute('SELECT SUM(total_redemption) FROM contracts')
             total_redemption = cursor.fetchone()[0] or 0
             self.total_redemption_label.setText("{:,.2f} บาท".format(total_redemption))
+            
+            # คำนวณดอกเบี้ยรวม (ดอกเบี้ย + การต่อดอก)
+            cursor.execute('SELECT SUM(total_amount) FROM interest_payments')
+            total_interest_payments = cursor.fetchone()[0] or 0
+            
+            cursor.execute('SELECT SUM(total_amount) FROM renewals')
+            total_renewals = cursor.fetchone()[0] or 0
+            
+            total_interest = total_interest_payments + total_renewals
+            self.total_interest_label.setText("{:,.2f} บาท".format(total_interest))
+            
+            # คำนวณกำไรสุทธิ (ดอกเบี้ยรวมเป็นกำไรหลัก)
+            total_profit = total_interest
+            self.total_profit_label.setText("{:,.2f} บาท".format(total_profit))
             
             conn.close()
             
@@ -818,14 +906,17 @@ class DataViewerDialog(QDialog):
     def filter_contracts(self):
         """กรองข้อมูลสัญญา"""
         search_term = self.contract_search_edit.text().strip()
-        status = self.status_combo.currentText()
+        status_text_combo = self.status_combo.currentText()
         
-        if status == "ทั้งหมด":
+        # แปลงสถานะจากภาษาไทยเป็นค่าที่ใช้ในฐานข้อมูล
+        if status_text_combo == "ทั้งหมด":
             status = "all"
-        elif status == "active":
+        elif status_text_combo == "สัญญาเปิด":
             status = "active"
-        elif status == "redeemed":
+        elif status_text_combo == "สัญญาปิด":
             status = "redeemed"
+        else:
+            status = "all"
         
         try:
             contracts = self.db.search_contracts(search_term, status)
@@ -865,9 +956,9 @@ class DataViewerDialog(QDialog):
                 self.contract_table.setItem(row, 5, QTableWidgetItem(date_str))
                 
                 # สถานะ
-                status = contract.get('status', '')
-                status_text = "เปิด" if status == 'active' else "ไถ่คืน" if status == 'redeemed' else status
-                self.contract_table.setItem(row, 6, QTableWidgetItem(status_text))
+                contract_status = contract.get('status', '')
+                status_display = "เปิด" if contract_status == 'active' else "ไถ่คืน" if contract_status == 'redeemed' else contract_status
+                self.contract_table.setItem(row, 6, QTableWidgetItem(status_display))
                 
                 self.contract_table.setItem(row, 7, QTableWidgetItem("{:,.2f}".format(contract.get('total_redemption', 0))))
                 

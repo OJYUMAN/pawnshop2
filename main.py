@@ -2508,9 +2508,101 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 
     def show_monthly_report(self):
         """แสดงรายงานประจำเดือน"""
-        QMessageBox.information(self, "รายงานประจำเดือน", "ฟีเจอร์รายงานประจำเดือน")
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QGridLayout, QGroupBox
+        from PySide6.QtCore import Qt
         
+        # สร้าง dialog สำหรับเลือกเดือน
+        dialog = QDialog(self)
+        dialog.setWindowTitle("รายงานประจำเดือน")
+        dialog.setModal(True)
+        dialog.resize(400, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # เลือกเดือน
+        month_layout = QGridLayout()
+        month_layout.addWidget(QLabel("เลือกเดือน:"), 0, 0)
+        
+        # ปี
+        month_layout.addWidget(QLabel("ปี:"), 1, 0)
+        year_combo = QComboBox()
+        current_year = datetime.now().year
+        for year in range(current_year - 5, current_year + 2):
+            year_combo.addItem(str(year))
+        year_combo.setCurrentText(str(current_year))
+        month_layout.addWidget(year_combo, 1, 1)
+        
+        # เดือน
+        month_layout.addWidget(QLabel("เดือน:"), 2, 0)
+        month_combo = QComboBox()
+        thai_months = [
+            ("มกราคม", 1), ("กุมภาพันธ์", 2), ("มีนาคม", 3), ("เมษายน", 4),
+            ("พฤษภาคม", 5), ("มิถุนายน", 6), ("กรกฎาคม", 7), ("สิงหาคม", 8),
+            ("กันยายน", 9), ("ตุลาคม", 10), ("พฤศจิกายน", 11), ("ธันวาคม", 12)
+        ]
+        month_values = {}
+        for month_name, month_num in thai_months:
+            month_combo.addItem(month_name)
+            month_values[month_name] = month_num
+        month_combo.setCurrentIndex(datetime.now().month - 1)
+        month_layout.addWidget(month_combo, 2, 1)
+        
+        layout.addLayout(month_layout)
+        
+        # ปุ่ม
+        button_layout = QHBoxLayout()
+        show_button = QPushButton("แสดงรายงาน")
+        def show_report():
+            try:
+                year = int(year_combo.currentText())
+                month_name = month_combo.currentText()
+                month = month_values[month_name]
+                self.display_monthly_report(year, month, dialog)
+            except Exception as e:
+                QMessageBox.warning(dialog, "ข้อผิดพลาด", f"เกิดข้อผิดพลาด: {str(e)}")
+        show_button.clicked.connect(show_report)
+        cancel_button = QPushButton("ยกเลิก")
+        cancel_button.clicked.connect(dialog.reject)
+        
+        button_layout.addWidget(show_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        
+        dialog.exec()
     
+    def display_monthly_report(self, year: int, month: int, parent_dialog):
+        """แสดงรายงานประจำเดือน"""
+        try:
+            summary = self.db.get_monthly_summary(year, month)
+            
+            thai_months = [
+                "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+                "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+                "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ]
+            month_name = thai_months[month - 1]
+            year_be = year + 543
+            
+            message = f"""
+รายงานประจำเดือน: {month_name} {year_be}
+
+=== สรุปข้อมูล ===
+สัญญาใหม่: {summary['new_contracts_count']} สัญญา ({summary['new_contracts_amount']:,.2f} บาท)
+การไถ่คืน: {summary['redemptions_count']} สัญญา ({summary['redemptions_amount']:,.2f} บาท)
+การชำระดอกเบี้ย: {summary['interest_payments_count']} ครั้ง ({summary['interest_payments_amount']:,.2f} บาท)
+การต่อดอก: {summary['renewals_count']} ครั้ง ({summary['renewals_amount']:,.2f} บาท)
+
+=== สรุปการเงิน ===
+ดอกเบี้ยรวม: {summary['total_interest']:,.2f} บาท
+กำไรสุทธิ: {summary['total_profit']:,.2f} บาท
+            """.strip()
+            
+            parent_dialog.accept()
+            QMessageBox.information(self, f"รายงานประจำเดือน {month_name} {year_be}", message)
+            
+        except Exception as e:
+            parent_dialog.accept()
+            QMessageBox.warning(self, "ข้อผิดพลาด", f"ไม่สามารถโหลดรายงานประจำเดือนได้: {str(e)}")
     
     
     

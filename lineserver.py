@@ -44,8 +44,10 @@ def send_line_message(channel_access_token, user_id, message):
 
 # ตัวอย่างการใช้งาน
 if __name__ == "__main__":
-    CHANNEL_ACCESS_TOKEN = "s4BtggEmX4IbMkVKOhk8PSlDyGoOxMA5m4eLpgYDOGIL1zqnVLjT92GaXk/S+7/DAxSlmRWNQDO7KT0+VvbOQDb1P/xGPxHLHFYcDsDFbaykVpLAAWTKPcaaLfAcTvEXXEGGaMAclwVBbkxM6OdyWQdB04t89/1O/w1cDnyilFU="
-    USER_ID = "U2b2ca0d3bbe61e7dadc5a393ec8d5e9c"
+    from line_config import LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
+    
+    CHANNEL_ACCESS_TOKEN = LINE_CHANNEL_ACCESS_TOKEN
+    USER_ID = LINE_USER_ID
     MESSAGE = "สวัสดีครับ! ทดสอบส่งข้อความจาก Python"
     
     send_line_message(CHANNEL_ACCESS_TOKEN, USER_ID, MESSAGE)
