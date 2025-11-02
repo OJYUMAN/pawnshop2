@@ -419,7 +419,7 @@ def _build_contract_html(
 <body>
   <div class="page">
     <div>
-      <h1>สัญญาขายฝาก (โทรศัพท์มือถือ)</h1>
+      <h1>สัญญาขายฝาก</h1>
       <div class="meta">
         <div class="row"><span class="contract-number">สัญญาเลขที่: {esc(contract_number)}</span></div>
         <div class="row"><span>ทำที่: {esc(place_line)}</span><span>วันที่: {esc(start_date_th)}</span></div>

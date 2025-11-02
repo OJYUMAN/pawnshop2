@@ -80,9 +80,9 @@ class DataViewerDialog(QDialog):
         contract_tab = self.create_contract_tab()
         tab_widget.addTab(contract_tab, "ข้อมูลสัญญา")
         
-        # Tab 4: รายการหลุด
+        # Tab 4: รายการครบกําหนด
         forfeited_tab = self.create_forfeited_tab()
-        tab_widget.addTab(forfeited_tab, "รายการหลุด")
+        tab_widget.addTab(forfeited_tab, "รายการครบกําหนด")
         
         # Tab 5: รายงานสรุป
         summary_tab = self.create_summary_tab()
@@ -173,7 +173,7 @@ class DataViewerDialog(QDialog):
         
         filter_layout.addWidget(QLabel("สถานะ:"))
         self.status_combo = QComboBox()
-        self.status_combo.addItems(["ทั้งหมด", "active", "redeemed"])
+        self.status_combo.addItems(["ทั้งหมด", "สัญญาเปิด", "สัญญาปิด"])
         self.status_combo.currentTextChanged.connect(self.filter_contracts)
         filter_layout.addWidget(self.status_combo)
         

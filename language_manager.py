@@ -102,7 +102,7 @@ _TRANSLATIONS = {
         "unit_gram": "กรัม",
         "unit_kilogram": "กิโลกรัม",
         "unit_baht": "บาท",
-        "serial_number": "หมายเลขซีเรียล:",
+        "serial_number": "หมายเลขเครื่อง:",
         "product_other_details": "รายละเอียดอื่นๆ:",
         "product_image": "รูปภาพสินค้า:",
         "no_image": "ไม่มีรูปภาพ",
