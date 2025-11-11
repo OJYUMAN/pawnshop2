@@ -2902,10 +2902,8 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     def get_contract_data(self):
         """ดึงข้อมูลสัญญาจาก UI"""
         try:
-            # คำนวณจำนวนวัน
-            start_date = self.start_date_edit.date()
-            end_date = QDate.fromString(self.end_date_edit.text(), "yyyy-MM-dd")
-            days_count = start_date.daysTo(end_date) if end_date.isValid() else 30
+            # ใช้ค่าจาก days_spin โดยตรง (เหมือนใน _create_pawn_contract_pdf)
+            days_count = self.days_spin.value()
             
             contract_data = {
                 'contract_number': self.contract_number_edit.text(),
